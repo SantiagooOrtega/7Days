@@ -16,7 +16,10 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 - No depender de assets de pago: primitivas, low-poly gratuito o generado por código.
 
 ## Decisiones
-- **Cámara:** primera persona (disparo por raycast, sin animaciones).
+- **Cámara/jugador (cambiado):** tercera persona con cámara sobre el hombro (Cinemachine), estilo shooter de coberturas inspirado en Gears of War (sin copiar assets ni personajes). Apuntar con clic derecho, disparo por raycast desde la cámara, recarga y cobertura simple (objetos marcados con componente/tag `Cover`). Reemplaza el FPS planeado antes.
+- **Look:** URP + Volume de post-procesado (desaturado, contraste alto, viñeta, bloom suave, grano leve), niebla, partículas de polvo, iluminación baked, mapa de ruinas industriales (Fase 2.5). Tras cada fase visual, pedir captura de Unity al usuario para ajustar.
+- **Rendimiento:** objetivo 60 FPS en la Mac del usuario. Object pooling (balas, zombies), límite configurable de zombies simultáneos, LODs, GPU instancing, perfil de calidad "Demo".
+- **Assets:** solo gratuitos (Mixamo, Kenney, Quaternius, Polyhaven, Asset Store gratis) o primitivas. Lista y pasos de importación en `docs/ASSETS.md`.
 - **IA director:** C# puro, función pura `rendimiento -> parámetros`, explicable y con tests EditMode. Sin internet.
 - **IA generativa:** Gemini solo desde el backend. Se genera por lotes, se valida con zod y se guarda en `generated_content`. Unity solo lee lo guardado. Fallback procedural local si Gemini falla o no hay cuota. Verificar modelo y límites en la doc actual de Gemini antes de la Fase 5.
 - **BD:** tablas `users`, `refresh_tokens`, `game_progress`, `rankings`, `generated_content`. JSON como texto y enums como string validado con zod (portabilidad SQLite/PostgreSQL).
@@ -30,5 +33,5 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 - Idioma: documentación y mensajes de commit en español; código en inglés.
 
 ## Pendientes
-- Versión de Unity del usuario: sin confirmar.
+- Versión de Unity del usuario: sin confirmar (define la versión de Cinemachine: 2.x en 2022.3, 3.x en Unity 6, y el template URP).
 - Versión de Node: la máquina tiene v25 (no LTS); si Prisma/argon2 fallan, usar Node 22 LTS.
