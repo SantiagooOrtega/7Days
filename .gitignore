@@ -1,0 +1,45 @@
+# --- Secretos ---
+.env
+.env.*
+!.env.example
+
+# --- Node / backend ---
+node_modules/
+dist/
+coverage/
+*.log
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# --- Unity (proyecto en /game) ---
+game/[Ll]ibrary/
+game/[Tt]emp/
+game/[Oo]bj/
+game/[Bb]uild/
+game/[Bb]uilds/
+game/[Ll]ogs/
+game/[Uu]ser[Ss]ettings/
+game/[Mm]emoryCaptures/
+game/[Rr]ecordings/
+game/.vs/
+game/.idea/
+game/.vscode/
+game/*.csproj
+game/*.sln
+game/*.suo
+game/*.user
+game/*.userprefs
+game/*.pidb
+game/*.booproj
+game/*.unityproj
+game/*.apk
+game/*.aab
+game/*.unitypackage
+game/sysinfo.txt
+game/crashlytics-build.session
+
+# --- SO / editores ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
