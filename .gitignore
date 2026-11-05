@@ -43,3 +43,8 @@ game/crashlytics-build.session
 .idea/
 .vscode/
 *.swp
+
+# Bases de datos locales
+*.db
+*.db-journal
+*.sqlite
