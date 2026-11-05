@@ -35,3 +35,4 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 ## Pendientes
 - Versión de Unity del usuario: sin confirmar (define la versión de Cinemachine: 2.x en 2022.3, 3.x en Unity 6, y el template URP).
 - Versión de Node: la máquina tiene v25 (no LTS); si Prisma/argon2 fallan, usar Node 22 LTS.
+- Puerto 3000 ocupado en la Mac del usuario por otro programa: el backend usa 3001.

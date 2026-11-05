@@ -1,0 +1,81 @@
+// SQLite para desarrollo/demo. Para PostgreSQL: cambiar provider y DATABASE_URL.
+// Se evitan enums y tipos Json nativos para que el esquema sea portable;
+// los JSON se guardan como texto y se validan con zod.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  refreshTokens RefreshToken[]
+  progress      GameProgress?
+  rankings      Ranking[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  familyId   String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model GameProgress {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  currentDay Int      @default(1)
+  inventory  String   @default("{}") // JSON
+  stats      String   @default("{}") // JSON
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("game_progress")
+}
+
+model Ranking {
+  id           String   @id @default(cuid())
+  userId       String
+  score        Int
+  daysSurvived Int
+  kills        Int
+  victory      Boolean
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([score])
+  @@map("rankings")
+}
+
+model GeneratedContent {
+  id        String   @id @default(cuid())
+  type      String // map | zombie | boss | character | weapon
+  data      String // JSON validado con zod
+  origin    String // gemini | procedural
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@map("generated_content")
+}
