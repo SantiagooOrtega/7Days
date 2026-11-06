@@ -47,3 +47,38 @@ A alcance máximo la pistola necesita 4 a la cabeza y 12 al cuerpo, y la escopet
 | explosive | 70 | 2/4 | 1/2 | 3/6 | 1/1 | 1/2 | 1/1 | 1/2 |
 
 Lectura: el **tanque** casi ignora la pistola y el subfusil (poca penetración, 35 % de resistencia) y pide revólver, fusil o francotirador; el **blindado** obliga a apuntar a la cabeza (el torso recibe ×0.35).
+
+## Armas al buscar (`Procedural/WeaponSearch.cs`, probado en `WeaponSearchTests`)
+Antes las armas solo estaban en las tablas `mid`/`high` con peso bajo, así que casi nunca salían. Ahora el arma es una tirada aparte; la munición y los botiquines se tiran en la misma tabla de siempre, sin armas, así que su escasez no cambia.
+
+**Probabilidad por contenedor** (antes del pity; `risk` ≥ 2 suma +3 % por nivel sobre 1; tope 25 %):
+| Contenedor | Base | Zona de riesgo 2 |
+|------------|------|------------------|
+| escombros (`rubble`) | 8 % | 11 % |
+| arbusto (`bush`) | 9 % | 12 % |
+| coche (`car`) | 11 % | 14 % |
+| caja (`crate`) | 12 % | 15 % |
+| mueble de la casa (`furniture`) | 15 % | 18 % |
+| suelo (`ground`) | no se busca | - |
+
+**Pity timer:** tras 7 búsquedas seguidas sin arma, la probabilidad sube +6 % por cada búsqueda extra, y a las 15 sin arma la siguiente la da seguro. Simulación de 50 000 búsquedas con el mapa por defecto: tasa real **15.9 %**, una arma cada **6.3 búsquedas** de media, racha máxima sin arma **16**.
+
+**Rareza ponderada** (entre las armas que el jugador NO tiene; si no queda de una rareza se reparte entre las que sí): común 50 / poco común 35 / rara 12 / épica 2, y en zonas de riesgo 2: 20 / 35 / 33 / 12. Con pistola y barra iniciales la pistola y la barra (únicas comunes) ya las tienes, así que sale: poco común (revólver, subfusil, escopeta) ≈ 64 %, rara (fusil) ≈ 28 %, épica (francotirador) ≈ 7.5 %.
+
+**Sin duplicados:** nunca se da un arma que ya tienes. Si ya las tienes todas se da munición de rifle (`duplicateAmmo`). (Y si aun así recoges una repetida del suelo, se convierte en munición de su tipo, como antes.)
+
+**Armas garantizadas:** 3 puntos tienen `guaranteeWeapon` y dan siempre un arma que no tienes: `house_shelf` (dentro de la casa), `far_crate_b` (lejos y expuesta) y `mid_crate_b` (una caja intermedia). Al empezar cada día, si hay menos de 3 armas disponibles en el mapa (puntos garantizados sin buscar + armas sueltas en el suelo que no tienes), se vuelven a armar puntos garantizados hasta llegar a 3 (o a las que te falten). `WeaponGuarantee.ToRearm` lo calcula y se prueba.
+
+La prueba `Simulates1000Searches_WeaponRateIsInRange` falla si la tasa de 1000 búsquedas sale de 10–18 %, y `ChancesPerContainer_AreLowButReal...` si algún contenedor sale de 8–16 %.
+
+```ts
+const weaponSearch = z.object({
+  rubble: z.number().min(0).max(0.5), bush: z.number().min(0).max(0.5), car: z.number().min(0).max(0.5), crate: z.number().min(0).max(0.5), furniture: z.number().min(0).max(0.5),
+  riskBonus: z.number().min(0).max(0.2), maxChance: z.number().min(0).max(0.5),
+  pityStart: z.number().int().min(1), pityStep: z.number().min(0).max(0.5), pityGuarantee: z.number().int(),
+  rarityWeights: z.tuple([z.number().min(0), z.number().min(0), z.number().min(0), z.number().min(0)]),
+  riskRarityWeights: z.tuple([z.number().min(0), z.number().min(0), z.number().min(0), z.number().min(0)]),
+  duplicateAmmo: z.number().int().min(0), guaranteedMin: z.number().int().min(0).max(6),
+}).refine(w => w.pityGuarantee > w.pityStart && w.rarityWeights.some(x => x > 0));
+// en cada punto del layout: guaranteeWeapon: z.boolean() (no puede ser container 'ground'); y el layout necesita >= guaranteedMin puntos con guaranteeWeapon
+```
