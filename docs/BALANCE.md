@@ -102,3 +102,30 @@ Pesos de las tablas (probabilidad relativa dentro del drop; armas solo poco comu
 - `drop_special`: pistola 4 (x4 balas), escopeta 2, rifle 2, botiquín pequeño 1.3, vendaje 1.5, revólver/subfusil/escopeta 0.2 cada una.
 - `drop_heavy`: rifle 3, pistola 2, escopeta 2, pequeño 1.5, mediano 0.8, escopeta 0.3, revólver 0.3, fusil de asalto 0.2.
 La curación esperada de toda la partida sigue por debajo del límite que vigila `LootTests` (< 520 PV); por eso los pesos de botiquines de los drops bajaron un poco al subir las probabilidades. `ZombieDropTests` simula 20 000 muertes por tipo y falla si alguna tasa se sale ±1.5 puntos de la tabla de arriba o si las armas pasan del 12 % de los drops.
+
+## Manejo de armas: retroceso, dispersión y apuntado (`WeaponCatalog.WithHandling`)
+Los valores van en el ScriptableObject de cada arma (`Resources/Weapons/*.asset`). Los assets de una versión anterior (`dataVersion` < 2) se actualizan solos al abrir el editor.
+
+| Arma | Modo(s) | Dispersión cadera / apuntando / máx. (°) | Retroceso vertical / lateral (°) | Recuperación (°/s) | FOV apuntando | Sens. apuntando |
+|------|---------|------------------------------------------|----------------------------------|--------------------|---------------|-----------------|
+| pistol | semi | 1.4 / 0.25 / 5 | 1.2 / 0.35 | 10 | 46 | x0.65 |
+| revolver | semi | 1.8 / 0.2 / 6 | 2.6 / 0.6 | 7 | 42 | x0.6 |
+| smg | auto, ráfaga | 3.2 / 1.2 / 7 | 0.5 / 0.45 | 12 | 48 | x0.7 |
+| shotgun | bombeo | 6 / 4.2 / 8 | 3.4 / 0.8 | 6 | 50 | x0.7 |
+| assault_rifle | auto, ráfaga, semi | 2.2 / 0.4 / 5.5 | 0.8 / 0.3 | 10 | 40 | x0.55 |
+| sniper | cerrojo (mira x3 / x5 / x8.6) | 3.5 / 0.03 / 8 | 3.8 / 0.4 | 5 | 20 / 12 / 7 | x0.35 (y menor con el zoom) |
+
+- El retroceso acumulado se limita a `recoilMaxPitch` y la desviación lateral a la mitad de ese valor; ×0.6 (o el `recoilAimMultiplier` del arma) apuntando y ×0.8 agachado. Al soltar el gatillo vuelve a la mira original.
+- La dispersión crece `spreadPerShot` por disparo (la mitad apuntando), `spreadMove` corriendo, `spreadAir` en el aire, ×0.75 agachado; nunca pasa de `spreadMax` y se recupera a `spreadRecovery` °/s.
+
+### Precisión real (probabilidad de acertar la primera bala; reparto uniforme en el cono, que es lo que hace el juego)
+| Arma | Cabeza a 20 m (cadera / apuntando) | Cuerpo a 20 m (cadera / apuntando) | Cuerpo a 20 m tras 10 disparos sin apuntar |
+|------|------------------------------------|------------------------------------|--------------------------------------------|
+| pistol | 15 % / 100 % | 31 % / 100 % | 2 % |
+| revolver | 9 % / 100 % | 18 % / 100 % | 2 % |
+| smg | 3 % / 21 % | 6 % / 42 % | 2 % |
+| shotgun (por perdigón) | 1 % / 2 % | 2 % / 3 % | 1 % |
+| assault_rifle | 6 % / 100 % | 12 % / 100 % | 4 % |
+| sniper | 2 % / 100 % | 5 % / 100 % | 1 % |
+
+**TTK tras el cambio de precisión:** el daño por bala no cambió, así que la tabla de disparos para matar de arriba sigue igual (las pruebas `BalanceTests` siguen en verde). Esa tabla supone que las balas aciertan; `AccuracyBalanceTests` comprueba que eso se cumple apuntando a la distancia típica de cada arma (pistola a 15 m a la cabeza, fusil a 25 m al cuerpo, francotirador a 100 m a la cabeza: > 95 %; escopeta a 3 m al cuerpo: > 80 % de los perdigones). Sin apuntar la precisión cae mucho a 20 m: apuntar es la forma de alcanzar esos TTK, y disparar desde la cadera es para distancias cortas.

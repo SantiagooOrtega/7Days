@@ -124,3 +124,44 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class AccuracyBalanceTests
+    {
+        private static WeaponData W(string id) { var w = WeaponCatalog.Get(id); w.Validate(); return w; }
+
+        [Test]
+        public void AimingIsAlwaysMoreAccurateThanHipFire()
+        {
+            foreach (var w in WeaponCatalog.Defaults())
+            {
+                if (w.IsMelee) continue;
+                Assert.GreaterOrEqual(Accuracy.HitChance(w.spreadAim, 20f, Accuracy.HeadRadius), Accuracy.HitChance(w.spreadHip, 20f, Accuracy.HeadRadius), w.id);
+            }
+        }
+
+        [Test]
+        public void TtkTargetsStayReachable_WithTheNewPrecision()
+        {
+            // la tabla de TTK de BALANCE.md supone que las balas aciertan: con la precisión nueva eso se cumple apuntando a la distancia típica de cada arma
+            Assert.Greater(Accuracy.HitChance(W("pistol").spreadAim, 15f, Accuracy.HeadRadius), 0.95f, "pistola apuntando a 15 m: casi siempre a la cabeza");
+            Assert.Greater(Accuracy.HitChance(W("assault_rifle").spreadAim, 25f, Accuracy.TorsoRadius), 0.95f, "fusil apuntando a 25 m al cuerpo");
+            Assert.Greater(Accuracy.HitChance(W("sniper").spreadAim, 100f, Accuracy.HeadRadius), 0.95f, "francotirador a 100 m a la cabeza");
+            Assert.Greater(Accuracy.HitChance(W("shotgun").spreadAim, 3f, Accuracy.TorsoRadius), 0.8f, "escopeta a quemarropa: casi todos los perdigones al cuerpo");
+            Assert.Less(Accuracy.HitChance(W("shotgun").spreadHip, 20f, Accuracy.TorsoRadius), 0.1f, "escopeta lejos: casi nada");
+        }
+
+        [Test]
+        public void SprayingDegradesAccuracy_AndRecoveryRestoresIt()
+        {
+            var w = W("assault_rifle"); var s = new SpreadState();
+            float first = Accuracy.HitChance(s.Current(w, true, false, 0f, false), 25f, Accuracy.TorsoRadius);
+            for (int i = 0; i < 15; i++) s.OnShot(w, true);
+            float sprayed = Accuracy.HitChance(s.Current(w, true, false, 0f, false), 25f, Accuracy.TorsoRadius);
+            Assert.Less(sprayed, first);
+            for (int i = 0; i < 120; i++) s.Tick(1f / 60f, w);
+            Assert.AreEqual(first, Accuracy.HitChance(s.Current(w, true, false, 0f, false), 25f, Accuracy.TorsoRadius), 1e-5f);
+        }
+    }
+}
