@@ -14,6 +14,7 @@ namespace SevenDays.Weapons
         private readonly Transform _root;
         private readonly ObjectPool<Tracer> _tracers;
         private readonly ObjectPool<Impact> _impacts;
+        private readonly ObjectPool<Casing> _casings;
 
         public ShotFx(Transform root)
         {
@@ -22,6 +23,26 @@ namespace SevenDays.Weapons
                 t => t.gameObject.SetActive(false), t => Object.Destroy(t.gameObject), false, 32, 64);
             _impacts = new ObjectPool<Impact>(CreateImpact, i => i.gameObject.SetActive(true),
                 i => i.gameObject.SetActive(false), i => Object.Destroy(i.gameObject), false, 32, 64);
+            _casings = new ObjectPool<Casing>(CreateCasing, c => c.gameObject.SetActive(true),
+                c => c.gameObject.SetActive(false), c => Object.Destroy(c.gameObject), false, 24, 48);
+        }
+
+        /// <summary>Casquillo expulsado hacia la derecha del arma (con pooling: nunca más de 48 a la vez).</summary>
+        public void SpawnCasing(Vector3 position, Vector3 right, Vector3 up, float size)
+        {
+            var c = _casings.Get();
+            c.Launch(position, right * Random.Range(1.4f, 2.2f) + up * Random.Range(1.2f, 2f) + Random.insideUnitSphere * 0.3f, size);
+        }
+
+        private Casing CreateCasing()
+        {
+            var go = Prim.Create(PrimitiveType.Cube, "Casing", Vector3.zero, new Vector3(0.012f, 0.012f, 0.03f),
+                Prim.GetMaterial(new Color(0.78f, 0.6f, 0.22f)), _root, false);
+            go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            go.layer = 2;
+            var c = go.AddComponent<Casing>();
+            c.Pool = _casings;
+            return c;
         }
 
         public void SpawnTracer(Vector3 from, Vector3 to)
@@ -95,6 +116,40 @@ namespace SevenDays.Weapons
         private void Update()
         {
             if (Time.time >= _until) Pool.Release(this);
+        }
+    }
+
+    /// <summary>Casquillo: vuela con gravedad, gira, rebota una vez en el suelo (buscado con un solo rayo al salir) y vuelve al pool.</summary>
+    public class Casing : MonoBehaviour
+    {
+        public IObjectPool<Casing> Pool;
+        private Vector3 _vel, _spin;
+        private float _groundY, _until;
+        private bool _bounced;
+
+        public void Launch(Vector3 position, Vector3 velocity, float size)
+        {
+            transform.position = position;
+            transform.localScale = new Vector3(0.012f, 0.012f, 0.03f) * size;
+            _vel = velocity; _spin = Random.insideUnitSphere * 900f; _bounced = false;
+            _until = Time.time + 1.6f;
+            _groundY = Physics.Raycast(position, Vector3.down, out RaycastHit hit, 4f, ~(1 << 2), QueryTriggerInteraction.Ignore) ? hit.point.y + 0.01f : position.y - 1.2f;
+        }
+
+        private void Update()
+        {
+            float dt = Time.deltaTime;
+            if (Time.time >= _until) { Pool.Release(this); return; }
+            _vel += Vector3.down * 14f * dt;
+            var p = transform.position + _vel * dt;
+            if (p.y <= _groundY)
+            {
+                p.y = _groundY;
+                if (!_bounced) { _vel = new Vector3(_vel.x * 0.4f, -_vel.y * 0.3f, _vel.z * 0.4f); _bounced = true; _spin *= 0.4f; }
+                else { _vel = Vector3.zero; _spin = Vector3.zero; }
+            }
+            transform.position = p;
+            transform.Rotate(_spin * dt, Space.Self);
         }
     }
 }
