@@ -18,10 +18,12 @@ namespace SevenDays.World
         private static readonly Color Pipe = new Color(0.36f, 0.38f, 0.4f);
 
         private static System.Random _rng;
+        private static LookSettings _look;
 
-        public static void Build(Transform root)
+        public static void Build(Transform root, LookSettings look)
         {
             _rng = new System.Random(42);
+            _look = look;
             BuildGround(root);
             BuildPerimeter(root);
             BuildCovers(root);
@@ -233,6 +235,7 @@ namespace SevenDays.World
                 l.shadows = LightShadows.None;
                 lightGo.AddComponent<FlickerLight>();
                 Particles.CreateFire(root, fires[i] + Vector3.up * 1.05f);
+                Particles.CreateSparks(root, fires[i] + Vector3.up * 1.2f, _look.Atmosphere.Sparks * _look.Atmosphere.Density);
             }
 
             // Escombros pequeños sin colisión (no estorban al CharacterController)
@@ -260,7 +263,7 @@ namespace SevenDays.World
                 Prim.Create(PrimitiveType.Cylinder, "Lamp Pole " + i, p + Vector3.up * 2.5f, new Vector3(0.14f, 2.5f, 0.14f), metal, root, false);
                 float dir = p.x < 0f ? 1f : -1f;
                 Prim.Create(PrimitiveType.Cube, "Lamp Arm " + i, p + new Vector3(dir * 0.6f, 5f, 0f), new Vector3(1.3f, 0.1f, 0.1f), metal, root, false);
-                Prim.Create(PrimitiveType.Sphere, "Lamp Bulb " + i, p + new Vector3(dir * 1.2f, 4.92f, 0f), Vector3.one * 0.3f, bulb, root, false);
+                var bulbGo = Prim.Create(PrimitiveType.Sphere, "Lamp Bulb " + i, p + new Vector3(dir * 1.2f, 4.92f, 0f), Vector3.one * 0.3f, bulb, root, false);
 
                 var lightGo = new GameObject("LampLight " + i);
                 lightGo.transform.SetParent(root, false);
@@ -271,7 +274,18 @@ namespace SevenDays.World
                 l.range = 16f;
                 l.intensity = 2.6f;
                 l.shadows = LightShadows.None;
-                if (i == 2) lightGo.AddComponent<FlickerLight>(); // una farola defectuosa
+
+                // Farolas defectuosas: parpadeo rojizo con apagones breves (las primeras RedFlickerLamps de esta lista)
+                int[] defective = { 2, 0, 3, 1 };
+                for (int d = 0; d < Mathf.Min(_look.Atmosphere.RedFlickerLamps, defective.Length); d++)
+                {
+                    if (defective[d] != i) continue;
+                    var f = lightGo.AddComponent<FlickerLight>();
+                    f.RedMix = 0.85f;
+                    f.Blackouts = true;
+                    f.Amount = 0.25f;
+                    f.Bulb = bulbGo.GetComponent<Renderer>();
+                }
             }
         }
     }
