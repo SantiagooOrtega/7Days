@@ -162,3 +162,56 @@ Las partículas usan el shader `Universal Render Pipeline/Particles/Unlit`, que 
 - **2 señales** llevan una luz roja parpadeante (`LookSettings.Signs.RedLightSigns`).
 - **Marcas viales** gastadas sobre el asfalto: línea amarilla discontinua, 2 pasos de cebra y 3 flechas casi borradas (`Signs.RoadMarkings`).
 - **Parámetros** en `LookSettings.Signs`: `Density`, `MaxSigns` (tope), `RedLightSigns`, `TextureSize`, `Seed`, `RoadMarkings`.
+
+---
+
+## Bloque 5: salto y vault
+
+### Controles nuevos
+| Acción | Cómo |
+|--------|------|
+| Saltar | **Espacio** (≈ 1.0 m, ágil: sube normal y cae con más fuerza) |
+| Pasar un obstáculo bajo (0.5 a 1.3 m) | Correr hacia él (Shift+W) o pulsar Espacio junto a él: lo salta solo |
+| Trepar un obstáculo de 1.3 a 1.6 m (techo de coche) | Pulsar Espacio junto a él: trepada lenta (no se activa corriendo) |
+| Más de 1.6 m (contenedores, muros) | No se puede pasar |
+| Saltar desde la cobertura | Con C en cobertura, Espacio salta el obstáculo hacia el lado contrario |
+| Probar la caída | **U** sube 6 m al jugador y lo suelta |
+
+### Cómo funciona
+- **Salto ágil:** coyote time (0.1 s: aún puedes saltar justo después de salir de un borde), jump buffer (0.1 s: un salto pulsado justo antes de aterrizar se recuerda) y control aéreo limitado (35%).
+- **Vault / mantle automático:** se busca un obstáculo marcado `Vaultable` delante (SphereCast), se mide su altura con un raycast hacia abajo y se comprueba que haya espacio libre arriba y donde se aterriza. Obstáculos delgados se pasan de largo; los gruesos se suben encima. No se puede disparar durante el vault.
+- **Quién es Vaultable:** todas las coberturas (`CoverObject` trae un `Vaultable`): cajas, barreras, coches, etc. La altura decide: los contenedores (2.6 m) no se pueden pasar. Para marcar un objeto propio: añade el componente **Vaultable** a un objeto con BoxCollider.
+- **Daño por caída:** solo desde más de 4 m (18 de daño por cada metro de más). La cámara recibe un impulso (Cinemachine Impulse) al saltar y al aterrizar, más fuerte si la caída es alta.
+- **Zombies:** `Vaultable.AllowZombies` (falso por ahora) deja el flag listo para decidirlo en la Fase 3.
+
+### Valores configurables
+Todos están en `MovementSettings` (`Scripts/Procedural/Movement.cs`). Para ajustarlos sin tocar código:
+1. En la ventana Project, ve a `Assets/_Project/Resources/Config` (si no existe, créala: clic derecho > Create > Folder).
+2. Clic derecho > Create > **7Days > Movimiento del jugador**. Nómbralo exactamente `Movement`.
+3. Selecciónalo y edita en el Inspector. Sin este asset se usan los valores por defecto.
+
+| Valor | Por defecto |
+|-------|-------------|
+| `JumpHeight` | 1.0 m |
+| `Gravity` / `FallGravityMultiplier` | 22 / 1.8 |
+| `CoyoteTime` / `JumpBufferTime` | 0.1 s / 0.1 s |
+| `AirControl` | 0.35 |
+| `VaultMinHeight` / `VaultMaxHeight` / `MantleMaxHeight` | 0.5 / 1.3 / 1.6 m |
+| `AllowMantle` | sí (apágalo para que 1.3 a 1.6 m tampoco se pueda) |
+| `VaultDuration` / `MantleDuration` | 0.55 s / 1.1 s |
+| `VaultReach` / `VaultOverMaxDepth` | 0.9 m / 1.6 m |
+| `FallDamageThreshold` / `FallDamagePerMeter` | 4 m / 18 |
+| `JumpImpulse` / `LandImpulseMin` / `LandImpulseMax` | 0.08 / 0.15 / 0.9 |
+
+### Hooks del Animator (Fase 3)
+`PlayerAnimatorHooks` deja listos estos parámetros: **bool `IsGrounded`**, **bool `IsJumping`**, **bool `IsVaulting`**, **float `VerticalSpeed`**. Cuando haya modelo, asigna su `Animator` al campo `Animator` del componente (si el controlador tiene esos parámetros, se actualizan solos).
+
+### Cómo probarlo (pasos numerados)
+1. Pulsa Play en `Game` y espera a que desaparezca "Generando texturas...".
+2. Pulsa **Espacio** en campo abierto: salto de ~1 m, rápido, con un pequeño golpe de cámara.
+3. Camina hasta el borde de la barrera de concreto del centro y corre hacia ella (Shift+W): debe pasarla sola.
+4. Párate junto a una caja de madera y pulsa Espacio: la salta.
+5. Acércate a un coche destrozado a los lados de la calle y pulsa Espacio junto a su techo: trepada lenta.
+6. Acércate a un contenedor y pulsa Espacio: no pasa (2.6 m).
+7. Pulsa **C** junto a una barrera para cubrirte y luego **Espacio**: sales al otro lado. Intenta disparar durante el salto: no dispara.
+8. Pulsa **U**: caes 6 m, recibes daño y la cámara se sacude. Repite varias veces con **Y** para curarte.

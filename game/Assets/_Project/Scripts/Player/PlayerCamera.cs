@@ -69,6 +69,17 @@ namespace SevenDays.Player
             obstacles.CameraRadius = 0.25f;
             _follow.AvoidObstacles = obstacles;
 
+            // Escucha los impulsos de PlayerImpulse (salto y aterrizaje). Reset() es privado y no se ejecuta con AddComponent
+            // en tiempo de juego, así que los valores se fijan aquí.
+            var listener = go.AddComponent<CinemachineImpulseListener>();
+            listener.ApplyAfter = CinemachineCore.Stage.Noise;
+            listener.ChannelMask = 1;
+            listener.Gain = 1f;
+            listener.Use2DDistance = false;
+            listener.UseCameraSpace = true;
+            listener.SignalCombinationMode = CinemachineImpulseListener.SignalCombinationModes.Additive;
+            listener.ReactionSettings = new CinemachineImpulseListener.ImpulseReaction { AmplitudeGain = 1f, FrequencyGain = 1f, Duration = 1f };
+
             LockCursor(true);
         }
 

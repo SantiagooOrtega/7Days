@@ -92,7 +92,8 @@ namespace SevenDays.UI
                     "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar\n" +
                     "Clic der. apuntar · Clic izq. disparar · R recargar · 1/2/rueda cambiar arma\n" +
                     "C cobertura (cerca de cajas y muros bajos) · A/D deslizarse · Esc soltar ratón\n" +
-                    "T/Y: probar daño/curación · F3 recortar ambiente · F1 ocultar ayuda", _label);
+                    "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
+                    "T/Y: probar daño/curación · U: subir 6 m (probar caída) · F3 recortar ambiente · F1 ocultar ayuda", _label);
             }
 
             if (_health.IsDead)

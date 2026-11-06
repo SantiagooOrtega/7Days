@@ -17,6 +17,7 @@ namespace SevenDays.World
     public class TestArena : MonoBehaviour
     {
         private Health _playerHealth;
+        private GameObject _player;
         private LookSettings _look;
         private SevenDays.Procedural.PropLayoutData _layout;
         private bool _loading;
@@ -54,8 +55,9 @@ namespace SevenDays.World
             BuildLevel();
 
             var weapons = new List<WeaponDefinition> { DefaultWeapons.Rifle(), DefaultWeapons.Pistol() };
-            var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, weapons);
+            var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, weapons, _look.Movement);
             _playerHealth = player.GetComponent<Health>();
+            _player = player;
 
             Particles.CreateDust(player.transform);
             Atmosphere.Build(transform, player.transform, _look);
@@ -73,12 +75,20 @@ namespace SevenDays.World
 
         private void Update()
         {
-            // Atajos de depuración para probar el HUD: T = recibir 20 de daño, Y = curarse.
+            // Atajos de depuración: T = recibir 20 de daño, Y = curarse, U = subir 6 m (probar la caída).
             var k = UnityEngine.InputSystem.Keyboard.current;
             if (k == null || _playerHealth == null) return;
             if (k.tKey.wasPressedThisFrame)
                 _playerHealth.TakeDamage(new DamageInfo { Amount = 20f, Point = transform.position });
             if (k.yKey.wasPressedThisFrame) _playerHealth.Heal(50f);
+            if (k.uKey.wasPressedThisFrame && _player != null)
+            {
+                // Prueba de caída: sube al jugador 6 m y lo suelta (más de 4 m hace daño y sacude la cámara)
+                var cc = _player.GetComponent<CharacterController>();
+                cc.enabled = false;
+                _player.transform.position += Vector3.up * 6f;
+                cc.enabled = true;
+            }
         }
 
         private void BuildLevel()

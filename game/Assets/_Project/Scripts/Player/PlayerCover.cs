@@ -15,6 +15,10 @@ namespace SevenDays.Player
         private const float StandOff = 0.6f;
 
         public bool Active { get; private set; }
+        /// <summary>Collider del objeto de cobertura actual (null si no hay).</summary>
+        public Collider CoverCollider => Active ? _collider : null;
+        /// <summary>Sale de la cobertura (por ejemplo al saltar el obstáculo).</summary>
+        public void Exit() => Active = false;
         /// <summary>Dirección en la que el jugador mira mientras está en cobertura (hacia el objeto).</summary>
         public Vector3 FacingDirection => -_normal;
         /// <summary>true si el jugador puede ser golpeado con normalidad (fuera de cobertura o asomado).</summary>

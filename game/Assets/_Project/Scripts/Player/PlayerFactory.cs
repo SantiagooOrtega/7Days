@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using SevenDays.Core;
 using SevenDays.Look;
+using SevenDays.Procedural;
 using SevenDays.Weapons;
 
 namespace SevenDays.Player
@@ -12,7 +13,7 @@ namespace SevenDays.Player
     /// </summary>
     public static class PlayerFactory
     {
-        public static GameObject Create(Vector3 position, float yaw, Camera cam, IEnumerable<WeaponDefinition> weapons)
+        public static GameObject Create(Vector3 position, float yaw, Camera cam, IEnumerable<WeaponDefinition> weapons, MovementSettings movement = null)
         {
             var root = new GameObject("Player") { tag = "Player" };
             root.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
@@ -52,10 +53,16 @@ namespace SevenDays.Player
             var cover = root.AddComponent<PlayerCover>();
             var motor = root.AddComponent<PlayerMotor>();
             var shooting = root.AddComponent<PlayerShooting>();
+            var vault = root.AddComponent<PlayerVault>();
+            var impulse = root.AddComponent<PlayerImpulse>();
+            root.AddComponent<PlayerAnimatorHooks>(); // parámetros del Animator listos para la Fase 3
+            movement = movement ?? new MovementSettings();
 
             playerCamera.Initialize(root.transform, cam, yaw);
             cover.Initialize(playerCamera);
-            motor.Initialize(playerCamera, cover, visual, holder);
+            impulse.Initialize(movement);
+            motor.Initialize(playerCamera, cover, visual, holder, movement, vault, impulse);
+            vault.Initialize(movement, cover, motor, impulse);
             shooting.Initialize(playerCamera, motor, holder, muzzle, weapons);
 
             root.AddComponent<RimLight>().Initialize(root.transform, cam.transform);

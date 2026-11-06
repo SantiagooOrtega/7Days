@@ -132,6 +132,9 @@ namespace SevenDays.Look
         /// <summary>Señales de tráfico desgastadas y marcas viales.</summary>
         public SignSettings Signs = new SignSettings();
 
+        /// <summary>Salto, vault y caída: altura de salto, alturas mín/máx de vault, duración, coyote time, jump buffer, gravedad. Se cargan del ScriptableObject Resources/Config/Movement si existe.</summary>
+        public SevenDays.Procedural.MovementSettings Movement = SevenDays.Player.PlayerMovementConfig.LoadSettings();
+
         // Niebla y ambiente: gris azulado medio (tarde nublada)
         public Color FogColor = new Color(0.50f, 0.55f, 0.60f);
         public float FogDensity = 0.008f;

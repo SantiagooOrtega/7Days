@@ -81,7 +81,7 @@ namespace SevenDays.Player
 
             var def = Current.Def;
             bool wantsFire = def.automatic ? GameInput.FireHeld : GameInput.FirePressed;
-            if (wantsFire && !Reloading && Time.time >= _nextFire)
+            if (wantsFire && !Reloading && !_motor.IsVaulting && Time.time >= _nextFire) // no se dispara mientras se salta un obstáculo
             {
                 if (Current.Magazine <= 0) StartReload();
                 else Fire();
