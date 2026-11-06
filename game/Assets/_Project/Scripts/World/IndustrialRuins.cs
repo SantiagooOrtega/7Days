@@ -45,9 +45,9 @@ namespace SevenDays.World
         {
             var z = new System.Collections.Generic.List<SevenDays.Procedural.Zone>();
             void C(float x, float zz, float r) => z.Add(SevenDays.Procedural.Zone.Circle(x, zz, r));
-            C(-19f, 4f, 4.4f); C(19f, -2f, 4.4f); C(-14f, 19f, 4.4f); C(17f, 16f, 4.4f);      // contenedores
+            C(-19f, 4f, 4.4f); C(22.7f, -2f, 4.4f); C(-14f, 19f, 4.4f); C(17f, 16f, 4.4f);      // contenedores
             C(-4f, -8f, 2.4f); C(4f, -6f, 2.4f); C(-9f, 0f, 2.6f); C(0f, 4f, 2.6f); C(12f, -10f, 2.4f); // barreras
-            C(0f, -4f, 1.4f); C(8f, 2f, 1.5f); C(-13f, -4f, 1.4f); C(-15f, -3.4f, 1.1f); C(14.5f, 8f, 1.1f); // cajas
+            C(0f, -4f, 1.4f); C(-13f, -4f, 1.4f); C(-15f, -3.4f, 1.1f); C(14.5f, 8f, 1.1f); // cajas
             C(-7f, -12f, 1.7f); C(10f, 14f, 1.7f);                                               // barriles con fuego
             C(-6f, 12f, 1.1f); C(-5.2f, 12.4f, 1.1f); C(22f, 8f, 1.1f); C(-22f, -20f, 1.1f);    // barriles
             C(-25f, -11f, 3f);                                                                    // tuberías
@@ -55,6 +55,7 @@ namespace SevenDays.World
             C(0f, -14f, 3.5f);                                                                    // aparición del jugador
             z.Add(SevenDays.Procedural.Zone.Rect(-14f, 8f, 10.5f, 17.5f));                        // blancos de práctica
             z.Add(SevenDays.Procedural.Zone.Rect(-24f, 19f, 24f, 29f));                           // nave del fondo
+            z.Add(HouseIO.FootprintZone(HouseIO.Load()));                                          // casa central
             return z;
         }
 
@@ -122,9 +123,7 @@ namespace SevenDays.World
 
             // Cajas cúbicas: la textura es de una cara completa (marco, tablas, riostra, tornillos), 1 repetición por cara
             Crate(root, "Crate 1", new Vector3(0f, 0.6f, -4f), 1.2f, 20f, SurfaceLibrary.CrateWood, true);
-            Crate(root, "Crate 2", new Vector3(8f, 0.6f, 2f), 1.2f, -10f, SurfaceLibrary.CrateWood, true);
             Crate(root, "Crate 3", new Vector3(-13f, 0.6f, -4f), 1.2f, 35f, SurfaceLibrary.Cardboard, true);
-            Crate(root, "Crate Top", new Vector3(8.1f, 1.65f, 2.1f), 0.9f, 25f, SurfaceLibrary.Cardboard, false);
             Crate(root, "Crate 4", new Vector3(-15f, 0.4f, -3.4f), 0.8f, 10f, SurfaceLibrary.Cardboard, false);
             Crate(root, "Crate 5", new Vector3(14.5f, 0.4f, 8f), 0.8f, -25f, SurfaceLibrary.CrateWood, false);
         }
@@ -151,7 +150,7 @@ namespace SevenDays.World
         private static void BuildContainers(Transform root)
         {
             ContainerAt(root, "Container A", new Vector3(-19f, 1.3f, 4f), 0f, new Color(0.5f, 0.2f, 0.15f));
-            ContainerAt(root, "Container B", new Vector3(19f, 1.3f, -2f), 90f, new Color(0.2f, 0.3f, 0.4f));
+            ContainerAt(root, "Container B", new Vector3(22.7f, 1.3f, -2f), 90f, new Color(0.2f, 0.3f, 0.4f)); // movido para dejar sitio a la casa
             ContainerAt(root, "Container C", new Vector3(-14f, 1.3f, 19f), 20f, new Color(0.3f, 0.35f, 0.2f));
             ContainerAt(root, "Container D", new Vector3(17f, 1.3f, 16f), -15f, new Color(0.45f, 0.35f, 0.15f));
             ContainerAt(root, "Container E", new Vector3(-19f, 3.9f, 4.4f), 6f, new Color(0.25f, 0.28f, 0.3f)); // apilado

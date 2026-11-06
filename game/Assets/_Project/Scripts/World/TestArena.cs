@@ -18,6 +18,7 @@ namespace SevenDays.World
     {
         private Health _playerHealth;
         private GameObject _player;
+        private HouseController _house;
         private LookSettings _look;
         private SevenDays.Procedural.PropLayoutData _layout;
         private bool _loading;
@@ -100,6 +101,7 @@ namespace SevenDays.World
             GroundDetails.Build(root, _look, IndustrialRuins.Anchors);
             Vegetation.Build(root, _look, _layout);
             RoadMarkings.Build(root, _look);
+            if (_look.House.Enabled) _house = House.Build(root, _look, HouseIO.Load());
 
             // Blancos de práctica: cuerpo claro, cabeza pálida y ojos brillantes para que se distingan del fondo
             for (int i = 0; i < 6; i++)

@@ -285,3 +285,23 @@ La autopista no se tocó (el asfalto, las líneas y las marcas siguen igual). Ca
 | `StainDecals`, `BurnDecals` | 10 / 6 | manchas y quemaduras |
 
 Si baja de 55 FPS, lo primero es `Atmosphere.Density`; el piso casi no cuesta (una textura y un material). Con `MapSize = 2048` la carga tarda más.
+
+---
+
+# Bloque 2 (ronda 3): casa central
+
+Detalle completo, formato JSON y esquema zod en `docs/HOUSE_LAYOUT.md`.
+
+- Se construye por código con las mismas mallas y texturas del mapa: muros de ladrillo con bisel y UV en metros, **techo de 25 cm de grosor** (sin backface culling), marcos, muebles con textura de madera.
+- **3 entradas** (puerta principal, puerta trasera y **ventana grande que se salta con Espacio**), 4 ventanas con línea de tiro, 2 habitaciones, techo parcialmente caído y muebles que son cobertura y se saltan.
+- Colocación, aberturas, muebles y antorchas **por JSON**; el director bloquea entradas por día (`HouseController.SetDay`).
+- NavMesh: puertas = volúmenes transitables, ventana grande = enlace, muros "no caminables", techo ignorado.
+- Para hacerle sitio en el lado este de la autopista se quitaron 2 cajas y se movió el contenedor azul 3.7 m al este.
+
+### Cómo probar (pasos numerados)
+1. Pulsa Play en `Game`. La casa está al este de la calle, a la altura del centro del mapa.
+2. Entra por la puerta principal (mira a la autopista). Mira el techo: está parcialmente caído y entra luz.
+3. Cruza el paso entre las dos habitaciones.
+4. Sal por la puerta trasera (lado este) y rodea la casa hasta la ventana grande (lado sur): corre hacia ella o pulsa Espacio y la saltas hacia adentro.
+5. Párate junto a una ventana pequeña, apunta y dispara hacia afuera: debe haber línea de tiro. Dispara a un muro: la bala no lo atraviesa.
+6. Prueba la cobertura (C) y el vault (Espacio) con las cajas, la mesa, el sofá y la cama; el estante y el armario no se saltan.
