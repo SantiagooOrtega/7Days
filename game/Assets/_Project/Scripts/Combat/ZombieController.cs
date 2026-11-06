@@ -42,6 +42,11 @@ namespace SevenDays.Combat
         private Vector3 _knock;
         private Transform _puddle;
         private Camera _cam;
+        private SpitterBrain _brain;
+        private Vector3 _flankTarget;
+        private float _nextFlank, _nextReposition;
+        private bool _pulseOn;
+        private Material _pulseMat;
 
         public void Build()
         {
@@ -84,6 +89,8 @@ namespace SevenDays.Combat
             Health.Configure(type.maxHealth * healthMultiplier, type.resistance, type.stunResistance, type.zones.Clone());
             Rig.SetHitboxesEnabled(true);
             _sm.Reset(); _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
+            _brain = type.projectile != "none" ? SpitterBrain.For(type) : null;
+            _pulseOn = false;
             HeadDestroyed = false; _knock = Vector3.zero; _puddle.gameObject.SetActive(false);
             Rig.HeadPivot.localScale = Vector3.one;
             Bar.Suppressed = type.isBoss; Bar.ResetBar(2.25f * type.scale);
@@ -143,6 +150,7 @@ namespace SevenDays.Combat
             if (BloodFx.Instance != null)
                 BloodFx.Instance.Spray(transform.position + Vector3.up * (Health.KilledByHeadshot ? 1.7f : 1.2f) * Type.scale, Vector3.up + (_player != null ? (transform.position - _player.position).normalized : Vector3.zero), Health.KilledByHeadshot ? 40 : 24);
             _puddle.gameObject.SetActive(true);
+            if (Type.explosionRadius > 0f && _player != null) Explode();
             Rig.SetHitboxesEnabled(false);
             _body.enabled = false;
             if (_useAgent && _agent.enabled) _agent.isStopped = true;
@@ -184,13 +192,15 @@ namespace SevenDays.Combat
             if (_sm.State == ZombieState.Chase) _canSee = _canSee || dist < _sm.AggroRange;
 
             float moveAmount = 0f;
-            switch (_sm.State)
+            if (_brain != null && _sm.State == ZombieState.Chase) moveAmount = Ranged(dt, toPlayer, dist); // el lanzador mantiene distancia y lanza
+            else switch (_sm.State)
             {
                 case ZombieState.Patrol: moveAmount = Patrol(dt); break;
                 case ZombieState.Chase: moveAmount = Chase(dt, toPlayer, dist); break;
                 case ZombieState.Attack: Attack(dt, toPlayer, dist); break;
                 case ZombieState.Stunned: Stop(); break;
             }
+            if (Type.explosionRadius > 0f) Pulse(dist);
 
             _walkPhase += dt * (3f + moveAmount * 4f);
             _stagger = Mathf.MoveTowards(_stagger, Health.IsStunned ? 1f : 0f, dt * 6f);
@@ -245,6 +255,113 @@ namespace SevenDays.Combat
                     _playerHealth.TakeDamage(new DamageInfo { Amount = Type.attackDamage * DamageMultiplier, Point = _player.position + Vector3.up, Direction = toPlayer.normalized, Source = gameObject });
             }
             if (Time.time - _attackStart > 0.8f) _attackStart = -10f;
+        }
+
+        // ------------------------------------------------------------------ lanzador
+        private float Ranged(float dt, Vector3 toPlayer, float dist)
+        {
+            var mgr = ZombieManager.Instance;
+            var action = _brain.Tick(dt, dist, _canSee, mgr != null ? mgr.PlayerCoverSeconds : 0f);
+            float speed = Type.speed * SpeedMultiplier;
+            Vector3 dirToPlayer = toPlayer.sqrMagnitude > 0.01f ? toPlayer.normalized : transform.forward;
+            switch (action)
+            {
+                case SpitterAction.Reposition:
+                    if (Time.time >= _nextReposition)
+                    {
+                        _nextReposition = Time.time + 0.35f;
+                        MoveTo(_player.position - dirToPlayer * _brain.PreferredRange, speed);
+                    }
+                    if (!_useAgent) DirectMove(dist > _brain.PreferredRange ? toPlayer : -toPlayer, speed, dt);
+                    return MoveAmount(speed);
+                case SpitterAction.Flank:
+                    if (Time.time >= _nextFlank) { _nextFlank = Time.time + 1.2f; _flankTarget = FindFlankPoint(dirToPlayer); }
+                    MoveTo(_flankTarget, speed * 1.15f);
+                    return MoveAmount(speed);
+                case SpitterAction.Aim:
+                    Stop();
+                    FacePlayer(toPlayer, dt);
+                    _attackStart = Time.time - Mathf.Clamp01(1f - _brain.AimRemaining / 0.9f) * 0.35f; // alza los brazos mientras apunta
+                    return 0f;
+                case SpitterAction.Throw:
+                    Stop();
+                    FacePlayer(toPlayer, dt);
+                    ThrowProjectile();
+                    return 0f;
+                default:
+                    Stop();
+                    FacePlayer(toPlayer, dt);
+                    return 0f;
+            }
+        }
+
+        private void FacePlayer(Vector3 toPlayer, float dt)
+        {
+            if (toPlayer.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(toPlayer), 540f * dt);
+        }
+
+        private void ThrowProjectile()
+        {
+            _attackStart = Time.time;
+            Vector3 hand = transform.position + Vector3.up * (1.4f * Type.scale) + transform.forward * 0.4f;
+            bool arc = _brain.Mode == ProjectileMode.Arc;
+            Vector3 target = arc ? _player.position : _player.position + Vector3.up * 1.1f;
+            Projectile.Launch(_brain.Mode, hand, target, Type.projectileSpeed, Type.projectileDamage * DamageMultiplier, Type.areaRadius, Type.projectileKind, _player, _playerHealth, gameObject);
+        }
+
+        /// <summary>Busca un punto a un lado del jugador desde el que haya línea de tiro libre y sea alcanzable por el NavMesh.</summary>
+        private Vector3 FindFlankPoint(Vector3 dirToPlayer)
+        {
+            Vector3 perp = new Vector3(-dirToPlayer.z, 0f, dirToPlayer.x);
+            Vector3 best = _player.position - dirToPlayer * _brain.PreferredRange;
+            float bestScore = float.MaxValue;
+            for (int i = 0; i < 4; i++)
+            {
+                float side = i % 2 == 0 ? 1f : -1f;
+                float reach = _brain.PreferredRange * (0.7f + 0.25f * (i / 2));
+                Vector3 p = _player.position + perp * side * reach - dirToPlayer * _brain.PreferredRange * 0.4f;
+                if (NavMesh.SamplePosition(p, out NavMeshHit hit, 4f, NavMesh.AllAreas)) p = hit.position; else continue;
+                Vector3 from = p + Vector3.up * 1.5f, to = _player.position + Vector3.up * 1.2f;
+                bool clear = !Physics.Raycast(from, (to - from).normalized, (to - from).magnitude, ~((1 << 2) | HitboxLayer.Mask), QueryTriggerInteraction.Ignore);
+                float score = (p - transform.position).sqrMagnitude + (clear ? 0f : 10000f);
+                if (score < bestScore) { bestScore = score; best = p; }
+            }
+            return best;
+        }
+
+        // ------------------------------------------------------------------ explosivo
+        private void Pulse(float dist)
+        {
+            bool on = dist < 9f && ((int)(Time.time * 4f) & 1) == 0;
+            if (on == _pulseOn) return;
+            _pulseOn = on;
+            _pulseMat ??= Prim.GetEmissive(new Color(1f, 0.45f, 0.1f), 3f);
+            Rig.SetFlash(on, _pulseMat);
+        }
+
+        private void Explode()
+        {
+            Vector3 center = transform.position + Vector3.up * 0.9f;
+            if (BloodFx.Instance != null)
+            {
+                BloodFx.Instance.Spray(center, Vector3.up, 40, new Color(1f, 0.55f, 0.15f), 1.8f);
+                BloodFx.Instance.Spray(center, Vector3.up, 25, new Color(0.25f, 0.2f, 0.18f), 1.2f);
+            }
+            if (_playerHealth != null && !_playerHealth.IsDead)
+            {
+                float d = Vector3.Distance(center, _player.position + Vector3.up);
+                float dmg = AreaDamage.At(d, Type.explosionRadius, Type.explosionDamage * DamageMultiplier);
+                if (dmg > 0f) _playerHealth.TakeDamage(new DamageInfo { Amount = dmg, Point = center, Direction = (_player.position - center).normalized, Source = gameObject });
+            }
+            var mgr = ZombieManager.Instance;
+            if (mgr == null) return;
+            foreach (var other in mgr.All)
+            {
+                if (other == this || !other.InUse || other.Health.IsDead) continue;
+                float d = Vector3.Distance(center, other.transform.position + Vector3.up);
+                float dmg = AreaDamage.At(d, Type.explosionRadius, Type.explosionDamage);
+                if (dmg > 0f) other.Health.TakeDamage(new DamageInfo { Amount = dmg, Point = center, Direction = (other.transform.position - center).normalized, Source = gameObject });
+            }
         }
 
         private void MoveTo(Vector3 target, float speed)

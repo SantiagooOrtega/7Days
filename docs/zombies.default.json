@@ -1,0 +1,661 @@
+{
+  "types": [
+    {
+      "id": "common",
+      "displayName": "Zombi",
+      "maxHealth": 100,
+      "speed": 2.4,
+      "patrolSpeed": 1,
+      "attackDamage": 12,
+      "attackRange": 1.5,
+      "attackCooldown": 1.2,
+      "aggroRange": 18,
+      "resistance": 0,
+      "stunResistance": 0,
+      "zones": {
+        "head": 2.5,
+        "torso": 1,
+        "arms": 0.6,
+        "legs": 0.7,
+        "weakPoint": 4
+      },
+      "scale": 1,
+      "color": [
+        0.42,
+        0.55,
+        0.38
+      ],
+      "dropKind": "common",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 12,
+      "areaRadius": 1.2,
+      "isBoss": false,
+      "boss": {
+        "day": 3,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "runner",
+      "displayName": "Corredor",
+      "maxHealth": 55,
+      "speed": 5.2,
+      "patrolSpeed": 1.6,
+      "attackDamage": 9,
+      "attackRange": 1.5,
+      "attackCooldown": 0.9,
+      "aggroRange": 22,
+      "resistance": 0,
+      "stunResistance": 0,
+      "zones": {
+        "head": 2.5,
+        "torso": 1,
+        "arms": 0.6,
+        "legs": 0.5,
+        "weakPoint": 4
+      },
+      "scale": 0.95,
+      "color": [
+        0.62,
+        0.5,
+        0.3
+      ],
+      "dropKind": "runner",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 12,
+      "areaRadius": 1.2,
+      "isBoss": false,
+      "boss": {
+        "day": 3,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "tank",
+      "displayName": "Tanque",
+      "maxHealth": 400,
+      "speed": 1.5,
+      "patrolSpeed": 0.7,
+      "attackDamage": 32,
+      "attackRange": 1.9,
+      "attackCooldown": 1.9,
+      "aggroRange": 18,
+      "resistance": 0.35,
+      "stunResistance": 0.7,
+      "zones": {
+        "head": 2,
+        "torso": 0.85,
+        "arms": 0.5,
+        "legs": 0.6,
+        "weakPoint": 4
+      },
+      "scale": 1.45,
+      "color": [
+        0.35,
+        0.38,
+        0.3
+      ],
+      "dropKind": "brute",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 12,
+      "areaRadius": 1.2,
+      "isBoss": false,
+      "boss": {
+        "day": 3,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "armored",
+      "displayName": "Blindado",
+      "maxHealth": 160,
+      "speed": 1.9,
+      "patrolSpeed": 1,
+      "attackDamage": 18,
+      "attackRange": 1.5,
+      "attackCooldown": 1.2,
+      "aggroRange": 18,
+      "resistance": 0.1,
+      "stunResistance": 0.3,
+      "zones": {
+        "head": 2.5,
+        "torso": 0.35,
+        "arms": 0.5,
+        "legs": 0.6,
+        "weakPoint": 4
+      },
+      "scale": 1,
+      "color": [
+        0.45,
+        0.45,
+        0.5
+      ],
+      "dropKind": "brute",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 12,
+      "areaRadius": 1.2,
+      "isBoss": false,
+      "boss": {
+        "day": 3,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "spitter",
+      "displayName": "Lanzador",
+      "maxHealth": 80,
+      "speed": 2,
+      "patrolSpeed": 1,
+      "attackDamage": 8,
+      "attackRange": 1.4,
+      "attackCooldown": 1.2,
+      "aggroRange": 18,
+      "resistance": 0,
+      "stunResistance": 0,
+      "zones": {
+        "head": 2.5,
+        "torso": 1,
+        "arms": 0.6,
+        "legs": 0.7,
+        "weakPoint": 4
+      },
+      "scale": 1,
+      "color": [
+        0.5,
+        0.6,
+        0.25
+      ],
+      "dropKind": "spitter",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "mixed",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 14,
+      "projectileSpeed": 15,
+      "projectileCooldown": 3.2,
+      "preferredRange": 12,
+      "areaRadius": 1.3,
+      "isBoss": false,
+      "boss": {
+        "day": 3,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "explosive",
+      "displayName": "Explosivo",
+      "maxHealth": 70,
+      "speed": 3,
+      "patrolSpeed": 1,
+      "attackDamage": 10,
+      "attackRange": 1.5,
+      "attackCooldown": 1.2,
+      "aggroRange": 18,
+      "resistance": 0,
+      "stunResistance": 0,
+      "zones": {
+        "head": 2.5,
+        "torso": 1,
+        "arms": 0.6,
+        "legs": 0.7,
+        "weakPoint": 4
+      },
+      "scale": 1,
+      "color": [
+        0.7,
+        0.35,
+        0.15
+      ],
+      "dropKind": "runner",
+      "explosionRadius": 3.2,
+      "explosionDamage": 42,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 12,
+      "areaRadius": 1.2,
+      "isBoss": false,
+      "boss": {
+        "day": 3,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "boss_brute",
+      "displayName": "Bruto Tit\u00E1n",
+      "maxHealth": 1500,
+      "speed": 3,
+      "patrolSpeed": 1,
+      "attackDamage": 40,
+      "attackRange": 2.4,
+      "attackCooldown": 1.6,
+      "aggroRange": 60,
+      "resistance": 0.2,
+      "stunResistance": 0.9,
+      "zones": {
+        "head": 1.8,
+        "torso": 1,
+        "arms": 0.5,
+        "legs": 0.6,
+        "weakPoint": 4
+      },
+      "scale": 2.2,
+      "color": [
+        0.45,
+        0.22,
+        0.2
+      ],
+      "dropKind": "boss",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 12,
+      "areaRadius": 1.2,
+      "isBoss": true,
+      "boss": {
+        "day": 3,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [
+          {
+            "id": "charge",
+            "cooldown": 9,
+            "telegraph": 1.3,
+            "minRange": 6,
+            "maxRange": 28,
+            "minPhase": 0,
+            "weight": 2,
+            "a": 15,
+            "b": 1.1,
+            "c": 0
+          },
+          {
+            "id": "slam",
+            "cooldown": 6,
+            "telegraph": 0.9,
+            "minRange": 0,
+            "maxRange": 4,
+            "minPhase": 0,
+            "weight": 1.5,
+            "a": 3.2,
+            "b": 28,
+            "c": 0
+          }
+        ],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "boss_launcher",
+      "displayName": "Lanzador Colosal",
+      "maxHealth": 2400,
+      "speed": 2.4,
+      "patrolSpeed": 1,
+      "attackDamage": 35,
+      "attackRange": 1.5,
+      "attackCooldown": 1.8,
+      "aggroRange": 70,
+      "resistance": 0.25,
+      "stunResistance": 0.9,
+      "zones": {
+        "head": 1.8,
+        "torso": 1,
+        "arms": 0.5,
+        "legs": 0.6,
+        "weakPoint": 4
+      },
+      "scale": 2,
+      "color": [
+        0.35,
+        0.45,
+        0.22
+      ],
+      "dropKind": "boss",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 16,
+      "areaRadius": 1.2,
+      "isBoss": true,
+      "boss": {
+        "day": 5,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [
+          {
+            "id": "throw",
+            "cooldown": 7,
+            "telegraph": 1.4,
+            "minRange": 6,
+            "maxRange": 38,
+            "minPhase": 0,
+            "weight": 2.5,
+            "a": 2.4,
+            "b": 45,
+            "c": 0
+          },
+          {
+            "id": "summon",
+            "cooldown": 18,
+            "telegraph": 1,
+            "minRange": 0,
+            "maxRange": 60,
+            "minPhase": 0,
+            "weight": 1,
+            "a": 0,
+            "b": 0,
+            "c": 0
+          },
+          {
+            "id": "slam",
+            "cooldown": 7,
+            "telegraph": 0.9,
+            "minRange": 0,
+            "maxRange": 4,
+            "minPhase": 0,
+            "weight": 1,
+            "a": 3,
+            "b": 25,
+            "c": 0
+          }
+        ],
+        "hasWeakPoint": false,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "runner",
+        "summonCount": 3
+      }
+    },
+    {
+      "id": "boss_final",
+      "displayName": "El Devorador",
+      "maxHealth": 3000,
+      "speed": 3.2,
+      "patrolSpeed": 1,
+      "attackDamage": 45,
+      "attackRange": 1.5,
+      "attackCooldown": 1.4,
+      "aggroRange": 80,
+      "resistance": 0.3,
+      "stunResistance": 0.95,
+      "zones": {
+        "head": 1.6,
+        "torso": 0.9,
+        "arms": 0.5,
+        "legs": 0.6,
+        "weakPoint": 4
+      },
+      "scale": 2.4,
+      "color": [
+        0.3,
+        0.12,
+        0.35
+      ],
+      "dropKind": "boss",
+      "explosionRadius": 0,
+      "explosionDamage": 0,
+      "projectile": "none",
+      "flankAfterSeconds": 4,
+      "projectileKind": "debris",
+      "projectileDamage": 0,
+      "projectileSpeed": 14,
+      "projectileCooldown": 3.5,
+      "preferredRange": 12,
+      "areaRadius": 1.2,
+      "isBoss": true,
+      "boss": {
+        "day": 7,
+        "phase2At": 0.5,
+        "phase3At": 0.25,
+        "furySpeed": [
+          1,
+          1.25,
+          1.5
+        ],
+        "furyAttackRate": [
+          1,
+          1.3,
+          1.6
+        ],
+        "globalCooldown": 1.2,
+        "abilities": [
+          {
+            "id": "shockwave",
+            "cooldown": 10,
+            "telegraph": 1.6,
+            "minRange": 0,
+            "maxRange": 16,
+            "minPhase": 0,
+            "weight": 2,
+            "a": 11,
+            "b": 38,
+            "c": 0
+          },
+          {
+            "id": "summon_wave",
+            "cooldown": 20,
+            "telegraph": 1.2,
+            "minRange": 0,
+            "maxRange": 80,
+            "minPhase": 0,
+            "weight": 1,
+            "a": 0,
+            "b": 0,
+            "c": 0
+          },
+          {
+            "id": "slam",
+            "cooldown": 6,
+            "telegraph": 0.9,
+            "minRange": 0,
+            "maxRange": 4.5,
+            "minPhase": 0,
+            "weight": 1.5,
+            "a": 3.6,
+            "b": 34,
+            "c": 0
+          }
+        ],
+        "hasWeakPoint": true,
+        "weakPointExposeSeconds": 4,
+        "weakPointPeriod": 14,
+        "stunnedExtraDamage": 1.5,
+        "wallStunSeconds": 2.5,
+        "summonType": "common",
+        "summonCount": 4
+      }
+    }
+  ]
+}

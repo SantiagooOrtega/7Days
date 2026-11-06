@@ -430,3 +430,12 @@ Pasos manuales:
 4. Escopeta a quemarropa: el zombi sale empujado hacia atrás y se tambalea; la pistola solo lo sacude. El tanque casi no se inmuta.
 5. Mata uno de un headshot: la cabeza desaparece y sale un chorro de sangre más grande; el cuerpo cae y deja un charco que crece.
 6. Abre `Window > Analysis > Profiler` con 10+ zombis (pulsa Z varias veces): deben mantenerse 60 FPS. Si ves caídas, anótalo y dime cuántos zombis había.
+
+### Bloque 4: tipos de zombie
+Pasos manuales:
+1. Play, pulsa **Z** varias veces (cicla: común, corredor, tanque, blindado, lanzador, explosivo). El corredor debe ser claramente más rápido y morir con pocos tiros; el tanque, lento y esponjoso; el blindado, casi inmune al torso (apunta a la cabeza).
+2. Lanzador: se queda a unos 12 m y, tras 0.9 s de aviso (brazos arriba), lanza una bola verde en línea recta. Ponte tras una caja pulsando **C** en cobertura: la bola debe chocar con la caja y salir "La cobertura te protegió" sin daño.
+3. Quédate 1 s o más en cobertura sin línea de tiro: empieza a lanzar en arco; aparece un círculo rojo en el suelo 1–1.5 s antes y debes salir de él para evitar el daño de área. Tras 4 s en cobertura, intenta rodear para tener línea de tiro.
+4. Explosivo: parpadea en naranja cerca de ti; dispárale a distancia: explota y daña a los zombis cercanos. Si te mata de cerca, comprueba el daño que recibes (hasta 42 en el centro).
+5. Mata varios y comprueba que cada tipo suelta botín según su tabla (tecla **N** cambia de día; los jefes se prueban en el Bloque 5).
+6. Opcional: menú **7Days > Exportar zombis por defecto (JSON)**, cambia `maxHealth` de un tipo en `Resources/Zombies/zombies.json` y vuelve a dar Play: el zombi debe cambiar. Un JSON inválido se ignora con un aviso en la consola.
