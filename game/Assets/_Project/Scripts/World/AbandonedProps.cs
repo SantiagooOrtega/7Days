@@ -107,11 +107,14 @@ namespace SevenDays.World
             var metal = Prim.GetTextured(new Color(0.36f, 0.38f, 0.4f), SurfaceLibrary.Metal, Vector2.one, 0.3f, 0.4f, true);
             float len = 6f * scale;
 
-            var pole = Prim.Create(PrimitiveType.Cylinder, "Pole", new Vector3(0f, 0.16f, 0f), new Vector3(0.22f, len / 2f, 0.22f), metal, root.transform, true);
+            var pole = Prim.Create(PrimitiveType.Cylinder, "Pole", new Vector3(0f, 0.16f, 0f), new Vector3(0.22f, len / 2f, 0.22f), metal, root.transform, false);
             pole.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            // El collider va en la raíz (la auditoría busca en el objeto o en sus padres, no en los hijos): una cápsula simple a lo largo del poste.
+            var cap = root.AddComponent<CapsuleCollider>();
+            cap.direction = 0; cap.center = new Vector3(0f, 0.16f, 0f); cap.radius = 0.16f; cap.height = len;
             Prim.CreateBox("Arm", new Vector3(len / 2f - 0.2f, 0.18f, 0.6f), new Vector3(0.1f, 0.1f, 1.3f), metal, root.transform, 1f, default, false, 0.01f);
             Prim.Create(PrimitiveType.Sphere, "Dead Bulb", new Vector3(len / 2f - 0.2f, 0.17f, 1.25f), Vector3.one * 0.25f, Prim.GetMaterial(new Color(0.3f, 0.3f, 0.28f)), root.transform, false);
-            Vegetation.MarkObstacle(pole);
+            Vegetation.MarkObstacle(root);
             return root;
         }
 
