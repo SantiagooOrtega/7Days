@@ -439,3 +439,14 @@ Pasos manuales:
 4. Explosivo: parpadea en naranja cerca de ti; dispárale a distancia: explota y daña a los zombis cercanos. Si te mata de cerca, comprueba el daño que recibes (hasta 42 en el centro).
 5. Mata varios y comprueba que cada tipo suelta botín según su tabla (tecla **N** cambia de día; los jefes se prueban en el Bloque 5).
 6. Opcional: menú **7Days > Exportar zombis por defecto (JSON)**, cambia `maxHealth` de un tipo en `Resources/Zombies/zombies.json` y vuelve a dar Play: el zombi debe cambiar. Un JSON inválido se ignora con un aviso en la consola.
+
+### Bloque 5: jefes
+Teclas de prueba: **B** = jefe delante (cicla día 3, 5, 7), **Shift+B** = reponer coberturas rotas, **T** = recibir 20 de daño, **Y** = curarte.
+Pasos manuales (nada de esto lo puedo verificar sin el editor):
+1. Play y pulsa **B**: un zombi enorme aparece a 20 m; arriba debe salir la **barra grande** con su nombre ("BRUTO TITÁN") y dos marcas blancas al 50 % y 25 %. No debe tener barra pequeña sobre la cabeza.
+2. **Bruto (día 3):** cuando aparezca una franja roja en el suelo hacia ti y suene el tono de aviso, apártate de lado. Debe cargar en línea recta, romper cajas y muebles ligeros al pasar, y si choca contra un muro o un contenedor grande debe quedar aturdido unos 2.5 s (texto "¡ATURDIDO! ¡DISPARA!"): tus disparos hacen entonces más daño. Compara cuántos disparos necesitas con y sin aturdimiento.
+3. Dispárale hasta bajar del 50 %: ruge, se vuelve más rojo y se mueve más rápido ("¡FURIA!"). Otra vez al 25 %.
+4. Pulsa **B** de nuevo para el **Lanzador Colosal (día 5)**: aparece un círculo rojo en el suelo donde caerá un objeto grande 1–1.5 s después; sal del círculo. La cobertura que alcance debe desaparecer y debe invocar corredores. Pulsa Shift+B para reponer coberturas.
+5. **B** otra vez: **El Devorador (día 7)**. Avisa una onda expansiva (círculo rojo grande): **salta** justo antes de que termine y debe salir "¡Esquivaste la onda!". Cada ~14 s (y tras la onda) se enciende un núcleo naranja en su pecho: un disparo ahí debe hacer mucho más daño que en el torso.
+6. Mátalo: debe soltar un objeto raro o mejor cerca de su cuerpo aunque ya hayas agotado los drops del día (mensaje "¡El jefe soltó un botín raro!").
+7. Con 3 o 4 jefes y 20 zombis en pantalla vigila los FPS (F3 muestra el gobernador de calidad); si bajan de 55 dime qué hacía el jefe en ese momento.

@@ -24,6 +24,14 @@ namespace SevenDays.Combat
         /// <summary>La cabeza voló: el director cuenta estas muertes como habilidad (headshots).</summary>
         public bool HeadDestroyed { get; private set; }
         public ZombieHealthBar Bar { get; private set; }
+        public BossBehaviour Boss { get; private set; }
+        public Color BodyColor { get; set; }
+        /// <summary>Si es >= 0 sustituye a la animación de ataque (los jefes alzan los brazos mientras avisan de un ataque).</summary>
+        public float PoseAttackOverride { get; set; } = -1f;
+        public Transform PlayerTransform => _player;
+        public Health PlayerHealth => _playerHealth;
+        public NavMeshAgent Agent => _agent;
+        public bool UsesAgent => _useAgent;
         public float SpeedMultiplier { get; set; } = 1f;
         public float DamageMultiplier { get; set; } = 1f;
 
@@ -84,7 +92,8 @@ namespace SevenDays.Combat
             _home = position;
             Rig.Visual.localScale = Vector3.one * type.scale;
             Rig.Visual.localPosition = Vector3.zero; Rig.Visual.localRotation = Quaternion.identity;
-            Rig.SetColor(new Color(type.color[0], type.color[1], type.color[2]));
+            BodyColor = new Color(type.color[0], type.color[1], type.color[2]);
+            Rig.SetColor(BodyColor);
             _body.radius = 0.32f * type.scale; _body.height = 1.8f * type.scale; _body.center = new Vector3(0f, 0.9f * type.scale, 0f);
             Health.Configure(type.maxHealth * healthMultiplier, type.resistance, type.stunResistance, type.zones.Clone());
             Rig.SetHitboxesEnabled(true);
@@ -99,6 +108,13 @@ namespace SevenDays.Combat
             _walkPhase = UnityEngine.Random.value * 6f;
             InUse = true;
             gameObject.SetActive(true);
+            PoseAttackOverride = -1f;
+            if (type.isBoss)
+            {
+                if (Boss == null) Boss = gameObject.AddComponent<BossBehaviour>();
+                Boss.Begin(this, type);
+            }
+            else if (Boss != null) Boss.End();
 
             _agent.enabled = false;
             _agent.radius = 0.35f * type.scale; _agent.height = 1.8f * type.scale;
@@ -135,13 +151,14 @@ namespace SevenDays.Combat
             if (report.Killed) return;
             var reaction = HitReaction.Compute(report.FinalDamage, Health.Max, report.Zone, info.Knockback, Type.stunResistance);
             Vector3 dir = info.Direction; dir.y = 0f;
-            if (dir.sqrMagnitude > 0.001f) _knock += dir.normalized * (reaction.KnockbackMeters * 7f);
+            if (dir.sqrMagnitude > 0.001f) _knock += dir.normalized * (reaction.KnockbackMeters * 7f * (Type.isBoss ? 0.15f : 1f));
             if (reaction.Stagger) Health.Stun(reaction.StunSeconds, false);   // HitReaction ya descontó la resistencia
         }
 
         private void OnDied()
         {
             _deadAt = Time.time;
+            if (Boss != null) Boss.OnDeath();
             if (Health.KilledByHeadshot)
             {
                 HeadDestroyed = true;
@@ -165,7 +182,7 @@ namespace SevenDays.Combat
             if (_flashUntil > 0f && Time.time >= _flashUntil)
             {
                 _flashUntil = 0f;
-                Rig.SetColor(new Color(Type.color[0], Type.color[1], Type.color[2]));
+                Rig.SetColor(BodyColor);
             }
 
             if (Health.IsDead) { UpdateDead(); return; }
@@ -189,10 +206,13 @@ namespace SevenDays.Combat
                 _canSee = dist < 3f || HasLineOfSight();
             }
             _sm.Tick(dt, dist, _canSee, Health.IsStunned, false, playerDead);
+            bool bossHandled = false; float bossMove = 0f;
+            if (Boss != null && Boss.Active) bossHandled = Boss.Tick(dt, toPlayer, dist, out bossMove);
             if (_sm.State == ZombieState.Chase) _canSee = _canSee || dist < _sm.AggroRange;
 
             float moveAmount = 0f;
-            if (_brain != null && _sm.State == ZombieState.Chase) moveAmount = Ranged(dt, toPlayer, dist); // el lanzador mantiene distancia y lanza
+            if (bossHandled) moveAmount = bossMove;
+            else if (_brain != null && _sm.State == ZombieState.Chase) moveAmount = Ranged(dt, toPlayer, dist); // el lanzador mantiene distancia y lanza
             else switch (_sm.State)
             {
                 case ZombieState.Patrol: moveAmount = Patrol(dt); break;
@@ -204,7 +224,7 @@ namespace SevenDays.Combat
 
             _walkPhase += dt * (3f + moveAmount * 4f);
             _stagger = Mathf.MoveTowards(_stagger, Health.IsStunned ? 1f : 0f, dt * 6f);
-            float attackT = _attackStart > 0f ? Mathf.Clamp01((Time.time - _attackStart) / 0.7f) : 0f;
+            float attackT = PoseAttackOverride >= 0f ? PoseAttackOverride : (_attackStart > 0f ? Mathf.Clamp01((Time.time - _attackStart) / 0.7f) : 0f);
             float amount = Mathf.Clamp01(moveAmount);
             if (_cam == null) _cam = Camera.main;
             Bar.Tick(dist, _cam);
@@ -236,7 +256,7 @@ namespace SevenDays.Combat
             return MoveAmount(speed);
         }
 
-        private void Attack(float dt, Vector3 toPlayer, float dist)
+        internal void Attack(float dt, Vector3 toPlayer, float dist)
         {
             Stop();
             if (toPlayer.sqrMagnitude > 0.01f)
@@ -364,7 +384,7 @@ namespace SevenDays.Combat
             }
         }
 
-        private void MoveTo(Vector3 target, float speed)
+        internal void MoveTo(Vector3 target, float speed)
         {
             if (_useAgent && _agent.isOnNavMesh)
             {
@@ -374,7 +394,7 @@ namespace SevenDays.Combat
             }
         }
 
-        private void Stop() { if (_useAgent && _agent.isOnNavMesh) { _agent.isStopped = true; _agent.velocity = Vector3.zero; } }
+        internal void Stop() { if (_useAgent && _agent.isOnNavMesh) { _agent.isStopped = true; _agent.velocity = Vector3.zero; } }
 
         private float MoveAmount(float speed)
         {
