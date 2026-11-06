@@ -135,6 +135,9 @@ namespace SevenDays.Look
         /// <summary>Piso fuera de la autopista: capas mezcladas (tierra, grava, ceniza, barro, hierba seca, concreto roto), rodadas, huellas y manchas.</summary>
         public GroundSettings Ground = new GroundSettings();
 
+        /// <summary>Casa central (refugio).</summary>
+        public HouseSettings House = new HouseSettings();
+
         /// <summary>Salto, vault y caída: altura de salto, alturas mín/máx de vault, duración, coyote time, jump buffer, gravedad. Se cargan del ScriptableObject Resources/Config/Movement si existe.</summary>
         public SevenDays.Procedural.MovementSettings Movement = SevenDays.Player.PlayerMovementConfig.LoadSettings();
 

@@ -23,5 +23,16 @@ namespace SevenDays.EditorTools
             AssetDatabase.Refresh();
             Debug.Log("[7Days] Layout exportado: " + path + " (" + layout.items.Length + " piezas). Renómbralo a props.json para que el juego lo use.");
         }
+
+        [MenuItem("7Days/Exportar casa (JSON)")]
+        public static void ExportHouse()
+        {
+            string dir = "Assets/_Project/Resources/Layouts";
+            Directory.CreateDirectory(dir);
+            string path = dir + "/house_default.json";
+            File.WriteAllText(path, HouseIO.ToJson(HouseLayoutData.Default()));
+            AssetDatabase.Refresh();
+            Debug.Log("[7Days] Casa exportada: " + path + ". Renómbralo a house.json para que el juego lo use.");
+        }
     }
 }
