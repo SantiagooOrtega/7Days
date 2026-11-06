@@ -150,3 +150,15 @@ Las partículas usan el shader `Universal Render Pipeline/Particles/Unlit`, que 
 - **Parámetros** en `LookSettings.Vegetation`: `Density`, `MaxTrees`, `MaxBushes`, `MaxGrass`, `MaxProps`, `TreeShadows`, `Seed`. Si bajas de 55 FPS, baja primero `Density`.
 - **Por JSON** (posición, tipo, escala): ver `docs/PROP_LAYOUT.md`. Menú **7Days > Exportar layout de props (JSON)**.
 - **NavMesh**: árboles y arbustos grandes son obstáculos; la hierba no.
+
+---
+
+## Bloque 4: señales de tráfico desgastadas
+- **6 tipos genéricos** (sin logos ni textos protegidos): pare (octágono con bloques abstractos en vez de letras), ceda el paso, velocidad máxima ("40"), prohibido girar, peligro (triángulo con exclamación) y letrero genérico (rectángulo azul con flecha).
+- **Textura procedural por señal** (color + mapa de normales, 256 px) en **3 niveles de desgaste** (leve, medio, destrozado): pintura descascarada que deja ver el acero, óxido en bordes y alrededor de los tornillos, abolladuras (relieve en normales), suciedad con chorreras, rayones y agujeros de bala. Solo se generan las combinaciones que usa el mapa, en hilos de fondo.
+- **6 estados**: erguida, inclinada, doblada, caída, solo poste y placa colgando de un tornillo.
+- **Colocación**: a lo largo de la calle, en las esquinas y en los extremos de la calle; ~35% quedan semitapadas por hierba, bolsas o neumáticos. Posición, tipo, estado, variante y escala van en el mismo JSON de props (ver `docs/PROP_LAYOUT.md`).
+- **Rendimiento**: placas y postes se dibujan con **GPU instancing** y sin sombras; los postes no tienen collider (no bloquean el NavMesh) y solo la señal caída lleva un collider pequeño "no caminable".
+- **2 señales** llevan una luz roja parpadeante (`LookSettings.Signs.RedLightSigns`).
+- **Marcas viales** gastadas sobre el asfalto: línea amarilla discontinua, 2 pasos de cebra y 3 flechas casi borradas (`Signs.RoadMarkings`).
+- **Parámetros** en `LookSettings.Signs`: `Density`, `MaxSigns` (tope), `RedLightSigns`, `TextureSize`, `Seed`, `RoadMarkings`.
