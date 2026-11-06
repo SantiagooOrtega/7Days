@@ -81,7 +81,8 @@ namespace SevenDays.World
         private void BuildLevel()
         {
             var root = new GameObject("Level").transform;
-            IndustrialRuins.Build(root);
+            IndustrialRuins.Build(root, _look);
+            Skyline.Build(root, _look);
 
             // Blancos de práctica: cuerpo claro, cabeza pálida y ojos brillantes para que se distingan del fondo
             for (int i = 0; i < 6; i++)
