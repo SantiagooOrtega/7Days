@@ -1,72 +1,54 @@
 using System.Collections.Generic;
 using UnityEngine;
+using SevenDays.Procedural;
 
 namespace SevenDays.Core
 {
     /// <summary>
-    /// Cajas con UV "por cara" en metros: cada cara recibe la textura a escala real (tileMeters por repetición),
-    /// así un muro de 12 m no estira la textura como lo hace el cubo por defecto de Unity (que mapea 0..1 por cara).
-    /// Incluye tangentes para que funcionen los mapas de normales.
+    /// Convierte la geometría de caja (SevenDays.Procedural.BoxGeometry) en una Mesh de Unity.
+    /// La geometría trae bisel, UV por cara en metros y tangentes definidas (para que el mapa de normales
+    /// se vea bien desde cualquier ángulo), y se cachea por tamaño/UV/bisel.
     /// </summary>
     public static class BoxMesh
     {
         private static readonly Dictionary<string, Mesh> Cache = new Dictionary<string, Mesh>();
 
-        public static Mesh Get(Vector3 size, float tileMeters, Vector2 uvOffset)
+        public static Mesh Get(Vector3 size, float tileMeters, Vector2 uvOffset, float bevel)
         {
-            string key = size.x.ToString("0.###") + "|" + size.y.ToString("0.###") + "|" + size.z.ToString("0.###") + "|"
-                + tileMeters.ToString("0.###") + "|" + uvOffset.x.ToString("0.###") + "|" + uvOffset.y.ToString("0.###");
+            string key = string.Join("|", size.x.ToString("0.###"), size.y.ToString("0.###"), size.z.ToString("0.###"),
+                tileMeters.ToString("0.###"), uvOffset.x.ToString("0.###"), uvOffset.y.ToString("0.###"), bevel.ToString("0.###"));
             if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
-            var verts = new List<Vector3>(24);
-            var norms = new List<Vector3>(24);
-            var tangs = new List<Vector4>(24);
-            var uvs = new List<Vector2>(24);
-            var tris = new List<int>(36);
-
-            float hx = size.x * 0.5f, hy = size.y * 0.5f, hz = size.z * 0.5f;
-            // origen, vector u (ancho), vector v (alto): cross(u,v) = normal exterior
-            AddFace(new Vector3(-hx, -hy, hz), new Vector3(2 * hx, 0, 0), new Vector3(0, 2 * hy, 0), tileMeters, uvOffset, verts, norms, tangs, uvs, tris);   // +Z
-            AddFace(new Vector3(hx, -hy, -hz), new Vector3(-2 * hx, 0, 0), new Vector3(0, 2 * hy, 0), tileMeters, uvOffset, verts, norms, tangs, uvs, tris);  // -Z
-            AddFace(new Vector3(hx, -hy, hz), new Vector3(0, 0, -2 * hz), new Vector3(0, 2 * hy, 0), tileMeters, uvOffset, verts, norms, tangs, uvs, tris);  // +X
-            AddFace(new Vector3(-hx, -hy, -hz), new Vector3(0, 0, 2 * hz), new Vector3(0, 2 * hy, 0), tileMeters, uvOffset, verts, norms, tangs, uvs, tris);  // -X
-            AddFace(new Vector3(-hx, hy, hz), new Vector3(2 * hx, 0, 0), new Vector3(0, 0, -2 * hz), tileMeters, uvOffset, verts, norms, tangs, uvs, tris);   // +Y
-            AddFace(new Vector3(-hx, -hy, -hz), new Vector3(2 * hx, 0, 0), new Vector3(0, 0, 2 * hz), tileMeters, uvOffset, verts, norms, tangs, uvs, tris);  // -Y
-
-            var mesh = new Mesh { name = "Box " + key };
-            mesh.SetVertices(verts);
-            mesh.SetNormals(norms);
-            mesh.SetTangents(tangs);
-            mesh.SetUVs(0, uvs);
-            mesh.SetTriangles(tris, 0);
-            mesh.RecalculateBounds();
+            var data = BoxGeometry.Build(new V3(size.x, size.y, size.z), tileMeters, new V2(uvOffset.x, uvOffset.y), bevel);
+            var mesh = ToMesh(data);
+            mesh.name = "Box " + key;
             Cache[key] = mesh;
             return mesh;
         }
 
-        private static void AddFace(Vector3 origin, Vector3 u, Vector3 v, float tile, Vector2 offset,
-            List<Vector3> verts, List<Vector3> norms, List<Vector4> tangs, List<Vector2> uvs, List<int> tris)
+        public static Mesh ToMesh(MeshData d)
         {
-            int start = verts.Count;
-            Vector3 normal = Vector3.Cross(u, v).normalized;
-            Vector3 tangent = u.normalized;
-            float w = u.magnitude / tile, h = v.magnitude / tile;
-
-            verts.Add(origin);
-            verts.Add(origin + u);
-            verts.Add(origin + u + v);
-            verts.Add(origin + v);
-            uvs.Add(offset);
-            uvs.Add(offset + new Vector2(w, 0f));
-            uvs.Add(offset + new Vector2(w, h));
-            uvs.Add(offset + new Vector2(0f, h));
-            for (int i = 0; i < 4; i++)
+            int n = d.Positions.Count;
+            var verts = new Vector3[n];
+            var norms = new Vector3[n];
+            var tangs = new Vector4[n];
+            var uvs = new Vector2[n];
+            for (int i = 0; i < n; i++)
             {
-                norms.Add(normal);
-                tangs.Add(new Vector4(tangent.x, tangent.y, tangent.z, 1f));
+                var p = d.Positions[i]; var nr = d.Normals[i]; var t = d.Tangents[i]; var uv = d.Uvs[i];
+                verts[i] = new Vector3(p.X, p.Y, p.Z);
+                norms[i] = new Vector3(nr.X, nr.Y, nr.Z);
+                tangs[i] = new Vector4(t.X, t.Y, t.Z, 1f);
+                uvs[i] = new Vector2(uv.X, uv.Y);
             }
-            tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
-            tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
+            var mesh = new Mesh();
+            mesh.vertices = verts;
+            mesh.normals = norms;
+            mesh.tangents = tangs;
+            mesh.uv = uvs;
+            mesh.triangles = d.Triangles.ToArray();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
