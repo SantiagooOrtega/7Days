@@ -76,7 +76,7 @@ namespace SevenDays.World
             Physics.SyncTransforms();
             ColliderAudit.Run(_levelRoot);
 
-            _zombies = ZombieManager.Create(transform);
+            _zombies = ZombieManager.Create(transform, ZombieIO.Load());
             _zombies.BakeNavMesh(); // después de construir el nivel y de la auditoría: usa los colliders ya definitivos
             _zombies.SetPlayer(player.transform);
             BloodFx.Create(transform);

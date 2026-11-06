@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using Unity.AI.Navigation;
 using SevenDays.Core;
+using SevenDays.Player;
 using SevenDays.Procedural;
 
 namespace SevenDays.Combat
@@ -25,6 +26,13 @@ namespace SevenDays.Combat
         private Transform _player;
         private Health _playerHealth;
         private NavMeshSurface _surface;
+        private PlayerCover _cover;
+        private bool _navDirty;
+        private float _nextNavRefresh;
+        public Transform PlayerTransform => _player;
+        public Health PlayerHealth => _playerHealth;
+        /// <summary>Cuánto lleva el jugador seguido en cobertura (la IA del lanzador decide con esto cuándo flanquear).</summary>
+        public float PlayerCoverSeconds { get; private set; }
 
         public static ZombieManager Create(Transform parent, List<ZombieTypeData> types = null)
         {
@@ -41,6 +49,7 @@ namespace SevenDays.Combat
         {
             _player = player;
             _playerHealth = player.GetComponent<Health>();
+            _cover = player.GetComponent<PlayerCover>();
             foreach (var z in _all) z.SetPlayer(_player, _playerHealth);
         }
 
@@ -90,6 +99,20 @@ namespace SevenDays.Combat
         }
 
         private void OnKilled(ZombieController z) => ZombieKilled?.Invoke(z);
+
+        private void Update()
+        {
+            PlayerCoverSeconds = _cover != null && _cover.Active ? PlayerCoverSeconds + Time.deltaTime : 0f;
+            // si una cobertura se rompió, el NavMesh se actualiza (como mucho cada 2 s, no en cada golpe)
+            if (_navDirty && NavMeshReady && Time.time >= _nextNavRefresh)
+            {
+                _navDirty = false;
+                _nextNavRefresh = Time.time + 2f;
+                _surface.UpdateNavMesh(_surface.navMeshData);
+            }
+        }
+
+        public void RequestNavMeshRefresh() { _navDirty = true; }
 
         public void DespawnAll() { foreach (var z in _all) if (z.InUse) z.Deactivate(); }
 
