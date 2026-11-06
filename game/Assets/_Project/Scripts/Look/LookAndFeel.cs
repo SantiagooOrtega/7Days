@@ -28,6 +28,8 @@ namespace SevenDays.Look
             for (int i = 0; i < names.Length; i++)
                 if (names[i] == "Demo") { QualitySettings.SetQualityLevel(i, true); break; }
 
+            // Filtrado anisotrópico: cada textura pide 8x (ver SurfaceLibrary); aquí se fuerza a que se respete.
+            QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = s.TargetFps;
         }
