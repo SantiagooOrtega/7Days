@@ -12,6 +12,8 @@ namespace SevenDays.Procedural
         public bool Solid;
         public ColliderShape Shape;
         public string Reason;
+        /// <summary>true = solo coincide con el nombre exacto (evita que "Ground" atrape a "GroundDetails" o "GroundFog").</summary>
+        public bool Exact;
     }
 
     /// <summary>
@@ -42,7 +44,7 @@ namespace SevenDays.Procedural
         /// <summary>Piezas fijas del mapa por prefijo de nombre (así las identifica la auditoría en la escena).</summary>
         public static readonly IReadOnlyList<SolidSpec> MapPieces = new List<SolidSpec>
         {
-            new SolidSpec { Name = "Ground", Solid = true, Shape = ColliderShape.Box, Reason = "el piso" },
+            new SolidSpec { Name = "Ground", Exact = true, Solid = true, Shape = ColliderShape.Box, Reason = "el piso" },
             new SolidSpec { Name = "Wall", Solid = true, Shape = ColliderShape.Box, Reason = "muros del perímetro y de la casa" },
             new SolidSpec { Name = "Crumble", Solid = true, Shape = ColliderShape.Box, Reason = "bloques sobre los muros" },
             new SolidSpec { Name = "Barrier", Solid = true, Shape = ColliderShape.Box, Reason = "barreras de concreto" },
@@ -64,7 +66,7 @@ namespace SevenDays.Procedural
             new SolidSpec { Name = "Fallen Pole", Solid = true, Shape = ColliderShape.Capsule, Reason = "poste caído" },
             new SolidSpec { Name = "Dummy", Solid = true, Shape = ColliderShape.Capsule, Reason = "blancos de práctica" },
             // --- no sólidos
-            new SolidSpec { Name = "Road", Solid = false, Shape = ColliderShape.None, Reason = "asfalto fino sobre el piso (el piso ya colisiona)" },
+            new SolidSpec { Name = "Road", Exact = true, Solid = false, Shape = ColliderShape.None, Reason = "asfalto fino sobre el piso (el piso ya colisiona)" },
             new SolidSpec { Name = "Rubble", Solid = false, Shape = ColliderShape.None, Reason = "escombros pequeños: no deben frenar al jugador" },
             new SolidSpec { Name = "Stone", Solid = false, Shape = ColliderShape.None, Reason = "piedras de la fogata" },
             new SolidSpec { Name = "Log", Solid = false, Shape = ColliderShape.None, Reason = "troncos de la fogata" },
@@ -80,7 +82,10 @@ namespace SevenDays.Procedural
         {
             SolidSpec best = null;
             foreach (var s in MapPieces)
-                if (objectName.StartsWith(s.Name, StringComparison.Ordinal) && (best == null || s.Name.Length > best.Name.Length)) best = s;
+            {
+                bool match = s.Exact ? objectName == s.Name : objectName.StartsWith(s.Name, StringComparison.Ordinal);
+                if (match && (best == null || s.Name.Length > best.Name.Length)) best = s;
+            }
             return best;
         }
 

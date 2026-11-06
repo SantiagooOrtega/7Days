@@ -31,7 +31,7 @@ namespace SevenDays.Look
 
         // Suciedad del suelo
         public int Cracks = 14;                 // grietas en el asfalto y el concreto
-        public int WeedTufts = 40;              // matas de maleza que salen de las grietas y los bordes
+        public int WeedTufts = 70;              // matas de maleza que salen de las grietas y los bordes
         public int Puddles = 7;
         public int BloodStains = 8;
 

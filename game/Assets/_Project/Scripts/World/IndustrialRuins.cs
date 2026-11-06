@@ -109,7 +109,7 @@ namespace SevenDays.World
                     _ => new Vector3(-30.5f, 4f + h / 2f, t),
                 };
                 Vector3 size = side < 2 ? new Vector3(w, h, 1f) : new Vector3(1f, h, w);
-                Prim.CreateBox("Crumble " + i, pos, size, wall, root, 3f, UvJitter(), false);
+                Prim.CreateBox("Crumble " + i, pos, size, wall, root, 3f, UvJitter(), true);
             }
         }
 
@@ -208,11 +208,11 @@ namespace SevenDays.World
             // Vigas del techo (parcialmente caído)
             for (int i = -2; i < 2; i++)
             {
-                var beam = Prim.CreateBox("Beam " + i, new Vector3(i * 9f + 4.5f, 5.6f, 23f), new Vector3(8.4f, 0.3f, 0.4f), steel, root, 2f, UvJitter(), false);
+                var beam = Prim.CreateBox("Beam " + i, new Vector3(i * 9f + 4.5f, 5.6f, 23f), new Vector3(8.4f, 0.3f, 0.4f), steel, root, 2f, UvJitter(), true);
                 if (i == 0) beam.transform.rotation = Quaternion.Euler(0f, 0f, -14f);
             }
             for (int i = -1; i <= 1; i++)
-                Prim.CreateBox("Roof " + i, new Vector3(i * 9f, 5.85f, 26.5f), new Vector3(8f, 0.15f, 6.5f), steel, root, 3f, UvJitter(), false);
+                Prim.CreateBox("Roof " + i, new Vector3(i * 9f, 5.85f, 26.5f), new Vector3(8f, 0.15f, 6.5f), steel, root, 3f, UvJitter(), true);
 
             // Muro de fondo con huecos
             BrickBox(root, "Back Wall A", new Vector3(-13f, 2f, 28f), new Vector3(11f, 4f, 0.8f), true);
@@ -230,7 +230,7 @@ namespace SevenDays.World
             for (int i = 0; i < 3; i++)
             {
                 var p = Prim.Create(PrimitiveType.Cylinder, "Pipe " + i, new Vector3(-25f, 0.4f + i * 0.5f, -12f + i * 1.3f),
-                    new Vector3(0.45f, 4f, 0.45f), pipe, root, false);
+                    new Vector3(0.45f, 4f, 0.45f), pipe, root, true); // tubería: sólida (CapsuleCollider)
                 p.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             }
 
@@ -278,7 +278,7 @@ namespace SevenDays.World
             for (int i = 0; i < posts.Length; i++)
             {
                 Vector3 p = posts[i];
-                Prim.Create(PrimitiveType.Cylinder, "Lamp Pole " + i, p + Vector3.up * 2.5f, new Vector3(0.14f, 2.5f, 0.14f), metal, root, false);
+                Prim.Create(PrimitiveType.Cylinder, "Lamp Pole " + i, p + Vector3.up * 2.5f, new Vector3(0.14f, 2.5f, 0.14f), metal, root, true);
                 float dir = p.x < 0f ? 1f : -1f;
                 Prim.Create(PrimitiveType.Cube, "Lamp Arm " + i, p + new Vector3(dir * 0.6f, 5f, 0f), new Vector3(1.3f, 0.1f, 0.1f), metal, root, false);
                 var bulbGo = Prim.Create(PrimitiveType.Sphere, "Lamp Bulb " + i, p + new Vector3(dir * 1.2f, 4.92f, 0f), Vector3.one * 0.3f, bulb, root, false);

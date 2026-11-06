@@ -88,6 +88,15 @@ namespace SevenDays.Tests
         }
 
         [Test]
+        public void ExactNames_DoNotCatchLookalikeContainers()
+        {
+            Assert.IsNull(SolidCatalog.MatchPiece("GroundDetails"), "el contenedor de maleza y manchas no es el piso");
+            Assert.IsNull(SolidCatalog.MatchPiece("GroundFog 0"), "ni la niebla");
+            Assert.IsTrue(SolidCatalog.MatchPiece("Ground").Solid);
+            Assert.IsFalse(SolidCatalog.MatchPiece("Walkable front_door").Solid, "los volúmenes de NavMesh no son sólidos");
+        }
+
+        [Test]
         public void EveryHouseBoxKind_IsSolidWithABoxCollider()
         {
             foreach (HouseBoxKind k in Enum.GetValues(typeof(HouseBoxKind))) Assert.AreEqual(ColliderShape.Box, SolidCatalog.ShapeForHouse(k), k.ToString());
