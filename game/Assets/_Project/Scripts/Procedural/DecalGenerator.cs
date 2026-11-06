@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SevenDays.Procedural
 {
-    public enum DecalKind { Blood, Crack, Puddle, DashLine, Zebra, Arrow }
+    public enum DecalKind { Blood, Crack, Puddle, DashLine, Zebra, Arrow, Stain, Burn }
 
     /// <summary>
     /// Texturas RGBA con transparencia para calcomanías sobre el suelo: sangre seca, grietas y charcos oscuros.
@@ -28,6 +28,8 @@ namespace SevenDays.Procedural
                         case DecalKind.Blood: Blood(u, v, seed, streakAngle, out r, out g, out b, out a); break;
                         case DecalKind.Crack: Crack(u, v, seed, segs, out r, out g, out b, out a); break;
                         case DecalKind.Puddle: Puddle(u, v, seed, out r, out g, out b, out a); break;
+                        case DecalKind.Stain: Stain(u, v, seed, out r, out g, out b, out a); break;
+                        case DecalKind.Burn: Burn(u, v, seed, out r, out g, out b, out a); break;
                         default: RoadPaint(kind, u, v, seed, out r, out g, out b, out a); break;
                     }
                     int i = (y * size + x) * 4;
@@ -161,6 +163,36 @@ namespace SevenDays.Procedural
             float grime = 0.65f + 0.35f * TileableNoise.Fbm(u, v, 12, 3, seed + 5);
             if (yellow) { r = 0.66f * grime; g = 0.52f * grime; b = 0.12f * grime; }
             else { r = 0.74f * grime; g = 0.73f * grime; b = 0.68f * grime; }
+        }
+
+        /// <summary>Mancha oscura y mate (aceite, hollín, grasa): irregular, con gotas alrededor.</summary>
+        private static void Stain(float u, float v, int seed, out float r, out float g, out float b, out float a)
+        {
+            float dx = u - 0.5f, dy = v - 0.5f;
+            float dist = (float)Math.Sqrt(dx * dx + dy * dy);
+            float rr = dist + (TileableNoise.Fbm(u, v, 6, 4, seed + 7) - 0.5f) * 0.5f;
+            float body = 1f - Smooth(0.18f, 0.4f, rr);
+            TileableNoise.Voronoi(u, v, 12, seed + 8, out float f1, out _, out float id);
+            float drops = id > 0.7f ? (1f - Smooth(0.06f, 0.16f, f1)) * Smooth(0.15f, 0.25f, dist) : 0f;
+            a = Math.Max(body * 0.8f, drops * 0.7f) * (1f - Smooth(0.43f, 0.5f, dist)) * Smooth(0.02f, 0.05f, Math.Min(Math.Min(u, 1f - u), Math.Min(v, 1f - v))); // borde siempre transparente
+            float tone = 0.7f + 0.6f * TileableNoise.Fbm(u, v, 10, 3, seed + 9);
+            r = 0.05f * tone; g = 0.045f * tone; b = 0.04f * tone;
+        }
+
+        /// <summary>Quemadura: centro carbonizado, borde irregular con vetas radiales y un halo de ceniza gris.</summary>
+        private static void Burn(float u, float v, int seed, out float r, out float g, out float b, out float a)
+        {
+            float dx = u - 0.5f, dy = v - 0.5f;
+            float dist = (float)Math.Sqrt(dx * dx + dy * dy);
+            float ang = (float)Math.Atan2(dy, dx);
+            float streak = 0.5f + 0.5f * TileableNoise.Perlin((ang / 6.2832f + 0.5f) * 12f, dist * 10f, 12, 10, seed + 11); // vetas que salen del centro
+            float rr = dist + (TileableNoise.Fbm(u, v, 5, 4, seed + 10) - 0.5f) * 0.32f + (streak - 0.5f) * 0.08f;
+            float core = 1f - Smooth(0.13f, 0.27f, rr);
+            float halo = 1f - Smooth(0.25f, 0.46f, rr);
+            a = Math.Max(core * 0.96f, halo * 0.55f) * (1f - Smooth(0.44f, 0.5f, dist)) * Smooth(0.02f, 0.05f, Math.Min(Math.Min(u, 1f - u), Math.Min(v, 1f - v)));
+            float t = core;
+            float tone = 0.8f + 0.4f * TileableNoise.Fbm(u, v, 14, 3, seed + 12);
+            r = (0.02f * t + 0.2f * (1f - t)) * tone; g = (0.018f * t + 0.19f * (1f - t)) * tone; b = (0.017f * t + 0.18f * (1f - t)) * tone;
         }
 
         private static void Puddle(float u, float v, int seed, out float r, out float g, out float b, out float a)
