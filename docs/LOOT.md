@@ -6,12 +6,12 @@ Todo el sistema está en datos (JSON) para que el backend y Gemini (offline, `np
 ## Armas (un ScriptableObject por arma)
 | id | Arma | Munición | Rareza | Daño | Cadencia | Cargador | Notas |
 |----|------|----------|--------|------|----------|----------|-------|
-| `pistol` | Pistola | pistola | común | 28 | 330 rpm | 12 | arma inicial |
-| `revolver` | Revólver | pistola | poco común | 62 | 130 rpm | 6 | mucho retroceso |
-| `smg` | Subfusil | pistola | poco común | 14 | 850 rpm | 30 | automático, dispersión alta |
-| `shotgun` | Escopeta | escopeta | poco común | 11 x 8 perdigones | 70 rpm | 6 | alcance corto |
-| `assault_rifle` | Fusil de asalto | rifle | rara | 24 | 600 rpm | 30 | automático |
-| `sniper` | Rifle de francotirador | rifle | épica | 125 | 55 rpm | 5 | alcance 260 m, casi sin dispersión al apuntar |
+| `pistol` | Pistola | pistola | común | 18 | 330 rpm | 12 | arma inicial |
+| `revolver` | Revólver | pistola | poco común | 48 | 130 rpm | 6 | mucho retroceso |
+| `smg` | Subfusil | pistola | poco común | 12 | 850 rpm | 30 | automático, dispersión alta |
+| `shotgun` | Escopeta | escopeta | poco común | 12 x 8 perdigones | 70 rpm | 6 | alcance corto |
+| `assault_rifle` | Fusil de asalto | rifle | rara | 36 | 520 rpm | 30 | automático |
+| `sniper` | Rifle de francotirador | rifle | épica | 90 | 55 rpm | 5 | alcance 260 m, casi sin dispersión al apuntar |
 | `bar` | Barra metálica | — | común | 38 | 100 rpm | — | cuerpo a cuerpo (alcance 2.1 m) |
 
 - Los ScriptableObjects (`WeaponAsset`) están en `Assets/_Project/Resources/Weapons`. **Se crean solos** la primera vez que Unity compila; también desde el menú **7Days > Crear armas por defecto (ScriptableObjects)**. Se editan en el Inspector: daño, cadencia, cargador, recoil, dispersión (sin apuntar y apuntando), alcance, rareza y tipo de munición. Lo que falte sale de los valores por defecto.
@@ -72,3 +72,5 @@ export const lootLayout = z.object({
 }).superRefine((l, ctx) => { /* cada table/drop/point debe referenciar una tabla existente */ });
 ```
 El arma se define con `WeaponData`: `id, displayName, kind, rarity, ammoType, damage, pellets, roundsPerMinute, magazineSize, reloadTime, recoil, spreadHip, spreadAim, range, automatic, color[3], length, thickness`.
+
+> Daño por disparo recalibrado en la Fase 3 (Bloque 2); caída por distancia, penetración y multiplicador de cabeza de cada arma en `docs/BALANCE.md`.
