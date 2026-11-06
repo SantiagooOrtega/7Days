@@ -75,11 +75,8 @@ namespace SevenDays.World
         {
             Prim.CreateBox("Ground", new Vector3(0f, -0.25f, 0f), new Vector3(60f, 0.5f, 60f), Tex(Concrete, SurfaceLibrary.Concrete), root, 3f);
 
-            // Franja de asfalto con líneas amarillas (guía visual hacia el frente)
+            // Franja de asfalto; las marcas viales (línea discontinua, cebras, flechas) son calcomanías: ver RoadMarkings
             Prim.CreateBox("Road", new Vector3(0f, 0.01f, 0f), new Vector3(8f, 0.04f, 58f), Tex(Asphalt, SurfaceLibrary.Floor, 0.25f), root, 3f, default, false);
-            var line = Prim.GetMaterial(new Color(0.85f, 0.7f, 0.2f));
-            for (int i = -6; i <= 6; i++)
-                Prim.Create(PrimitiveType.Cube, "Line " + i, new Vector3(0f, 0.04f, i * 4.4f), new Vector3(0.18f, 0.02f, 2.2f), line, root, false);
         }
 
         // ---------- Muros perimetrales rotos ----------
