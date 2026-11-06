@@ -495,3 +495,8 @@ Pasos manuales:
 ### Corrección: armas garantizadas visibles
 Causa: las 3 armas garantizadas eran un resultado de búsqueda (solo aparecían al mantener E sobre el mueble/caja), así que no había ninguna arma en el suelo y la consola decía "0 armas". Ahora `LootManager.PlaceGuaranteedWeapons()` pone un pickup visible con brillo sobre cada punto garantizado al construir el mapa (y las repone al cambiar de día si faltan).
 Pasos: Play y mira la Console: debe decir `3 pickups activos + ... (3+ armas, 3 garantizadas)`. Ve al estante de la casa, a la caja lejana (26, 25) y a la de (-12, 13): cada una tiene un arma brillando encima (E para recogerla).
+
+### Drops de zombis
+1. Play, mata unos 20 zombis comunes (**Z**): deberías ver ~2 drops brillando suavemente; el tanque suelta con más frecuencia (~30 %).
+2. En la Console cada drop escribe `[7Days] Drop #N de 'tipo': ...` con el contador del día (hoy X/8). Al reiniciar la línea `Loot reconstruido` muestra "Drops de zombis: 0 en 0 muertes".
+3. Tras 8 drops en un día aparece "descartado por el tope"; **N** pasa de día y reinicia el contador.

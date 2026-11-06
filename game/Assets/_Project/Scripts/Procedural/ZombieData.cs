@@ -10,7 +10,7 @@ namespace SevenDays.Procedural
         public static readonly string[] All = { Common, Runner, Tank, Armored, Spitter, Explosive, BossBrute, BossLauncher, BossFinal };
         public static readonly string[] Bosses = { BossBrute, BossLauncher, BossFinal };
         /// <summary>Tipos de las tablas de botín (LootRules.Zombies): a cuál pertenece cada zombie.</summary>
-        public static readonly string[] DropKinds = { "common", "runner", "brute", "spitter", "boss" };
+        public static readonly string[] DropKinds = { "common", "runner", "armored", "tank", "explosive", "brute", "spitter", "boss" };
     }
 
     /// <summary>Habilidad de un jefe: cuándo puede usarse, cuánto avisa antes (telegraph) y cuánto espera para repetirse.</summary>
@@ -103,12 +103,12 @@ namespace SevenDays.Procedural
             list.Add(new ZombieTypeData { id = ZombieIds.Runner, displayName = "Corredor", maxHealth = 55f, speed = 5.2f, patrolSpeed = 1.6f, attackDamage = 9f, attackCooldown = 0.9f, aggroRange = 22f, color = new[] { 0.62f, 0.5f, 0.3f }, scale = 0.95f, dropKind = "runner",
                 zones = new ZoneMultipliers { head = 2.5f, torso = 1f, arms = 0.6f, legs = 0.5f } });
             list.Add(new ZombieTypeData { id = ZombieIds.Tank, displayName = "Tanque", maxHealth = 400f, speed = 1.5f, patrolSpeed = 0.7f, attackDamage = 32f, attackCooldown = 1.9f, attackRange = 1.9f, resistance = 0.35f, stunResistance = 0.7f, scale = 1.45f,
-                color = new[] { 0.35f, 0.38f, 0.3f }, canEnterBuildings = false, navRadius = 0.8f, dropKind = "brute", zones = new ZoneMultipliers { head = 2.0f, torso = 0.85f, arms = 0.5f, legs = 0.6f } });
-            list.Add(new ZombieTypeData { id = ZombieIds.Armored, displayName = "Blindado", maxHealth = 160f, speed = 1.9f, attackDamage = 18f, color = new[] { 0.45f, 0.45f, 0.5f }, dropKind = "brute", resistance = 0.1f, stunResistance = 0.3f,
+                color = new[] { 0.35f, 0.38f, 0.3f }, canEnterBuildings = false, navRadius = 0.8f, dropKind = "tank", zones = new ZoneMultipliers { head = 2.0f, torso = 0.85f, arms = 0.5f, legs = 0.6f } });
+            list.Add(new ZombieTypeData { id = ZombieIds.Armored, displayName = "Blindado", maxHealth = 160f, speed = 1.9f, attackDamage = 18f, color = new[] { 0.45f, 0.45f, 0.5f }, dropKind = "armored", resistance = 0.1f, stunResistance = 0.3f,
                 zones = new ZoneMultipliers { head = 2.5f, torso = 0.35f, arms = 0.5f, legs = 0.6f } }); // el casco no protege: la cabeza sigue vulnerable
             list.Add(new ZombieTypeData { id = ZombieIds.Spitter, displayName = "Lanzador", maxHealth = 80f, speed = 2.0f, attackDamage = 8f, attackRange = 1.4f, color = new[] { 0.5f, 0.6f, 0.25f }, dropKind = "spitter",
                 projectile = "mixed", projectileDamage = 14f, projectileSpeed = 15f, projectileCooldown = 3.2f, preferredRange = 12f, areaRadius = 1.3f });
-            list.Add(new ZombieTypeData { id = ZombieIds.Explosive, displayName = "Explosivo", maxHealth = 70f, speed = 3.0f, attackDamage = 10f, color = new[] { 0.7f, 0.35f, 0.15f }, dropKind = "runner",
+            list.Add(new ZombieTypeData { id = ZombieIds.Explosive, displayName = "Explosivo", maxHealth = 70f, speed = 3.0f, attackDamage = 10f, color = new[] { 0.7f, 0.35f, 0.15f }, dropKind = "explosive",
                 explosionRadius = 3.6f, explosionDamage = 45f });
 
             list.Add(new ZombieTypeData

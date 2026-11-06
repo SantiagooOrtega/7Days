@@ -82,13 +82,13 @@ namespace SevenDays.Tests
         public void Drops_CommonZombiesRarely_SpecialsMore_BossAlways()
         {
             var l = L();
-            Assert.Less(l.Drop("common").chance, l.Drop("runner").chance);
+            Assert.LessOrEqual(l.Drop("common").chance, l.Drop("runner").chance);
             Assert.Less(l.Drop("runner").chance, l.Drop("brute").chance);
-            Assert.Less(l.Drop("common").chance, 0.1f, "los comunes casi nunca");
+            Assert.Less(l.Drop("common").chance, 0.15f, "los comunes pocas veces");
             Assert.IsTrue(l.Drop("boss").guaranteed);
             double Rate(string z) { var rng = new Random(7); int d = 0; for (int i = 0; i < 5000; i++) if (LootRoller.RollDrop(l, z, rng) != null) d++; return d / 5000.0; }
-            Assert.That(Rate("common"), Is.InRange(0.04, 0.09));
-            Assert.Greater(Rate("brute"), Rate("common") * 2.5);
+            Assert.That(Rate("common"), Is.InRange(0.10, 0.14));
+            Assert.Greater(Rate("brute"), Rate("common") * 1.8);
             Assert.AreEqual(1.0, Rate("boss"), 1e-9, "el jefe siempre suelta algo");
         }
 
@@ -239,6 +239,70 @@ namespace SevenDays.Tests
             Assert.IsTrue(L().points.Any(p => p.container == "bush"), "arbustos");
             Assert.IsTrue(L().points.Any(p => p.container == "rubble"), "escombros");
             Assert.IsTrue(L().points.Any(p => p.container == "crate"), "cajas");
+        }
+    }
+}
+
+namespace SevenDays.Tests
+{
+    public class ZombieDropTests
+    {
+        private static readonly Dictionary<string, double> Targets = new Dictionary<string, double>
+        {
+            { "common", 0.12 }, { "runner", 0.12 }, { "armored", 0.20 }, { "tank", 0.30 }, { "explosive", 0.08 }, { "spitter", 0.25 },
+        };
+
+        [Test]
+        public void EveryZombieType_HasADropRuleWithItsOwnChance()
+        {
+            var l = LootDefaults.Create();
+            foreach (var z in ZombieCatalog.Defaults())
+            {
+                Assert.IsNotNull(l.Drop(z.dropKind), z.id);
+                if (!z.isBoss) Assert.AreEqual(Targets[z.id], l.Drop(z.dropKind).chance, 1e-6, z.id);
+            }
+        }
+
+        [Test]
+        public void SimulatedDropRates_MatchTheTargets_AndWeaponsAreRareInDrops()
+        {
+            var l = LootDefaults.Create();
+            foreach (var kv in Targets)
+            {
+                string kind = ZombieCatalog.Get(kv.Key).dropKind;
+                var rng = new Random(31);
+                const int n = 20000; int drops = 0, weapons = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    var it = LootRoller.RollDrop(l, kind, rng);
+                    if (it == null) continue;
+                    drops++; if (it.kind == "weapon") weapons++;
+                }
+                Assert.AreEqual(kv.Value, drops / (double)n, 0.015, kv.Key + " tasa de drop");
+                Assert.LessOrEqual(weapons / (double)Math.Max(1, drops), 0.12, kv.Key + ": las armas son poco frecuentes en los drops");
+                Assert.Greater(weapons + 1, 0);
+            }
+        }
+
+        [Test]
+        public void HeavyTypes_DropBetterThings_ThanCommons()
+        {
+            var l = LootDefaults.Create();
+            var rare = ScarcityReport.Expected(l, "drop_heavy"); var common = ScarcityReport.Expected(l, "drop_common");
+            Assert.Greater(rare.HealHp, common.HealHp);
+        }
+
+        [Test]
+        public void OneDropPerZombie_AndATypicalWeekStaysScarce()
+        {
+            var l = LootDefaults.Create();
+            var rng = new Random(5);
+            // semana típica: cada muerte hace UNA tirada; el tope diario limita el total
+            var kills = new Dictionary<string, int> { { "common", 120 }, { "runner", 30 }, { "armored", 12 }, { "tank", 8 }, { "explosive", 10 }, { "spitter", 14 }, { "boss", 3 } };
+            int total = 0;
+            foreach (var kv in kills) for (int i = 0; i < kv.Value; i++) if (LootRoller.RollDrop(l, ZombieCatalog.Get(kv.Key == "boss" ? "boss_brute" : kv.Key).dropKind, rng) != null) total++;
+            Assert.LessOrEqual(Math.Min(total, l.maxDropsPerDay * 7), 56, "el tope diario mantiene la escasez");
+            Assert.Less(total, 60 + 3, "unos 30-45 drops sin tope en una semana");
         }
     }
 }

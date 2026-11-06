@@ -59,7 +59,7 @@ namespace SevenDays.World.Loot
             foreach (var p in Layout.points) if (p.container == "ground") ground++;
             foreach (var a in _active) if (a != null && a.Item != null && a.Item.kind == "weapon") weapons++;
             return "[7Days] Loot reconstruido: " + Layout.points.Length + " puntos (" + ground + " en el suelo), " + _containers.Count + " contenedores buscables, "
-                + SkippedPoints + " puntos omitidos (sin mueble/coche), " + _active.Count + " pickups activos (" + weapons + " armas, " + GuaranteedWeaponCount + " garantizadas). Registro de interacción: " + PlayerInteract.Registry.Count + ".";
+                + SkippedPoints + " puntos omitidos (sin mueble/coche), " + _active.Count + " pickups activos (" + weapons + " armas, " + GuaranteedWeaponCount + " garantizadas). Drops de zombis: " + DropsSpawned + " en " + DropAttempts + " muertes. Registro de interacción: " + PlayerInteract.Registry.Count + ".";
         }
 
         public void RegisterContainer(SearchableContainer c) { _containers[c.Point.id] = c; _glints.Add(c); }
@@ -156,12 +156,27 @@ namespace SevenDays.World.Loot
         }
 
         /// <summary>Drop al matar un zombie de este tipo (con las probabilidades de la tabla y los topes por día y de suelo).</summary>
+        public int DropAttempts { get; private set; }
+        public int DropsSpawned { get; private set; }
+
         public bool TryDrop(string zombieKind, Vector3 position)
         {
+            DropAttempts++;
             var item = LootRoller.RollDrop(Layout, zombieKind, _rng);
             if (item == null) return false;
-            if (!State.TryRegisterDrop(_active.Count)) return false;
-            return Spawn(item, new Vector3(position.x, 0.35f, position.z), null) != null;
+            if (item.kind == "weapon" && OwnedWeapons().Contains(item.id))
+            {
+                // nunca un arma repetida: se queda en munición de su tipo
+                var data = WeaponCatalog.Get(item.id);
+                item = data != null && data.ammoType != AmmoType.None ? LootItem.Ammo(data.ammoType, Mathf.Max(2, data.magazineSize / 3)) : null;
+                if (item == null) return false;
+            }
+            if (!State.TryRegisterDrop(_active.Count)) { Debug.Log("[7Days] Drop de '" + zombieKind + "' descartado por el tope (hoy " + State.DropsToday + "/" + Layout.maxDropsPerDay + ", suelo " + _active.Count + "/" + Layout.maxActivePickups + ")."); return false; }
+            var p = Spawn(item, new Vector3(position.x, 0.35f, position.z), null);
+            if (p == null) return false;
+            DropsSpawned++;
+            Debug.Log("[7Days] Drop #" + DropsSpawned + " de '" + zombieKind + "': " + item.kind + " " + item.id + " x" + item.amount + " (hoy " + State.DropsToday + "/" + Layout.maxDropsPerDay + ", intentos " + DropAttempts + ").");
+            return true;
         }
 
         /// <summary>El jefe siempre suelta algo raro o mejor: no cuenta para el tope diario de drops ni se pierde si hay muchos pickups en el suelo.</summary>
@@ -232,7 +247,9 @@ namespace SevenDays.World.Loot
             if (_player == null) return;
             _glints.RemoveAll(g => g == null || (g is LootPickup lp && !lp.gameObject.activeSelf));
             var order = new List<ILootGlint>(_glints);
-            order.Sort((a, b) => (a.GlintPosition - _player.position).sqrMagnitude.CompareTo((b.GlintPosition - _player.position).sqrMagnitude));
+            // los drops de zombis (sin punto de origen) cuentan como si estuvieran más cerca: su brillo suave tiene prioridad para localizarlos
+            float Key(ILootGlint g) => (g.GlintPosition - _player.position).sqrMagnitude * (g is LootPickup lp && lp.SourcePointId == null ? 0.25f : 1f);
+            order.Sort((a, b) => Key(a).CompareTo(Key(b)));
             int on = 0;
             foreach (var g in order)
             {

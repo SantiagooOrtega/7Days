@@ -95,7 +95,7 @@ namespace SevenDays.Procedural
     public static class LootRules
     {
         public static readonly string[] Containers = { "ground", "crate", "car", "furniture", "rubble", "bush" };
-        public static readonly string[] Zombies = { "common", "runner", "brute", "spitter", "boss" };
+        public static readonly string[] Zombies = { "common", "runner", "armored", "tank", "explosive", "brute", "spitter", "boss" };   // "brute" queda como tipo genérico pesado (compatibilidad)
 
         /// <summary>Rareza de un objeto: armas por su rareza; botiquín grande rara, mediano poco común; munición abundante poco común.</summary>
         public static Rarity ItemRarity(LootItem i)
