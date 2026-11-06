@@ -29,7 +29,7 @@ namespace SevenDays.Player
         public void Land(float fallDistance) => Shake(FallDamage.LandImpulse(fallDistance, _s));
         public void Vault() => Shake(_s.JumpImpulse * 0.7f);
 
-        private void Shake(float strength)
+        public void Shake(float strength)
         {
             if (_source == null || strength <= 0f) return;
             _source.GenerateImpulseWithVelocity(Vector3.down * strength);
