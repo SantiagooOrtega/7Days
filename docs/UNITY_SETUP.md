@@ -466,3 +466,11 @@ Pasos manuales:
 1. Play, mata o deja que te maten y pulsa **R** para reiniciar. La Console no debe mostrar ningún `MissingReferenceException`.
 2. Tras cada (re)inicio la Console escribe `[7Days] Loot reconstruido: N puntos (...), M contenedores buscables, K pickups activos...`. Deben salir los mismos números en la primera partida y en cada reinicio.
 3. Busca un contenedor (mantén E) y recoge un objeto tras reiniciar: todo funciona como en la primera partida.
+
+### Corrección: el zombi gigante no entra a la casa
+Pasos manuales:
+1. Play y espera la carga. Pulsa **Z** hasta que salga "Tanque" (tercer tipo) y entra tú a la casa (centro del mapa, entrada por el oeste).
+2. El tanque debe acercarse al muro más cercano a ti, golpearlo (polvo, sacudida, y daño si estás pegado al muro) y, tras unos 4 s sin alcanzarte, rodear la casa por fuera. No debe cruzar ninguna puerta ni vibrar en el sitio.
+3. Un zombi común (primer tipo de **Z**) sí debe entrar por la puerta.
+4. Con el jugador fuera de la casa el tanque te persigue con normalidad. Abre **Window > AI > Navigation** y en `ZombieManager` comprueba que hay dos superficies: una del agente por defecto y otra (GiantNavMesh) con un tipo de agente nuevo; en la segunda, el interior de la casa debe verse sin malla azul.
+5. Si ves el aviso "No se pudo limitar el volumen de la casa..." en la Console, dímelo: significa que esa versión del paquete cambió el campo privado (siguen funcionando el radio y la barrera de seguridad).

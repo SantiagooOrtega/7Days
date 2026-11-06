@@ -17,10 +17,31 @@ namespace SevenDays.World
         private readonly HashSet<string> _blocked = new HashSet<string>();
         private HouseLayoutData _layout;
 
+        /// <summary>Plantas de las casas del mapa: los zombis que no pueden entrar a edificios las usan como barrera de seguridad.</summary>
+        public static readonly List<Footprint> Footprints = new List<Footprint>();
+        public Footprint Footprint { get; private set; }
+        private bool _registered;
+
         public int Day { get; private set; } = 1;
         public IReadOnlyCollection<string> BlockedOpenings => _blocked;
 
-        public void Initialize(HouseLayoutData layout, HousePlan plan) => _layout = layout;
+        public void Initialize(HouseLayoutData layout, HousePlan plan)
+        {
+            _layout = layout;
+            Footprint = Footprint.FromHouse(layout.x, layout.z, layout.width, layout.depth, layout.yaw, layout.wallThickness * 0.5f);
+            Footprints.Add(Footprint);
+            _registered = true;
+        }
+
+        private void OnDestroy() { if (_registered) Footprints.Remove(Footprint); }
+
+        /// <summary>Si el punto está dentro de alguna casa (con margen), devuelve su planta.</summary>
+        public static bool Inside(Vector3 p, float margin, out Footprint f)
+        {
+            foreach (var fp in Footprints) if (fp.Contains(p.x, p.z, margin)) { f = fp; return true; }
+            f = default;
+            return false;
+        }
         public void RegisterBarricade(string openingId, GameObject go) { _barricades[openingId] = go; go.SetActive(false); }
         public void RegisterLink(string openingId, NavMeshLink link) => _links[openingId] = link;
 

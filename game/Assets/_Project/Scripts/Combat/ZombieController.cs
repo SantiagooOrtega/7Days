@@ -56,6 +56,7 @@ namespace SevenDays.Combat
         private SpitterBrain _brain;
         private Vector3 _flankTarget;
         private float _nextFlank, _nextReposition;
+        private int _agentTypeId;
         private bool _pulseOn;
         private Material _pulseMat;
 
@@ -121,9 +122,16 @@ namespace SevenDays.Combat
             else if (Boss != null) Boss.End();
 
             _agent.enabled = false;
-            _agent.radius = 0.35f * type.scale; _agent.height = 1.8f * type.scale;
+            var mgr = ZombieManager.Instance;
+            bool giant = !type.canEnterBuildings && mgr != null && mgr.GiantAgentTypeId >= 0;
+            _agentTypeId = giant ? mgr.GiantAgentTypeId : 0;      // 0 = agente por defecto (cabe por puertas); los gigantes usan su propio NavMesh
+            _agent.agentTypeID = _agentTypeId;
+            _agent.radius = giant ? Mathf.Max(type.navRadius, 0.7f) : (type.navRadius > 0f ? type.navRadius : 0.35f * type.scale);
+            _agent.height = giant ? 2.8f : 1.8f * type.scale;
+            _siege.Reset(); _siegeGoal = Vector3.zero; _siegeStuck = 0f; _lastSiegePos = position;
             _useAgent = false;
-            if (NavMesh.SamplePosition(position, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+            var spawnFilter = new NavMeshQueryFilter { agentTypeID = _agentTypeId, areaMask = NavMesh.AllAreas };
+            if (NavMesh.SamplePosition(position, out NavMeshHit hit, 3f, spawnFilter))
             {
                 transform.position = hit.position;
                 _agent.enabled = true;
@@ -217,6 +225,7 @@ namespace SevenDays.Combat
 
             float moveAmount = 0f;
             if (bossHandled) moveAmount = bossMove;
+            else if (!Health.IsStunned && GiantBlockedByBuilding(out _house)) moveAmount = Siege(dt, toPlayer, dist);
             else if (_brain != null && _sm.State == ZombieState.Chase) moveAmount = Ranged(dt, toPlayer, dist); // el lanzador mantiene distancia y lanza
             else switch (_sm.State)
             {
@@ -226,6 +235,7 @@ namespace SevenDays.Combat
                 case ZombieState.Stunned: Stop(); break;
             }
             if (Type.explosionRadius > 0f) Pulse(dist);
+            if (!Type.canEnterBuildings) EnforceBuildingGuard();
 
             _walkPhase += dt * (3f + moveAmount * 4f);
             _stagger = Mathf.MoveTowards(_stagger, Health.IsStunned ? 1f : 0f, dt * 6f);
@@ -389,6 +399,130 @@ namespace SevenDays.Combat
             }
         }
 
+        // ------------------------------------------------------------------ gigante: asedio a edificios
+        private readonly SiegeBrain _siege = new SiegeBrain();
+        private float _nextSiegePath, _siegeStuck;
+        private Vector3 _siegeGoal, _lastSiegePos;
+        private Footprint _house;
+
+        private bool GiantBlockedByBuilding(out Footprint f)
+        {
+            f = default;
+            return !Type.canEnterBuildings && _player != null && World.HouseController.Inside(_player.position, 0.3f, out f);
+        }
+
+        /// <summary>El jugador está dentro de una casa a la que este zombi no cabe: se acerca a lo más cercano que alcanza, golpea el muro y, si pasa un rato sin alcanzarlo, rodea la casa.</summary>
+        private float Siege(float dt, Vector3 toPlayer, float dist)
+        {
+            float speed = Type.speed * SpeedMultiplier;
+            bool arrived = !_useAgent
+                ? (transform.position - _siegeGoal).sqrMagnitude < 2.25f
+                : (!_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance + 0.6f);
+            // si lleva un rato sin avanzar sin llegar, también cuenta como "llegó" (esquina, otro zombi delante...) para no quedarse empujando
+            float moved = (transform.position - _lastSiegePos).magnitude; _lastSiegePos = transform.position;
+            _siegeStuck = moved < 0.01f * Mathf.Max(1f, speed) * dt * 60f ? _siegeStuck + dt : 0f;
+            if (_siegeStuck > 0.8f) arrived = true;
+
+            _siege.Reach = _sm.AttackRange + 2.2f;
+            var action = _siege.Tick(dt, dist, arrived);
+            switch (action)
+            {
+                case SiegeAction.Pound:
+                    Stop();
+                    FacePlayer(toPlayer, dt);
+                    PoundWall(toPlayer, dist);
+                    return 0f;
+                case SiegeAction.Flank:
+                    if (Time.time >= _nextSiegePath || _siegeGoal == Vector3.zero)
+                    {
+                        _nextSiegePath = Time.time + 0.6f;
+                        _house.PerimeterPoint(_siege.FlankIndex, 2.2f, out float px, out float pz);
+                        _siegeGoal = SampleOnMyNavMesh(new Vector3(px, transform.position.y, pz), 8f);
+                        MoveTo(_siegeGoal, speed);
+                    }
+                    if (!_useAgent) GuardedStep((_siegeGoal - transform.position), speed, dt);
+                    return MoveAmount(speed);
+                case SiegeAction.Wait:
+                    Stop();
+                    FacePlayer(toPlayer, dt);
+                    return 0f;
+                default: // Approach
+                    if (Time.time >= _nextSiegePath)
+                    {
+                        _nextSiegePath = Time.time + 0.5f;
+                        Vector3 goal = SampleOnMyNavMesh(_player.position, 14f);
+                        if ((goal - _siegeGoal).sqrMagnitude > 1f) { _siegeGoal = goal; MoveTo(goal, speed); }
+                    }
+                    if (!_useAgent) GuardedStep((_siegeGoal - transform.position), speed, dt);
+                    return MoveAmount(speed);
+            }
+        }
+
+        private void PoundWall(Vector3 toPlayer, float dist)
+        {
+            if (Time.time >= _nextAttack)
+            {
+                _nextAttack = Time.time + Type.attackCooldown * 1.2f;
+                _attackStart = Time.time;
+                _damageDone = false;
+            }
+            if (!_damageDone && _attackStart > 0f && Time.time - _attackStart >= 0.35f)
+            {
+                _damageDone = true;
+                Vector3 wallPoint = transform.position + transform.forward * 1.6f + Vector3.up;
+                if (BloodFx.Instance != null) BloodFx.Instance.Spray(wallPoint, -transform.forward + Vector3.up * 0.4f, 12, new Color(0.6f, 0.55f, 0.5f), 1.3f);
+                var imp = _player.GetComponent<SevenDays.Player.PlayerImpulse>();
+                if (imp != null) imp.Shake(0.35f * Mathf.Clamp01(1f - dist / 20f));
+                // el golpe alcanza al jugador si está pegado al muro o a la puerta
+                if (_playerHealth != null && !_playerHealth.IsDead && dist <= _siege.Reach + 0.3f)
+                    _playerHealth.TakeDamage(new DamageInfo { Amount = Type.attackDamage * 0.7f * DamageMultiplier, Point = _player.position + Vector3.up, Direction = toPlayer.normalized, Source = gameObject });
+            }
+            if (Time.time - _attackStart > 0.8f) _attackStart = -10f;
+        }
+
+        /// <summary>Punto del NavMesh de ESTE zombi (según su tipo de agente) más cercano a una posición.</summary>
+        private Vector3 SampleOnMyNavMesh(Vector3 p, float maxDist)
+        {
+            var filter = new NavMeshQueryFilter { agentTypeID = _agentTypeId, areaMask = NavMesh.AllAreas };
+            return NavMesh.SamplePosition(p, out NavMeshHit hit, maxDist, filter) ? hit.position : transform.position;
+        }
+
+        /// <summary>Barrera de seguridad: si por cualquier fallo (NavMesh ausente, empujón, enlace) el gigante acaba dentro de una casa, se le saca por el borde más cercano.</summary>
+        private void EnforceBuildingGuard()
+        {
+            foreach (var f in World.HouseController.Footprints)
+            {
+                Vector3 p = transform.position;
+                if (!f.Contains(p.x, p.z, 0.2f)) continue;
+                f.PushOut(p.x, p.z, 0.6f, out float ox, out float oz);
+                var np = new Vector3(ox, p.y, oz);
+                if (_useAgent && _agent.enabled) _agent.Warp(np); else transform.position = np;
+            }
+        }
+
+        /// <summary>Paso sin NavMesh que respeta los colliders: barre una esfera, desliza por las paredes y nunca entra en la planta de una casa.</summary>
+        private void GuardedStep(Vector3 delta, float speed, float dt)
+        {
+            delta.y = 0f;
+            if (delta.sqrMagnitude < 0.01f) return;
+            Vector3 dir = delta.normalized;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), 360f * dt);
+            float step = speed * dt;
+            float radius = 0.4f * Type.scale;
+            int mask = ~((1 << 2) | HitboxLayer.Mask);
+            Vector3 origin = transform.position + Vector3.up * (0.6f * Type.scale + 0.3f);
+            if (Physics.SphereCast(origin, radius, dir, out RaycastHit hit, step + 0.05f, mask, QueryTriggerInteraction.Ignore))
+            {
+                Vector3 slide = Vector3.ProjectOnPlane(dir, hit.normal); slide.y = 0f;
+                if (slide.sqrMagnitude < 0.01f) return;
+                dir = slide.normalized;
+                if (Physics.SphereCast(origin, radius, dir, out _, step + 0.05f, mask, QueryTriggerInteraction.Ignore)) return;   // también bloqueado: se queda quieto, sin atravesar
+            }
+            Vector3 next = transform.position + dir * step;
+            if (Physics.Raycast(next + Vector3.up * 1.5f, Vector3.down, out RaycastHit g, 4f, mask, QueryTriggerInteraction.Ignore)) next.y = g.point.y;
+            transform.position = next;
+        }
+
         internal void MoveTo(Vector3 target, float speed)
         {
             if (_useAgent && _agent.isOnNavMesh)
@@ -408,15 +542,7 @@ namespace SevenDays.Combat
         }
 
         /// <summary>Respaldo sin NavMesh: camina hacia el jugador y se pega al suelo con un rayo.</summary>
-        private void DirectMove(Vector3 toPlayer, float speed, float dt)
-        {
-            if (toPlayer.sqrMagnitude < 0.01f) return;
-            Vector3 dir = toPlayer.normalized;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), 360f * dt);
-            Vector3 next = transform.position + dir * speed * dt;
-            if (Physics.Raycast(next + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 4f, ~(1 << 2 | HitboxLayer.Mask), QueryTriggerInteraction.Ignore)) next.y = hit.point.y;
-            transform.position = next;
-        }
+        private void DirectMove(Vector3 toPlayer, float speed, float dt) => GuardedStep(toPlayer, speed, dt);
 
         private bool HasLineOfSight()
         {
