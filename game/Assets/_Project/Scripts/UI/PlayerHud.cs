@@ -3,6 +3,7 @@ using UnityEngine.SceneManagement;
 using SevenDays.Core;
 using SevenDays.Net;
 using SevenDays.Player;
+using SevenDays.Procedural;
 
 namespace SevenDays.UI
 {
@@ -13,6 +14,9 @@ namespace SevenDays.UI
         private PlayerShooting _shooting;
         private PlayerCover _cover;
         private PlayerCamera _camera;
+        private PlayerInventory _inventory;
+        private PlayerInteract _interact;
+        private PlayerHealing _healing;
         private float _hitUntil;
         private bool _showHelp = true;
         private float _fps = 60f;
@@ -24,6 +28,9 @@ namespace SevenDays.UI
             _shooting = player.GetComponent<PlayerShooting>();
             _cover = player.GetComponent<PlayerCover>();
             _camera = player.GetComponent<PlayerCamera>();
+            _inventory = player.GetComponent<PlayerInventory>();
+            _interact = player.GetComponent<PlayerInteract>();
+            _healing = player.GetComponent<PlayerHealing>();
             _shooting.HitConfirmed += () => _hitUntil = Time.time + 0.12f;
         }
 
@@ -59,19 +66,34 @@ namespace SevenDays.UI
             Fill(new Rect(bar.x, bar.y, bar.width * pct, bar.height), Color.Lerp(new Color(0.8f, 0.1f, 0.1f), new Color(0.3f, 0.8f, 0.3f), pct));
             GUI.Label(new Rect(bar.x, bar.y - 40, 420, 36), "VIDA  " + Mathf.CeilToInt(_health.Current), _label);
 
-            // Arma y munición
+            // Arma, rareza y munición de su tipo (la reserva es compartida por todas las armas del mismo tipo)
             var wpn = _shooting.Current;
-            GUI.Label(new Rect(w - 560, h - 170, 500, 40), wpn.Def.displayName, new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
-            GUI.Label(new Rect(w - 560, h - 130, 500, 70), wpn.Magazine + " / " + wpn.Reserve, _big);
+            var d = wpn.Data;
+            var rc = WeaponCatalog.RarityColor(d.rarity);
+            Color prevC = GUI.color;
+            GUI.color = new Color(rc[0], rc[1], rc[2]);
+            GUI.Label(new Rect(w - 660, h - 170, 600, 40), d.displayName + "  (" + WeaponCatalog.RarityName(d.rarity) + ")", new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
+            GUI.color = prevC;
+            int reserve = _shooting.CurrentReserve;
+            if (d.IsMelee) GUI.Label(new Rect(w - 560, h - 130, 500, 70), "—", _big);
+            else GUI.Label(new Rect(w - 560, h - 130, 500, 70), wpn.Magazine + " / " + reserve, _big);
+            if (!d.IsMelee)
+                GUI.Label(new Rect(w - 560, h - 60, 500, 36), "reserva de " + PlayerInventory.AmmoName(d.ammoType) + " (máx. " + _inventory.Ammo.Max(d.ammoType) + ")", new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontSize = 20 });
+            DrawSlots(w, h);
+            DrawInventoryLine(w, h);
+
             if (_shooting.Reloading)
             {
                 GUI.Label(new Rect(w / 2 - 200, h / 2 + 80, 400, 50), "RECARGANDO", _center);
                 Fill(new Rect(w / 2 - 120, h / 2 + 135, 240 * _shooting.ReloadProgress, 8), Color.white);
             }
-            else if (wpn.Magazine == 0 && wpn.Reserve == 0)
+            else if (!d.IsMelee && wpn.Magazine == 0 && reserve == 0)
             {
                 GUI.Label(new Rect(w / 2 - 200, h / 2 + 80, 400, 50), "SIN MUNICIÓN", _center);
             }
+
+            DrawInteraction(w, h);
+            DrawMessages(w);
 
             if (_cover.Active)
                 GUI.Label(new Rect(w / 2 - 200, h - 150, 400, 50), _cover.IsExposed ? "ASOMADO" : "EN COBERTURA", _center);
@@ -90,10 +112,11 @@ namespace SevenDays.UI
             {
                 GUI.Label(new Rect(30, 60, 900, 260),
                     "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar\n" +
-                    "Clic der. apuntar · Clic izq. disparar · R recargar · 1/2/rueda cambiar arma\n" +
+                    "Clic der. apuntar · Clic izq. disparar/golpear · R recargar · 1-5/rueda cambiar arma\n" +
+                    "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
                     "C cobertura (cerca de cajas y muros bajos) · A/D deslizarse · Esc soltar ratón\n" +
                     "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
-                    "T/Y: probar daño/curación · U: subir 6 m (probar caída) · F3 recortar ambiente · F1 ocultar ayuda", _label);
+                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: siguiente día (respawn) · F3 ambiente · F1 ayuda", _label);
             }
 
             if (SevenDays.World.FireManager.PlayerBurning)
@@ -107,6 +130,62 @@ namespace SevenDays.UI
                 Fill(new Rect(0, 0, w, h), new Color(0.4f, 0, 0, 0.5f));
                 GUI.Label(new Rect(0, h / 2 - 60, w, 120), "HAS MUERTO\nPulsa R para reiniciar", _center);
             }
+        }
+
+        private void DrawSlots(float w, float h)
+        {
+            var list = _inventory.Weapons;
+            for (int i = 0; i < list.Count; i++)
+            {
+                var rc = WeaponCatalog.RarityColor(list[i].Data.rarity);
+                bool cur = list[i] == _shooting.Current;
+                Color prev = GUI.color;
+                GUI.color = cur ? new Color(rc[0], rc[1], rc[2]) : new Color(rc[0], rc[1], rc[2], 0.55f);
+                GUI.Label(new Rect(w - 660, h - 215 - (list.Count - 1 - i) * 30, 600, 30), (i + 1) + "  " + list[i].Data.displayName, new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontSize = cur ? 24 : 20, fontStyle = cur ? FontStyle.Bold : FontStyle.Normal });
+                GUI.color = prev;
+            }
+        }
+
+        private void DrawInventoryLine(float w, float h)
+        {
+            var a = _inventory.Ammo; var m = _inventory.Medkits;
+            string text = "Munición  pistola " + a.Count(AmmoType.Pistol) + "/" + a.Max(AmmoType.Pistol) + "  escopeta " + a.Count(AmmoType.Shotgun) + "/" + a.Max(AmmoType.Shotgun) + "  rifle " + a.Count(AmmoType.Rifle) + "/" + a.Max(AmmoType.Rifle)
+                + "\nVendas " + m.Count(MedkitKind.Bandage) + " [B]   Botiquines  peq. " + m.Count(MedkitKind.Small) + "  med. " + m.Count(MedkitKind.Medium) + "  gran. " + m.Count(MedkitKind.Large) + " [H]";
+            GUI.Label(new Rect(60, h - 190, 900, 90), text, new GUIStyle(_label) { fontSize = 20 });
+        }
+
+        /// <summary>Aviso de interacción (E recoger / mantén E buscar) y barras de búsqueda y de curación.</summary>
+        private void DrawInteraction(float w, float h)
+        {
+            var t = _interact.Target;
+            if (t != null)
+            {
+                GUI.Label(new Rect(0, h / 2 + 150, w, 40), t.Prompt, new GUIStyle(_center) { fontSize = 28 });
+                if (_interact.Holding) Bar(new Rect(w / 2 - 150, h / 2 + 200, 300, 14), _interact.HoldProgress, new Color(1f, 0.9f, 0.4f));
+            }
+            if (_healing.Healing)
+            {
+                GUI.Label(new Rect(0, h / 2 + 235, w, 40), "Curando... (recibir daño la cancela)", new GUIStyle(_center) { fontSize = 26 });
+                Bar(new Rect(w / 2 - 150, h / 2 + 280, 300, 14), _healing.Session.Progress, new Color(0.4f, 1f, 0.5f));
+            }
+        }
+
+        private void DrawMessages(float w)
+        {
+            var list = HudMessages.Current;
+            for (int i = 0; i < list.Count; i++)
+            {
+                Color prev = GUI.color;
+                GUI.color = list[i].Color;
+                GUI.Label(new Rect(0, 110 + i * 38, w, 40), list[i].Text, new GUIStyle(_center) { fontSize = 28 });
+                GUI.color = prev;
+            }
+        }
+
+        private static void Bar(Rect r, float t, Color c)
+        {
+            Fill(new Rect(r.x - 3, r.y - 3, r.width + 6, r.height + 6), new Color(0, 0, 0, 0.65f));
+            Fill(new Rect(r.x, r.y, r.width * Mathf.Clamp01(t), r.height), c);
         }
 
         private void DrawCrosshair(float w, float h)

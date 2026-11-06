@@ -24,6 +24,18 @@ namespace SevenDays.EditorTools
             Debug.Log("[7Days] Layout exportado: " + path + " (" + layout.items.Length + " piezas). Renómbralo a props.json para que el juego lo use.");
         }
 
+        [MenuItem("7Days/Exportar botín (JSON)")]
+        public static void ExportLoot()
+        {
+            var props = VegetationLayout.Generate(new VegetationParams(), IndustrialRuins.Exclusions());
+            string dir = "Assets/_Project/Resources/Loot";
+            Directory.CreateDirectory(dir);
+            string path = dir + "/loot_default.json";
+            File.WriteAllText(path, SevenDays.World.Loot.LootIO.ToJson(LootDefaults.Create(props.items, HouseLayoutData.Default())));
+            AssetDatabase.Refresh();
+            Debug.Log("[7Days] Botín exportado: " + path + ". Renómbralo a loot.json para que el juego lo use.");
+        }
+
         [MenuItem("7Days/Exportar casa (JSON)")]
         public static void ExportHouse()
         {
