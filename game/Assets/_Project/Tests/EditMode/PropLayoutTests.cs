@@ -93,6 +93,33 @@ namespace SevenDays.Tests
         }
 
         [Test]
+        public void ExtraVegetation_ClustersAroundTheHouse_WithinTheCaps_AndOutsideSolids()
+        {
+            var house = new float[] { 4.5f, -5f, 17.5f, 6f };
+            var with = VegetationLayout.Generate(new VegetationParams { HouseRect = house }, Zones);
+            var without = VegetationLayout.Generate(new VegetationParams(), Zones);
+            bool Near(PropEntry e) => e.x > 2.5f && e.x < 20f && e.z > -8f && e.z < 9f;
+            int a = with.items.Count(e => (e.type == PropTypes.Bush || e.type == PropTypes.Grass) && Near(e));
+            int b = without.items.Count(e => (e.type == PropTypes.Bush || e.type == PropTypes.Grass) && Near(e));
+            Assert.Greater(a, b + 15, "más vegetación cerca de la casa");
+            var p = new VegetationParams();
+            Assert.LessOrEqual(with.items.Count(e => e.type == PropTypes.Bush), p.MaxBushes);
+            Assert.LessOrEqual(with.items.Count(e => e.type == PropTypes.Grass), p.MaxGrass);
+            foreach (var e in with.items.Where(i => i.type == PropTypes.Bush && i.x > 2.5f && i.x < 20f))
+                foreach (var z in Zones) Assert.IsFalse(z.Contains(e.x, e.z, 0f));
+            Assert.AreEqual(0, PropLayoutValidator.Validate(with).Errors.Count);
+        }
+
+        [Test]
+        public void Vegetation_IsDenserThanBefore_ButStillCapped()
+        {
+            var l = Make();
+            Assert.Greater(Of(l, PropTypes.Grass).Count(), 200, "el mapa no se ve vacío");
+            Assert.Greater(Of(l, PropTypes.Bush).Count(), 40);
+            Assert.LessOrEqual(Of(Make(10f), PropTypes.Grass).Count(), new VegetationParams().MaxGrass);
+        }
+
+        [Test]
         public void Campfires_ArePlacedAmongRubble_FarFromTheStreetAndFromEachOther()
         {
             var camps = Of(Make(), PropTypes.Campfire).ToList();

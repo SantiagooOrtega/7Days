@@ -30,8 +30,11 @@ namespace SevenDays.Procedural
         public float StreetHalfWidth = 4.3f;    // la calle central queda libre de piezas grandes
         public float RingInner = 32f, RingOuter = 41f; // anillo de árboles que tapa el borde del mapa
 
-        public int MaxTrees = 90, MaxBushes = 60, MaxGrass = 260, MaxProps = 48;
-        public int BaseTrees = 64, BaseBushes = 34, BaseGrass = 170;
+        public int MaxTrees = 90, MaxBushes = 100, MaxGrass = 420, MaxProps = 48;
+        public int BaseTrees = 64, BaseBushes = 54, BaseGrass = 280;
+        /// <summary>Rectángulo de la casa (x0, z0, x1, z1) alrededor del cual se agrupan arbustos y hierba extra. Null = sin casa.</summary>
+        public float[] HouseRect;
+        public int HouseBushes = 12, HouseGrass = 50;
         public int BaseCars = 4, BasePoles = 3, BaseTires = 12, BaseBags = 14, BaseSigns = 3;
         /// <summary>Fogatas entre escombros y coches incendiados (de los coches que haya). Tope duro MaxFires.</summary>
         public int BaseCampfires = 5, BaseBurningCars = 2, MaxFires = 12;
@@ -134,6 +137,40 @@ namespace SevenDays.Procedural
                 items.Add(Make(PropTypes.Grass, x, z, F() * 360f, 0.8f + F() * 0.7f, rng.Next(2)));
             }
 
+            // ---- Alrededor de la casa: arbustos y hierba seca para que no se vea desnuda
+            if (p.HouseRect != null && p.HouseRect.Length == 4)
+            {
+                float hx0 = Math.Min(p.HouseRect[0], p.HouseRect[2]), hz0 = Math.Min(p.HouseRect[1], p.HouseRect[3]);
+                float hx1 = Math.Max(p.HouseRect[0], p.HouseRect[2]), hz1 = Math.Max(p.HouseRect[1], p.HouseRect[3]);
+                int hb = Math.Max(0, (int)Math.Round(p.HouseBushes * d)), hg = Math.Max(0, (int)Math.Round(p.HouseGrass * d));
+                int placedB = 0, placedG = 0, bushCap = p.MaxBushes - Count(items, PropTypes.Bush), grassCap = p.MaxGrass - Count(items, PropTypes.Grass);
+                for (int attempt = 0; attempt < (hb + hg) * 8 && (placedB < hb || placedG < hg); attempt++)
+                {
+                    // anillo a 1.6-4.5 m del rectángulo de la casa (el borde interior queda libre para las entradas)
+                    float ring = 1.6f + F() * 2.9f;
+                    float t = F() * 2f * ((hx1 - hx0) + (hz1 - hz0)), x, z;
+                    float w = hx1 - hx0, hh = hz1 - hz0;
+                    if (t < w) { x = hx0 + t; z = hz0 - ring; }
+                    else if (t < w + hh) { x = hx1 + ring; z = hz0 + (t - w); }
+                    else if (t < 2 * w + hh) { x = hx0 + (t - w - hh); z = hz1 + ring; }
+                    else { x = hx0 - ring; z = hz0 + (t - 2 * w - hh); }
+                    if (Math.Abs(x) > p.HalfSize - 0.5f || Math.Abs(z) > p.HalfSize - 0.5f || InStreet(p, x, z)) continue;
+                    if (InSolid(x, z, exclusions)) continue;
+                    bool bush = placedB < hb && (placedG >= hg || F() < 0.4f);
+                    if (bush)
+                    {
+                        if (placedB >= bushCap || !Free(x, z, 0.5f, exclusions)) continue;
+                        items.Add(Make(PropTypes.Bush, x, z, F() * 360f, 0.8f + F() * 0.8f, rng.Next(FoliageGeometry.BushVariants)));
+                        placedB++;
+                    }
+                    else if (placedG < hg && placedG < grassCap)
+                    {
+                        items.Add(Make(PropTypes.Grass, x, z, F() * 360f, 0.9f + F() * 0.7f, rng.Next(2)));
+                        placedG++;
+                    }
+                }
+            }
+
             // ---- Coches destrozados a los lados de la calle
             var carSpots = new List<(float x, float z)>();
             for (int i = 0; i < cars; i++)
@@ -197,6 +234,8 @@ namespace SevenDays.Procedural
                 return;
             }
         }
+
+        private static int Count(List<PropEntry> items, string type) { int n = 0; foreach (var e in items) if (e.type == type) n++; return n; }
 
         private static PropEntry Make(string type, float x, float z, float yaw, float scale, int variant)
             => new PropEntry { type = type, x = (float)Math.Round(x, 2), z = (float)Math.Round(z, 2), yaw = (float)Math.Round(yaw, 1), scale = (float)Math.Round(scale, 2), variant = variant, state = "" };
