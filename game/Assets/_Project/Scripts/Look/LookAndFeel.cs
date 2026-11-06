@@ -129,6 +129,9 @@ namespace SevenDays.Look
         /// <summary>Vegetación y relleno: árboles muertos, arbustos, hierba, coches, neumáticos... con topes de cantidad.</summary>
         public VegetationSettings Vegetation = new VegetationSettings();
 
+        /// <summary>Señales de tráfico desgastadas y marcas viales.</summary>
+        public SignSettings Signs = new SignSettings();
+
         // Niebla y ambiente: gris azulado medio (tarde nublada)
         public Color FogColor = new Color(0.50f, 0.55f, 0.60f);
         public float FogDensity = 0.008f;

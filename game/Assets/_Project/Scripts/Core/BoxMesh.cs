@@ -46,7 +46,17 @@ namespace SevenDays.Core
             mesh.normals = norms;
             mesh.tangents = tangs;
             mesh.uv = uvs;
-            mesh.triangles = d.Triangles.ToArray();
+            if (d.SubmeshSplit >= 0 && d.SubmeshSplit < d.Triangles.Count)
+            {
+                // dos submeshes: frente (0) y dorso/cantos (1)
+                mesh.subMeshCount = 2;
+                mesh.SetTriangles(d.Triangles.GetRange(0, d.SubmeshSplit), 0);
+                mesh.SetTriangles(d.Triangles.GetRange(d.SubmeshSplit, d.Triangles.Count - d.SubmeshSplit), 1);
+            }
+            else
+            {
+                mesh.triangles = d.Triangles.ToArray();
+            }
             mesh.RecalculateBounds();
             return mesh;
         }

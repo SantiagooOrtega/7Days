@@ -14,6 +14,8 @@ namespace SevenDays.Look
         /// <summary>0..1: cuánto se tiñe de rojo por ratos.</summary>
         public float RedMix;
         public bool Blackouts;
+        /// <summary>Si es mayor que 0, la luz parpadea encendida/apagada a esa frecuencia (luz de emergencia de una señal).</summary>
+        public float BlinkHz;
         /// <summary>Bombilla emisiva que acompaña a la luz (opcional).</summary>
         public Renderer Bulb;
 
@@ -56,6 +58,8 @@ namespace SevenDays.Look
                 }
                 if (Time.time < _blackoutUntil) k *= 0.04f;
             }
+
+            if (BlinkHz > 0f && Mathf.Repeat(Time.time * BlinkHz, 1f) > 0.4f) k *= 0.03f; // 40% encendida, 60% apagada
 
             _light.color = c;
             _light.intensity = _baseIntensity * k;
