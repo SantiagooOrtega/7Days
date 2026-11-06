@@ -391,3 +391,10 @@ Detalle completo (tablas de armas, botiquines, escasez, JSON y esquema zod) en `
 7. Acércate a un arma en el suelo y pulsa **E** (si tienes las 5 casillas llenas, avisa y no se consume).
 8. Pulsa **T** para recibir daño y **H** para curarte: aparece la barra; pulsa **T** otra vez durante la curación y se cancela sin gastar el botiquín.
 9. Pulsa **L** varias veces: aparecen drops delante de ti hasta el tope de drops del día; **N** pasa de día y reaparece una fracción pequeña del botín.
+
+---
+
+# Fase 3: combate y zombies
+
+## Arreglo de la auditoría de colisiones
+`Vegetation/Campfire/Stone` (y `Log`, `Ash` y las antorchas de la casa) aparecían como "no deberían ser sólidos y tienen collider". Causa: `Prim.Create(..., collider: false)` quitaba el collider con `Destroy`, que Unity ejecuta **al final del frame**, y la auditoría corre en el mismo frame que construye el mapa. Ahora usa `DestroyImmediate`, así que esos objetos decorativos salen sin collider (ya estaban bien en `SolidCatalog`: son no sólidos).
