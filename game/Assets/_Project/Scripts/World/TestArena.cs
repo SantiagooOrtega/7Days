@@ -30,6 +30,7 @@ namespace SevenDays.World
         private int _day = 1;
         private SevenDays.Combat.ZombieManager _zombies;
         private int _zombieKind;
+        private int _bossKind;
 
         private IEnumerator Start()
         {
@@ -80,6 +81,7 @@ namespace SevenDays.World
             _zombies.BakeNavMesh(); // después de construir el nivel y de la auditoría: usa los colliders ya definitivos
             _zombies.SetPlayer(player.transform);
             BloodFx.Create(transform);
+            BossHud.Create(transform);
             CombatFeedback.Create(transform, player.GetComponent<SevenDays.Player.PlayerShooting>());
 
             Particles.CreateDust(player.transform);
@@ -123,6 +125,16 @@ namespace SevenDays.World
                 var spawn = _player.transform.position + _player.transform.forward * 12f;
                 var z = _zombies.Spawn(id, spawn);
                 if (z != null) HudMessages.Add("Zombi: " + z.Type.displayName, Color.white);
+            }
+            if (k.bKey.wasPressedThisFrame && _player != null && _zombies != null)
+            {
+                // B = jefe de prueba 20 m delante; cicla por los de los días 3, 5 y 7. Shift+B repone las coberturas rotas.
+                if (k.leftShiftKey.isPressed) { SevenDays.World.Destructible.RestoreAll(); _zombies.RequestNavMeshRefresh(); HudMessages.Add("Coberturas repuestas", Color.white); }
+                else
+                {
+                    int day = new[] { 3, 5, 7 }[_bossKind++ % 3];
+                    _zombies.Spawn(SevenDays.Procedural.ZombieCatalog.BossForDay(day), _player.transform.position + _player.transform.forward * 20f);
+                }
             }
             if (k.uKey.wasPressedThisFrame && _player != null)
             {

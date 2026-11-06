@@ -12,6 +12,9 @@ namespace SevenDays.Combat
     {
         private static ObjectPool<GroundMarker> _pool;
         private float _end, _start, _radius;
+        private bool _line;
+        private float _lineLength, _lineWidth;
+        private static ObjectPool<GroundMarker> _linePool;
 
         public static GroundMarker Show(Vector3 center, float radius, float seconds)
         {
@@ -21,6 +24,28 @@ namespace SevenDays.Combat
             m.transform.position = center + Vector3.up * 0.05f;
             m._radius = radius; m._start = Time.time; m._end = Time.time + seconds;
             return m;
+        }
+
+        /// <summary>Franja roja en el suelo (trayectoria de una carga).</summary>
+        public static GroundMarker ShowLine(Vector3 from, Vector3 to, float width, float seconds)
+        {
+            _linePool ??= new ObjectPool<GroundMarker>(CreateLine, m => m.gameObject.SetActive(true), m => m.gameObject.SetActive(false), m => Destroy(m.gameObject), false, 4, 8);
+            var m = _linePool.Get();
+            Vector3 d = to - from; d.y = 0f;
+            m._line = true; m._lineLength = d.magnitude; m._lineWidth = width; m._start = Time.time; m._end = Time.time + seconds;
+            Vector3 mid = (from + to) * 0.5f;
+            if (Physics.Raycast(mid + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 8f, ~((1 << 2) | HitboxLayer.Mask), QueryTriggerInteraction.Ignore)) mid.y = hit.point.y;
+            m.transform.SetPositionAndRotation(mid + Vector3.up * 0.05f, d.sqrMagnitude > 0.001f ? Quaternion.LookRotation(d.normalized) : Quaternion.identity);
+            m.transform.localScale = new Vector3(width, 0.01f, Mathf.Max(0.1f, m._lineLength));
+            return m;
+        }
+
+        private static GroundMarker CreateLine()
+        {
+            var go = Prim.Create(PrimitiveType.Cube, "GroundLine", Vector3.zero, new Vector3(1f, 0.01f, 1f), Prim.GetEmissive(new Color(0.9f, 0.08f, 0.05f), 2.2f), null, false);
+            go.layer = 2;
+            go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return go.AddComponent<GroundMarker>();
         }
 
         private static GroundMarker Create()
@@ -34,7 +59,8 @@ namespace SevenDays.Combat
         private void Update()
         {
             float now = Time.time;
-            if (now >= _end) { _pool.Release(this); return; }
+            if (now >= _end) { if (_line) _linePool.Release(this); else _pool.Release(this); _line = false; return; }
+            if (_line) { float w = _lineWidth * (1f + Mathf.Sin(now * 14f) * 0.05f); transform.localScale = new Vector3(w, 0.01f, _lineLength); return; }
             float t = Mathf.InverseLerp(_start, _end, now);
             float pulse = 1f + Mathf.Sin(now * 14f) * 0.04f;
             // el círculo se va llenando: el tamaño real es el del impacto; el aviso crece hasta él

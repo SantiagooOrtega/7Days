@@ -16,7 +16,7 @@ namespace SevenDays.World
         private Collider[] _colliders;
         private Renderer[] _renderers;
 
-        private void Awake() { _colliders = GetComponentsInChildren<Collider>(true); _renderers = GetComponentsInChildren<Renderer>(true); }
+        private void Cache() { _colliders ??= GetComponentsInChildren<Collider>(true); _renderers ??= GetComponentsInChildren<Renderer>(true); }
         private void OnEnable() { if (!All.Contains(this)) All.Add(this); }
         private void OnDisable() { All.Remove(this); }
 
@@ -31,6 +31,7 @@ namespace SevenDays.World
         public void Smash(Vector3 point, Vector3 direction)
         {
             if (Broken) return;
+            Cache();
             Broken = true;
             foreach (var c in _colliders) c.enabled = false;
             foreach (var r in _renderers) r.enabled = false;
@@ -43,6 +44,7 @@ namespace SevenDays.World
         public void Restore()
         {
             if (!Broken) return;
+            Cache();
             Broken = false;
             foreach (var c in _colliders) c.enabled = true;
             foreach (var r in _renderers) r.enabled = true;
