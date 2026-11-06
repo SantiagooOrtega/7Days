@@ -116,3 +116,20 @@ namespace SevenDays.Procedural
         public void Cancel(float time, float delay = 0f) { BurstLeft = 0; NextShot = Math.Max(NextShot, time + delay); }
     }
 }
+
+namespace SevenDays.Procedural
+{
+    /// <summary>Precisión esperada: probabilidad de que una bala caiga dentro de un blanco circular, con la dispersión repartida uniforme en el cono.</summary>
+    public static class Accuracy
+    {
+        public const float HeadRadius = 0.19f, TorsoRadius = 0.27f;
+
+        public static float HitChance(float spreadDegrees, float distance, float targetRadius)
+        {
+            if (spreadDegrees <= 0.0001f || distance <= 0f) return 1f;
+            double coneRadius = distance * Math.Tan(spreadDegrees * Math.PI / 180.0);
+            double p = (targetRadius * targetRadius) / (coneRadius * coneRadius);
+            return (float)Math.Min(1.0, p);
+        }
+    }
+}
