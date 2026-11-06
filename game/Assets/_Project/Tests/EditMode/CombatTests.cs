@@ -204,3 +204,45 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class FeedbackMathTests
+    {
+        [Test]
+        public void Bar_VisibleWhenDamagedRecentlyOrClose_NeverWhenDead()
+        {
+            Assert.IsTrue(FeedbackMath.BarVisible(1f, 30f, false, false));
+            Assert.IsFalse(FeedbackMath.BarVisible(10f, 30f, false, false));
+            Assert.IsTrue(FeedbackMath.BarVisible(10f, 5f, false, false));
+            Assert.IsFalse(FeedbackMath.BarVisible(1f, 1f, true, false));
+            Assert.IsFalse(FeedbackMath.BarVisible(10f, 7f, false, true), "con la vida llena solo se ve muy cerca");
+            Assert.IsTrue(FeedbackMath.BarVisible(10f, 3f, false, true));
+        }
+
+        [Test]
+        public void Bar_ColorGoesGreenYellowRed()
+        {
+            FeedbackMath.BarColor(1f, out float r1, out float g1, out _);
+            FeedbackMath.BarColor(0.5f, out float r2, out float g2, out _);
+            FeedbackMath.BarColor(0f, out float r3, out float g3, out _);
+            Assert.Greater(g1, r1); Assert.Greater(r2, 0.8f); Assert.Greater(g2, 0.8f); Assert.Greater(r3, g3);
+        }
+
+        [Test]
+        public void Smooth_ApproachesTargetWithoutOvershoot()
+        {
+            float v = 1f;
+            for (int i = 0; i < 10; i++) { float n = FeedbackMath.Smooth(v, 0.2f, 0.016f); Assert.LessOrEqual(n, v); Assert.GreaterOrEqual(n, 0.2f); v = n; }
+            Assert.AreEqual(1f, FeedbackMath.Smooth(1f, 0.2f, 0f), 1e-6f);
+        }
+
+        [Test]
+        public void NumberKind_FollowsHeadReducedBody()
+        {
+            Assert.AreEqual(FeedbackMath.NumberKind.Head, FeedbackMath.NumberFor(new HitReport { Headshot = true, FinalDamage = 50, BaseDamage = 20 }));
+            Assert.AreEqual(FeedbackMath.NumberKind.Reduced, FeedbackMath.NumberFor(new HitReport { Reduced = true, FinalDamage = 6, BaseDamage = 36 }));
+            Assert.AreEqual(FeedbackMath.NumberKind.Body, FeedbackMath.NumberFor(new HitReport { FinalDamage = 36, BaseDamage = 36 }));
+        }
+    }
+}
