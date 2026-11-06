@@ -255,3 +255,33 @@ tenían `w = +1` en vez de `-1`, con lo que los mapas de normales se iluminaban 
 **Causa:** `FlickerLight` creaba su `MaterialPropertyBlock` en `Awake` solo si `Bulb` ya estaba asignado, pero `Bulb` se asigna **después** de
 `AddComponent` (cuando `Awake` ya corrió). Entonces `_mpb` seguía en `null` y `Update` fallaba en cada frame al usarlo (153 veces en el log; afectaba a las
 farolas defectuosas y a las luces rojas de las señales). **Arreglo:** se crea la primera vez que hace falta.
+
+---
+
+# Bloque 1 (ronda 3): piso nuevo
+
+La autopista no se tocó (el asfalto, las líneas y las marcas siguen igual). Cambió el suelo **fuera** de ella.
+
+## Cómo está hecho (sin shader propio)
+- **Un mapa de mezcla de 60 x 60 m** generado por código (`GroundGenerator`, `Scripts/Procedural`), que **no se repite**: tierra seca agrietada, grava, ceniza, charcos de barro, parches de hierba seca y restos de concreto roto.
+- **Zonas grandes** (≈ 15 m) por ruido de baja frecuencia con los bordes deformados (no es ruido uniforme) y **más escombro, grava y arena junto al borde de la vía**.
+- **Relieve** en el mapa de normales: grietas de la tierra, piedrecitas de la grava, losas de concreto a distinta altura, **rodadas** de vehículos a los lados de la vía y **huellas** de pasos.
+- **Brillo húmedo del barro:** la suavidad va en el canal alfa del color (`_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A` de URP Lit), así solo el barro refleja las luces.
+- **Dos escalas de tile:** además del mapa grande, una textura de detalle (grano de tierra y piedrecitas, 256 px) que se repite cada 1.2 m con el modo *Detail x2* de URP Lit (`_DETAIL_MULX2`). Se comprobó en el código fuente de URP 17.3 que esas propiedades y keywords existen.
+- **Calcomanías** de manchas oscuras (aceite/hollín) y quemaduras, además de las grietas, charcos y sangre seca que ya había.
+- Se genera en hilos de fondo (tiras de filas en paralelo) a la vez que las demás texturas; en la Console sale `Piso listo (... ms)`.
+
+## Parámetros (`LookSettings.Ground`, en `Scripts/Look/GroundSettings.cs`)
+| Parámetro | Por defecto | Qué hace |
+|-----------|-------------|----------|
+| `Enabled` | sí | apagado = vuelve el concreto genérico |
+| `MapSize` | 1024 | 1024 (≈ 6 cm por píxel) o 2048 (más nítido, 4x memoria y carga) |
+| `ZoneScale` | 1 | tamaño de las zonas (menor = más grandes) |
+| `Earth`, `Gravel`, `Ash`, `Mud`, `DryGrass`, `Concrete` | 1 | abundancia de cada capa (0 = nada, 2 = el doble) |
+| `RoadDebris` | 1 | escombro y arena junto a la vía |
+| `Cracks`, `Pebbles`, `Ruts`, `Footprints` | 1 | cantidad de grietas, piedrecitas, rodadas y huellas |
+| `DetailTileMeters`, `DetailStrength` | 1.2 / 1 | escala e intensidad de la textura de detalle |
+| `NormalStrength`, `Brightness` | 1.6 / 1.35 | relieve y brillo del piso (el Brillo global también lo afecta) |
+| `StainDecals`, `BurnDecals` | 10 / 6 | manchas y quemaduras |
+
+Si baja de 55 FPS, lo primero es `Atmosphere.Density`; el piso casi no cuesta (una textura y un material). Con `MapSize = 2048` la carga tarda más.
