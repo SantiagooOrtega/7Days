@@ -15,31 +15,35 @@ namespace SevenDays.Procedural
         public int FaceVertexCount;
         /// <summary>Si es >= 0: los primeros N índices de Triangles forman el submesh 0 y el resto el submesh 1 (placa de señal: frente / dorso y cantos).</summary>
         public int SubmeshSplit = -1;
+        /// <summary>w de las tangentes. Con u a la derecha y v hacia arriba (como Unity) vale -1; los tubos usan +1 porque su v corre a lo largo del eje.</summary>
+        public float TangentSign = 1f;
     }
 
     /// <summary>
     /// Caja con bisel, UV por cara en metros y tangentes. Cada cara recibe la textura a escala real
     /// (tileMeters por repetición), sin espejos ni giros: la "arriba" de la textura (v) apunta siempre a +Y en las caras
     /// verticales. El bisel suaviza las aristas con una tira a 45° y esquinas triangulares, y así las uniones entre caras
-    /// no muestran costuras. Convención de Unity: el frente de un triángulo es el que se ve en sentido horario.
+    /// no muestran costuras. La convención de caras de Unity está en Winding.
     /// </summary>
     public static class BoxGeometry
     {
-        // Por cada cara: eje de la normal, signo, eje y signo de u, eje y signo de v. cross(u, v) = normal exterior.
+        // Por cada cara: eje de la normal, signo, eje y signo de u, eje y signo de v.
+        // v apunta arriba (+Y en las caras verticales; +Z en la tapa y la base) y u = normal x v, que es la DERECHA vista la cara
+        // desde fuera. Así la textura no sale espejada y el orden de vértices (BL, BR, TR, TL) es horario visto desde fuera.
         private static readonly int[][] FaceDefs =
         {
             //  normalAxis, sign, uAxis, uSign, vAxis, vSign
-            new[] { 2,  1, 0,  1, 1,  1 }, // +Z: u=+X, v=+Y
-            new[] { 2, -1, 0, -1, 1,  1 }, // -Z: u=-X, v=+Y
-            new[] { 0,  1, 2, -1, 1,  1 }, // +X: u=-Z, v=+Y
-            new[] { 0, -1, 2,  1, 1,  1 }, // -X: u=+Z, v=+Y
-            new[] { 1,  1, 0,  1, 2, -1 }, // +Y: u=+X, v=-Z
-            new[] { 1, -1, 0,  1, 2,  1 }, // -Y: u=+X, v=+Z
+            new[] { 2,  1, 0, -1, 1,  1 }, // +Z: u=-X, v=+Y
+            new[] { 2, -1, 0,  1, 1,  1 }, // -Z: u=+X, v=+Y
+            new[] { 0,  1, 2,  1, 1,  1 }, // +X: u=+Z, v=+Y
+            new[] { 0, -1, 2, -1, 1,  1 }, // -X: u=-Z, v=+Y
+            new[] { 1,  1, 0,  1, 2,  1 }, // +Y: u=+X, v=+Z
+            new[] { 1, -1, 0, -1, 2,  1 }, // -Y: u=-X, v=+Z
         };
 
         public static MeshData Build(V3 size, float tileMeters, V2 uvOffset, float bevel)
         {
-            var m = new MeshData();
+            var m = new MeshData { TangentSign = -1f };
             var h = new V3(size.X * 0.5f, size.Y * 0.5f, size.Z * 0.5f);
             float minSize = Math.Min(size.X, Math.Min(size.Y, size.Z));
             float b = Math.Max(0f, Math.Min(bevel, minSize * 0.25f));
@@ -128,8 +132,8 @@ namespace SevenDays.Procedural
 
         private static void AddQuad(MeshData m, V3 p0, V3 p1, V3 p2, V3 p3, V3 outward, int uvFace, V3 h, float tile, V2 off)
         {
-            // Orientar el triángulo para que, visto desde fuera, quede en sentido horario (frente en Unity).
-            if (V3.Dot(V3.Cross(p1 - p0, p2 - p0), outward) > 0f) { var t = p1; p1 = p3; p3 = t; }
+            // Orientar el triángulo para que su normal frontal (+Cross) apunte hacia fuera.
+            if (!Winding.FacesOutward(p0, p1, p2, outward)) { var t = p1; p1 = p3; p3 = t; }
             int s = m.Positions.Count;
             V3 tan = Tangent(uvFace, outward);
             foreach (var p in new[] { p0, p1, p2, p3 })
@@ -145,7 +149,7 @@ namespace SevenDays.Procedural
 
         private static void AddTri(MeshData m, V3 p0, V3 p1, V3 p2, V3 outward, int uvFace, V3 h, float tile, V2 off)
         {
-            if (V3.Dot(V3.Cross(p1 - p0, p2 - p0), outward) > 0f) { var t = p1; p1 = p2; p2 = t; }
+            if (!Winding.FacesOutward(p0, p1, p2, outward)) { var t = p1; p1 = p2; p2 = t; }
             int s = m.Positions.Count;
             V3 tan = Tangent(uvFace, outward);
             foreach (var p in new[] { p0, p1, p2 })
