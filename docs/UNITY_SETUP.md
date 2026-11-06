@@ -305,3 +305,35 @@ Detalle completo, formato JSON y esquema zod en `docs/HOUSE_LAYOUT.md`.
 4. Sal por la puerta trasera (lado este) y rodea la casa hasta la ventana grande (lado sur): corre hacia ella o pulsa Espacio y la saltas hacia adentro.
 5. Párate junto a una ventana pequeña, apunta y dispara hacia afuera: debe haber línea de tiro. Dispara a un muro: la bala no lo atraviesa.
 6. Prueba la cobertura (C) y el vault (Espacio) con las cajas, la mesa, el sofá y la cama; el estante y el armario no se saltan.
+
+---
+
+# Bloque 3 (ronda 3): fuego y puntos de interés
+
+## Fuentes de fuego
+| Fuente | Dónde | Quema | Notas |
+|--------|-------|-------|-------|
+| Barril con fuego | 2 barriles del mapa | radio 0.7 m | |
+| Fogata entre escombros | 5 por defecto, junto a coberturas y contenedores, lejos de la calle (`campfire` en el JSON de props) | radio 0.9 m | aro de piedras, troncos cruzados y ceniza |
+| Coche incendiado | 2 de los coches destrozados (`state: "burning"`) | radio 2.0 m | llamas grandes, mucho humo, pintura ennegrecida |
+| Antorcha | 4 en la casa (3 dentro, 1 junto a la puerta principal) | no quema | llama pequeña con luz |
+
+Cada fuego es un `FireEffect` con **llama, humo, chispas, luz puntual parpadeante sin sombras y mancha de quemadura** en el suelo, y sale de un **pool** (`FireManager`): se puede apagar y reutilizar (por ejemplo el director los apaga al cambiar de día con `FireManager.Despawn`).
+
+## Topes y rendimiento
+- **`LookSettings.Fire.MaxFires`** (16): tope de fuegos activos.
+- **`LookSettings.Fire.MaxFireLights`** (6): solo las luces de los fuegos **más cercanos al jugador** quedan encendidas (a igual distancia gana el coche, luego fogata/barril, luego antorcha). Ninguna proyecta sombras.
+- **Gobernador de ambiente** (FPS < 55, F3 lo cambia a mano): nivel 1 = 60% de humo y 4 luces; nivel 2 = sin chispas, 30% de humo y 2 luces; nivel 3 = sin humo, 1 luz y la llama al mínimo (15%).
+
+## Daño por quemadura (configurable)
+Si el jugador se queda dentro del radio de un fuego recibe `Fire.BurnDps` de daño por segundo (4 por defecto, en ticks de `BurnTickSeconds` = 0.25 s) y el HUD muestra "¡TE QUEMAS!". `BurnDps = 0` lo desactiva. Saltando por encima (más de 2.2 m) no quema.
+
+## Otros parámetros (`LookSettings.Fire`)
+`Enabled`, `SmokeAmount`, `SparkAmount`, `FlameScale`, `LightIntensity`.
+
+## Cómo probarlo (pasos numerados)
+1. Pulsa Play en `Game`. Camina de noche hacia un barril con fuego: se ve la llama, el humo y las chispas, y el suelo cerca está iluminado y parpadea.
+2. Acércate a una fogata (junto a las barreras y contenedores) y a un coche incendiado (a los lados de la calle).
+3. Párate dentro del radio de una fogata 3 segundos: pierdes ~12 de vida y sale "¡TE QUEMAS!". Sal del fuego y se detiene.
+4. Entra en la casa: las antorchas iluminan el interior sin quemar.
+5. Pulsa **F3** varias veces: el ambiente se recorta (menos humo, chispas y luces); el HUD muestra `ambiente N/3`.
