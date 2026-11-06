@@ -553,3 +553,30 @@ Pasos manuales:
 1. Play y pulsa **F5**: se suelta el ratón y aparece a la izquierda el panel con los valores en vivo (retroceso, dispersión, bloom, FOV, apuntado, sensibilidad, hombro, lean, cámara de carrera, fatiga, pasos por segundo).
 2. Mueve los deslizadores del arma actual (retroceso, dispersión, FOV de apuntado, sway...), de la cámara y de la cámara de carrera: el cambio se nota al momento (los límites duros siguen aplicándose). Los cambios duran hasta salir de Play: copia los números que te gusten al ScriptableObject del arma o a `CameraRunSettings`.
 3. **F5** otra vez cierra el panel y vuelve a capturar el ratón. Hacer clic sobre el panel no captura el ratón.
+
+## Cobertura estilo Gears of War: asomarse y disparar (pop-out)
+Especificación: `COBERTURA_POPOUT.md`. Ajustes (en `Resources/Config/CameraSettings.asset`): `popSeconds` (0.15–0.25 s), `lowCoverMax` (1.45 m: más baja = se asoma por encima), `popSideMeters`, `blindDamageMultiplier` (x0.6), `blindSpreadMultiplier`, `blindMinSpread`/`blindMaxSpread`, `blindExposure`, `blindHold`, `coveredDamageFloor` (fracción del daño cuerpo a cuerpo que pasa estando cubierto). También se pueden mover en vivo con **F5**.
+
+**Teclas en cobertura**
+| Tecla | Efecto |
+|-------|--------|
+| **C** | entrar / salir de la cobertura (más cercana) |
+| **A / D** | deslizarse a lo largo de la cobertura |
+| **Clic derecho (mantener)** | asomarse: por **encima** si es baja (hasta 1.45 m), por el **lado** del hombro activo si es alta y estás en su borde. Al soltar vuelves a cubrirte (0.2 s) |
+| **Clic izquierdo estando asomado** | disparo normal (apuntado, con tu dispersión y daño completos) |
+| **Clic izquierdo sin apuntar** | disparo **a ciegas**: dispersión muy alta, daño x0.6, exposición parcial unos 0.45 s |
+| **Q** | cambia de hombro y, con él, el lado por el que te asomas (si solo hay sitio por el otro lado, la cámara cambia sola) |
+| **R** | recargar: solo cubierto (asomado sale "Cúbrete para recargar") |
+| **Espacio / C** | saltar el obstáculo o salir, como antes |
+| barra metálica | el cuerpo a cuerpo no se asoma ni dispara a ciegas |
+
+Indicador en pantalla: **CUBIERTO** (azul), **ASOMADO** (rojo) y **A CIEGAS** (naranja). Si al apuntar no hay sitio por ningún lado (cobertura alta, lejos de un borde) sale el aviso "solo fuego a ciegas".
+
+**Pasos manuales**
+1. Pégate a una caja baja (C) y mantén clic derecho: te levantas y la cámara sube por encima (0.2 s); la barra de estado pasa a ASOMADO. Dispara: la bala debe salir por encima de la caja y herir al zombi del otro lado. Suelta el clic: vuelves a CUBIERTO.
+2. Pégate a un muro alto cerca de su borde y mantén clic derecho: te inclinas hacia el borde del hombro activo y la cámara se desplaza ~50 cm. **Q** cambia al otro lado (si el otro borde está lejos, la cámara se mantiene en el hombro con borde).
+3. Pégate al medio de un muro alto y apunta: no te asomas (aviso). Clic izquierdo sin apuntar: disparo a ciegas sobre el borde (o "Sin línea de tiro" si no hay sitio).
+4. Con un zombi en la otra cara de una caja baja, dispara a ciegas: las balas se dispersan mucho (cono de ~8–20°) y hacen 60 % del daño (los números flotantes lo muestran). Comprueba que en el primer metro la propia caja no las frena, y que otra caja o muro delante sí.
+5. Con un lanzador: cubierto del todo, su proyectil directo se estrella en la caja ("La cobertura te protegió"); asomado, te golpea. Un zombi cuerpo a cuerpo hace ~35 % del daño si estás cubierto y 100 % asomado.
+6. A 15 m de un zombi, agáchate tras la caja sin asomarte: tarda en detectarte (solo te ve de cerca, ~6 m); asomado te ve desde su rango normal.
+7. **F4**: tiempo cubierto, asomado y a ciegas; "[ABUSO]" aparece si pasas más del 85 % de ≥ 20 s escondido. **F5** muestra la exposición y por dónde te asomas.
