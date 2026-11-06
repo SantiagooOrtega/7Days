@@ -199,6 +199,27 @@ namespace SevenDays.UI
             Fill(new Rect(cx + gap, cy - 1.5f, len, 3f), c);
             Fill(new Rect(cx - 1.5f, cy - gap - len, 3f, len), c);
             Fill(new Rect(cx - 1.5f, cy + gap, 3f, len), c);
+            DrawHitmarker(cx, cy);
+        }
+
+        /// <summary>Hitmarker en forma de X: blanca al impactar, amarilla en headshot, roja y más grande al matar.</summary>
+        private static void DrawHitmarker(float cx, float cy)
+        {
+            var fb = SevenDays.Combat.CombatFeedback.Instance;
+            if (fb == null) return;
+            float t = Time.time;
+            bool kill = t < fb.KillUntil, hit = t < fb.HitUntil;
+            if (!kill && !hit) return;
+            Color c = kill ? new Color(1f, 0.15f, 0.15f) : (t < fb.HeadUntil ? new Color(1f, 0.85f, 0.15f) : Color.white);
+            float size = kill ? 11f : 7f, thick = kill ? 3.5f : 2.5f;
+            var prev = GUI.matrix;
+            foreach (float angle in new[] { 45f, -45f })
+            {
+                GUIUtility.RotateAroundPivot(angle, new Vector2(cx, cy));
+                Fill(new Rect(cx - size - 6f, cy - thick * 0.5f, size, thick), c);
+                Fill(new Rect(cx + 6f, cy - thick * 0.5f, size, thick), c);
+                GUI.matrix = prev;
+            }
         }
 
         private static void Fill(Rect r, Color c)
