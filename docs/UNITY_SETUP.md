@@ -363,3 +363,31 @@ Faltaban colliders en las tuberías, las farolas, las vigas y el techo de la nav
 ## Verificación
 - **Prueba EditMode** (`SolidCatalogTests`): recorre la lista de props sólidos (todos los tipos, variantes y escalas, las piezas fijas del mapa y las cajas de la casa) y **falla** si algún sólido no tiene un collider simple o si algo no sólido lo tiene.
 - **Auditoría al jugar** (`ColliderAudit`): al terminar de construir el mapa recorre la escena y escribe en la Console `Auditoría de colisiones: N/N sólidos con collider`. Si alguno no lo tiene sale un **error en rojo** con su nombre, y también avisa de cualquier `MeshCollider`.
+
+---
+
+# Bloque 5 (ronda 3): armas, botiquines y munición escasos
+
+Detalle completo (tablas de armas, botiquines, escasez, JSON y esquema zod) en `docs/LOOT.md`.
+
+## Controles nuevos
+| Acción | Tecla |
+|--------|-------|
+| Cambiar de arma | **1 a 5** o rueda del ratón |
+| Atacar con la barra | clic izquierdo (alcance 2.1 m) |
+| Recoger un arma | **E** (la munición y los botiquines se recogen solos al acercarte) |
+| Buscar en un contenedor | **mantén E** 1-2 s (se cancela al soltar, alejarte o recibir daño) |
+| Usar botiquín / venda | **H** / **B** (barra de curación; recibir daño la cancela) |
+| Probar un drop | **L** (cuenta para los topes) |
+| Siguiente día (respawn lento + entradas de la casa) | **N** |
+
+## Pasos manuales (numerados)
+1. Espera a que Unity compile. Se crean solos 7 ScriptableObjects en `Assets/_Project/Resources/Weapons` (uno por arma). Si no aparecen, menú **7Days > Crear armas por defecto (ScriptableObjects)**.
+2. Selecciona `Resources/Weapons/shotgun` en la ventana Project: edita daño, cadencia, cargador, recoil, dispersión, alcance, rareza y munición en el Inspector.
+3. Pulsa Play. Empiezas con **la pistola (6 + 6 balas) y la barra**: el HUD muestra las reservas de cada tipo con su máximo.
+4. Dispara hasta gastar el cargador: queda poca munición, hay que salir de la cobertura a buscar.
+5. Entra a la casa y **mantén E** junto a una caja o el estante: barra de búsqueda y, al terminar, el botín cae al suelo con un aro y una luz del color de su rareza.
+6. Camina sobre munición: se recoge sola y sale el aviso. Si tu reserva de ese tipo está llena, sale "Munición llena" y el objeto **se queda en el suelo**.
+7. Acércate a un arma en el suelo y pulsa **E** (si tienes las 5 casillas llenas, avisa y no se consume).
+8. Pulsa **T** para recibir daño y **H** para curarte: aparece la barra; pulsa **T** otra vez durante la curación y se cancela sin gastar el botiquín.
+9. Pulsa **L** varias veces: aparecen drops delante de ti hasta el tope de drops del día; **N** pasa de día y reaparece una fracción pequeña del botín.
