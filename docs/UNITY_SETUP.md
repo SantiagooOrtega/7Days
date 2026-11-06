@@ -337,3 +337,29 @@ Si el jugador se queda dentro del radio de un fuego recibe `Fire.BurnDps` de da�
 3. Párate dentro del radio de una fogata 3 segundos: pierdes ~12 de vida y sale "¡TE QUEMAS!". Sal del fuego y se detiene.
 4. Entra en la casa: las antorchas iluminan el interior sin quemar.
 5. Pulsa **F3** varias veces: el ambiente se recorta (menos humo, chispas y luces); el HUD muestra `ambiente N/3`.
+
+---
+
+# Bloque 4 (ronda 3): vegetación y colisiones
+
+## Más vegetación (sin que cueste FPS)
+- Valores nuevos por defecto: 54 arbustos base (tope 100), 280 matas de hierba base (tope 420), 70 matas de maleza fusionadas y **12 arbustos + 50 matas extra agrupados alrededor de la casa** (a 1.6-4.5 m de su borde, dejando libres las entradas).
+- La maleza y la sangre también se concentran junto a la casa, las vías y los escombros.
+- Todo con GPU instancing o mallas fusionadas, sin sombras y con tope. Parámetros: `LookSettings.Vegetation` (`Density`, `MaxBushes`, `MaxGrass`, `HouseBushes`, `HouseGrass`) y `Atmosphere.WeedTufts`. Si baja de 55 FPS, baja primero `Vegetation.Density`.
+
+## Colisiones: qué es sólido y con qué collider
+`SolidCatalog` (`Scripts/Procedural/SolidCatalog.cs`) es la fuente única:
+
+| Objeto | Collider |
+|--------|----------|
+| Árboles muertos | **Capsule** de tronco |
+| Coches, cajas, muros, barreras, contenedores, pilares, vigas, techos, piso y marcos de la casa, muebles | **Box** |
+| Barriles, tuberías, postes de farola, poste caído, blancos de práctica | **Capsule** |
+| Arbustos **grandes** (matorral con escala ≥ 1.1) | **Sphere** |
+| Hierba, arbustos pequeños, neumáticos, bolsas, escombros, postes finos de señal, skyline | **ninguno** (no frenan al jugador) |
+
+Faltaban colliders en las tuberías, las farolas, las vigas y el techo de la nave y los bloques sobre los muros: ya los tienen. Todos son colliders simples (nunca `MeshCollider`).
+
+## Verificación
+- **Prueba EditMode** (`SolidCatalogTests`): recorre la lista de props sólidos (todos los tipos, variantes y escalas, las piezas fijas del mapa y las cajas de la casa) y **falla** si algún sólido no tiene un collider simple o si algo no sólido lo tiene.
+- **Auditoría al jugar** (`ColliderAudit`): al terminar de construir el mapa recorre la escena y escribe en la Console `Auditoría de colisiones: N/N sólidos con collider`. Si alguno no lo tiene sale un **error en rojo** con su nombre, y también avisa de cualquier `MeshCollider`.
