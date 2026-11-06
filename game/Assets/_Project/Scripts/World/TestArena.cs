@@ -79,6 +79,8 @@ namespace SevenDays.World
             _zombies = ZombieManager.Create(transform);
             _zombies.BakeNavMesh(); // después de construir el nivel y de la auditoría: usa los colliders ya definitivos
             _zombies.SetPlayer(player.transform);
+            BloodFx.Create(transform);
+            CombatFeedback.Create(transform, player.GetComponent<SevenDays.Player.PlayerShooting>());
 
             Particles.CreateDust(player.transform);
             Atmosphere.Build(transform, player.transform, _look);
