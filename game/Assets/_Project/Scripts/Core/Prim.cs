@@ -111,6 +111,13 @@ namespace SevenDays.Core
             return GetOrCreate(key, tint, diff, nor, tiling, smoothness, metallic);
         }
 
+        /// <summary>Material con una textura de color y de normales ya creadas (por ejemplo las de una señal), compartido por clave.</summary>
+        public static Material GetWithTextures(Texture2D diffuse, Texture2D normal, Color tint, float smoothness, float metallic, string key)
+        {
+            string k = "x|" + key + "|" + Key(tint) + "|" + smoothness.ToString("0.##") + "|" + metallic.ToString("0.##");
+            return GetOrCreate(k, tint, diffuse, normal, Vector2.one, smoothness, metallic);
+        }
+
         /// <summary>Tiling razonable para una pieza grande: una repetición cada ~3 metros.</summary>
         public static Vector2 TilingFor(Vector3 scale, float meters = 3f)
             => new Vector2(Mathf.Max(1f, Mathf.Round(Mathf.Max(scale.x, scale.z) / meters)), Mathf.Max(1f, Mathf.Round(scale.y / meters)));
