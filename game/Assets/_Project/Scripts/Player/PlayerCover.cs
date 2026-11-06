@@ -1,5 +1,6 @@
 using UnityEngine;
 using SevenDays.Core;
+using SevenDays.Procedural;
 using SevenDays.World;
 
 namespace SevenDays.Player
@@ -23,6 +24,10 @@ namespace SevenDays.Player
         public Vector3 FacingDirection => -_normal;
         /// <summary>true si el jugador puede ser golpeado con normalidad (fuera de cobertura o asomado).</summary>
         public bool IsExposed => !Active || _camera.Aiming;
+        /// <summary>Lean (-1 izquierda .. +1 derecha) al apuntar en cobertura; la cámara lo acompaña.</summary>
+        public LeanState Lean { get; } = new LeanState();
+        /// <summary>Cobertura alta (tapa al jugador de pie): el lean es lateral; si es baja, se asoma por encima.</summary>
+        public bool TallCover => Active && _collider != null && _collider.bounds.max.y - transform.position.y > 1.4f;
 
         private PlayerCamera _camera;
         private CharacterController _cc;
@@ -39,6 +44,8 @@ namespace SevenDays.Player
 
         private void Update()
         {
+            Lean.Tick(Time.deltaTime, Active, _camera.Aiming, _camera.Shoulder.Side, TallCover);
+            _camera.LeanOffset = Lean.CameraOffset();
             if (_health.IsDead) { Active = false; return; }
             if (!GameInput.CoverPressed) return;
             if (Active) Active = false;

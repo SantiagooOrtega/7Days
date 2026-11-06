@@ -542,3 +542,9 @@ Pasos manuales:
 1. Cada arma suena distinto (pistola seca, escopeta grave, francotirador largo); tras la escopeta suena el bombeo y tras el francotirador el cerrojo. Al quedarte sin balas suena un "clic".
 2. Destello, trazadoras, hitmarker normal/headshot/muerte y números flotantes siguen como antes.
 3. Pasos: suenan con cada pisada (más fuertes corriendo, más suaves agachado). Corre más de 4 s: la respiración se oye cada vez más y más rápida; al parar se calma.
+
+### Bloque 4: locomoción, lean y Animator
+Pasos manuales:
+1. Ponte tras un muro alto con **C** y apunta: el cuerpo se inclina hacia el hombro activo y la cámara se desplaza a ese lado (~40 cm). **Q** cambia el lado del lean. Tras una caja baja, al apuntar te asomas por encima y la inclinación es pequeña.
+2. Apunta y muévete en 8 direcciones (strafe): el cuerpo sigue mirando a la cámara y el arma sigue el pitch de la mira (arriba/abajo).
+3. Menú **7Days > Crear Animator del jugador**: aparece `Assets/_Project/Animation/PlayerAnimator.controller`. Ábrelo: 16 parámetros, blend tree `Locomotion` con 10 ranuras vacías, estados Crouch/Cover/Airborne/Vault y capa UpperBody (Fire/Reload/Melee). Cómo conectar los modelos: `docs/ANIMATION_HOOKS.md`.

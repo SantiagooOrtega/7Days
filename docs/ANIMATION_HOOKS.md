@@ -1,0 +1,33 @@
+# Hooks de animación del jugador (para conectar los modelos en la Fase 3)
+
+`Player/PlayerAnimatorHooks.cs` escribe cada frame estos parámetros en el `Animator` que le asignes (campo **Animator**). Solo escribe los que existan en el controlador, así que uno parcial no da errores. El menú **7Days > Crear Animator del jugador** genera `Assets/_Project/Animation/PlayerAnimator.controller` con todos los parámetros, el blend tree de 8 direcciones y las capas: solo hay que arrastrar los clips a cada ranura.
+
+| Parámetro | Tipo | Valor | Animación que espera (Quaternius Zombie Apocalypse Kit / Mixamo) |
+|-----------|------|-------|------------------------------------------------------------------|
+| `Speed` | float | m/s horizontales (0 – 6.8) | umbral idle ↔ caminar ↔ correr si usas un blend 1D |
+| `MoveX` | float | -1..1 lateral respecto al cuerpo (1 = correr) | blend tree 2D: strafe izquierda/derecha |
+| `MoveY` | float | -1..1 adelante/atrás (1 = correr) | blend tree 2D: caminar/correr adelante, caminar atrás |
+| `IsAiming` | bool | clic derecho | capa superior: pose de apuntar con rifle/pistola (aim idle) |
+| `IsCrouching` | bool | Ctrl o en cobertura sin apuntar | estado Crouch (idle y caminar agachado) |
+| `IsInCover` | bool | pegado a una `CoverObject` | estado Cover (cover idle, deslizarse lateral) |
+| `IsGrounded` | bool | en el suelo | sale del estado Airborne |
+| `IsJumping` | bool | durante el salto | Airborne: jump start / loop |
+| `IsVaulting` | bool | pasando un obstáculo | estado Vault (vault over / climb) |
+| `VerticalSpeed` | float | m/s (positivo sube) | Airborne: blend subida ↔ caída |
+| `Fatigue` | float | 0..1 (cámara de carrera) | capa aditiva opcional: respiración agitada, correr cansado |
+| `Fire` | trigger | cada disparo | capa UpperBody: retroceso del arma (fire) |
+| `Reload` | trigger | al empezar a recargar | capa UpperBody: recarga (dura `reloadTime` del arma) |
+| `MeleeSwing` | trigger | golpe con la barra | capa UpperBody: golpe con arma cuerpo a cuerpo |
+| `MeleeHeavy` | trigger | (reservado: golpe pesado) | capa UpperBody: golpe pesado |
+| `MeleeIndex` | int | índice de combo (hoy 0) | variantes del golpe |
+
+Ranuras del blend tree `Locomotion` (2D Freeform Directional, MoveX/MoveY): (0,0) idle; (0,0.6) caminar adelante; (0,-0.6) caminar atrás; (±0.6,0) strafe; (±0.45,±0.45) diagonales; (0,1) correr.
+
+## Aim offset y manos (Animation Rigging)
+Hoy el *aim offset* es procedural sobre las primitivas: el arma (`WeaponPose`) sigue el pitch de la mira al apuntar o disparar y el cuerpo se inclina un poco (`WeaponHandling`); el lean en cobertura inclina el cuerpo y desplaza la cámara. El paquete Animation Rigging no está instalado para no cambiar los paquetes del proyecto sin los modelos. Al importar el modelo humanoide:
+1. Window > Package Manager > Unity Registry > **Animation Rigging** > Install.
+2. En el modelo del jugador: Animation Rigging > Rig Setup (añade `RigBuilder` y un hijo `Rig`).
+3. En `Rig`, un hijo con **Multi-Aim Constraint**: Constrained Object = columna (Spine2/Chest), Source Object = `SightAnchor` (lo crea `PlayerCamera` y siempre mira a donde apunta la mira), Aim Axis Z, peso 0.6. Otro igual para la cabeza (peso 0.8).
+4. Dos hijos con **Two Bone IK Constraint**: mano derecha (Root = brazo, Mid = antebrazo, Tip = mano, Target = un hijo de `WeaponPose` en la empuñadura) y mano izquierda (Target = un hijo de `WeaponPose` en el guardamanos).
+5. Mueve el `SightPoint` (hijo de `WeaponPose`) a la mira real del arma importada: es donde se coloca la cámara de primera persona del francotirador.
+6. Asigna el `Animator` del modelo al campo **Animator** de `PlayerAnimatorHooks` y el controlador generado arriba.

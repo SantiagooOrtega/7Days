@@ -283,4 +283,24 @@ namespace SevenDays.Procedural
             return o;
         }
     }
+
+    /// <summary>
+    /// Lean en cobertura: al apuntar en cobertura el jugador se asoma hacia el hombro activo (Q lo cambia). Tras una cobertura alta se inclina del todo; tras una
+    /// baja apenas (se asoma por encima). Transición suave; 0 fuera de cobertura.
+    /// </summary>
+    public class LeanState
+    {
+        public float Value { get; private set; }   // -1 izquierda .. +1 derecha
+        public float Seconds = 0.2f;
+
+        public void Tick(float dt, bool inCover, bool aiming, int shoulderSide, bool tallCover)
+        {
+            float target = inCover && aiming ? shoulderSide * (tallCover ? 1f : 0.35f) : 0f;
+            Value = RecoilState.MoveTowards(Value, target, dt / Math.Max(0.01f, Seconds));
+        }
+
+        /// <summary>Desplazamiento lateral de la cámara (metros) y roll del cuerpo (grados) para este lean.</summary>
+        public float CameraOffset(float maxMeters = 0.4f) => Math.Abs(Value) * maxMeters;
+        public float BodyRoll(float maxDegrees = 14f) => -Value * maxDegrees;
+    }
 }

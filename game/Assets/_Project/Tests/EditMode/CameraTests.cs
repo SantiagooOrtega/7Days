@@ -199,3 +199,24 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class LeanTests
+    {
+        [Test]
+        public void LeansTowardTheActiveShoulderOnlyWhenAimingInCover()
+        {
+            var l = new LeanState();
+            for (int i = 0; i < 30; i++) l.Tick(1f / 60f, false, true, 1, true);
+            Assert.AreEqual(0f, l.Value, "fuera de cobertura no hay lean");
+            for (int i = 0; i < 30; i++) l.Tick(1f / 60f, true, true, -1, true);
+            Assert.AreEqual(-1f, l.Value, 1e-4f, "hombro izquierdo: se asoma a la izquierda");
+            Assert.Greater(l.CameraOffset(), 0.3f); Assert.Greater(l.BodyRoll(), 0f);
+            l.Tick(0.05f, true, false, -1, true);
+            Assert.Greater(l.Value, -1f); Assert.Less(l.Value, 0f, "vuelve con suavidad al soltar");
+            var low = new LeanState(); for (int i = 0; i < 30; i++) low.Tick(1f / 60f, true, true, 1, false);
+            Assert.Less(low.Value, 0.5f, "tras una cobertura baja apenas se inclina (se asoma por encima)");
+        }
+    }
+}

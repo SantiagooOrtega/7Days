@@ -20,6 +20,7 @@ namespace SevenDays.Player
         private PlayerCamera _camera;
         private PlayerMotor _motor;
         private PlayerShooting _shooting;
+        private PlayerCover _cover;
         private Vector2 _sway, _swayVel;
         private float _kick, _aimOffsetWeight;
 
@@ -30,6 +31,7 @@ namespace SevenDays.Player
         public void Initialize(Transform pose, Transform torso, PlayerCamera cam, PlayerMotor motor, PlayerShooting shooting)
         {
             _pose = pose; _torso = torso; _camera = cam; _motor = motor; _shooting = shooting;
+            _cover = GetComponent<PlayerCover>();
         }
 
         public void OnShot() => _kick = Mathf.Min(1.5f, _kick + 1f);
@@ -73,7 +75,10 @@ namespace SevenDays.Player
             _pose.localRotation = Quaternion.Euler(aimPitch + kickPitch + swing + _sway.y, _sway.x, -_sway.x * 0.5f);
 
             // el torso de las primitivas se inclina un poco con la mira (aim offset del cuerpo; con modelos lo hará el Multi-Aim)
-            if (_torso != null) _torso.localRotation = Quaternion.Euler(aimPitch * 0.25f, 0f, 0f);
+            float lean = _cover != null ? _cover.Lean.BodyRoll() : 0f;
+            if (_torso != null) _torso.localRotation = Quaternion.Euler(aimPitch * 0.25f, 0f, lean);
+            // el arma acompaña el lean (se desplaza hacia el lado al que se asoma)
+            if (_cover != null) _pose.localPosition += new Vector3(_cover.Lean.Value * 0.12f, 0f, 0f);
         }
     }
 }
