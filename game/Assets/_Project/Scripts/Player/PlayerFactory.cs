@@ -63,7 +63,7 @@ namespace SevenDays.Player
 
             playerCamera.Initialize(root.transform, cam, yaw);
             cover.Initialize(playerCamera);
-            impulse.Initialize(movement);
+            impulse.Initialize(movement, playerCamera.Settings);
             motor.Initialize(playerCamera, cover, visual, holder, movement, vault, impulse);
             vault.Initialize(movement, cover, motor, impulse);
             inventory.Initialize(loot);

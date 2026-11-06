@@ -39,6 +39,9 @@ namespace SevenDays.Core
         public static bool ReloadPressed => Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame;
         public static bool CoverPressed => Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame;
         public static bool HelpPressed => Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame;
+        public static bool ShoulderSwapPressed => Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame;
+        public static bool FireModePressed => Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame;
+        public static bool DebugPanelPressed => Keyboard.current != null && Keyboard.current.f5Key.wasPressedThisFrame;
         public static bool EscapePressed => Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
 
         /// <summary>Índice del arma elegida con las teclas 1-9 este frame, o -1.</summary>

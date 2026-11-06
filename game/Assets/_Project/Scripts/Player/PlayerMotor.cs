@@ -29,6 +29,9 @@ namespace SevenDays.Player
         public bool IsJumping { get; private set; }
         public bool IsVaulting => _vault != null && _vault.IsVaulting;
         public float VerticalSpeed => _verticalVelocity;
+        /// <summary>Velocidad horizontal real (m/s) y relativa a correr (0..1).</summary>
+        public float HorizontalSpeed => new Vector2(_horizontalVelocity.x, _horizontalVelocity.z).magnitude;
+        public float Speed01 => Mathf.Clamp01(HorizontalSpeed / sprintSpeed);
 
         private CharacterController _cc;
         private PlayerCamera _camera;
