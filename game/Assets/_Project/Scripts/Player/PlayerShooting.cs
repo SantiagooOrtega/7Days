@@ -40,6 +40,8 @@ namespace SevenDays.Player
         public float ReloadProgress => Reloading ? 1f - Mathf.Clamp01((_reloadEnd - Time.time) / Current.Data.reloadTime) : 0f;
         public PlayerStats Stats { get; } = new PlayerStats();
         public event Action HitConfirmed;
+        /// <summary>Cada disparo o golpe, acierte o no (precisión del director).</summary>
+        public event Action ShotFired;
         /// <summary>Cada impacto en un enemigo, con zona, daño final y si mató. Lo usan el hitmarker, los números flotantes y las métricas del director.</summary>
         public event Action<ShotHit> ShotHitReported;
         public event Action<WeaponState> WeaponChanged;
@@ -147,6 +149,7 @@ namespace SevenDays.Player
             w.Magazine--;
             _nextFire = Time.time + data.SecondsBetweenShots;
             Stats.ShotsFired++;
+            ShotFired?.Invoke();
             _motor.FaceCameraUntil = Time.time + 0.5f;
 
             // El rayo sale del centro de la cámara, adelantado hasta la altura del pecho del jugador
@@ -182,6 +185,7 @@ namespace SevenDays.Player
             var data = Current.Data;
             _nextFire = Time.time + data.SecondsBetweenShots;
             _swingStart = Time.time;
+            ShotFired?.Invoke();
             _motor.FaceCameraUntil = Time.time + 0.5f;
 
             Vector3 forward = Quaternion.Euler(0f, _camera.Yaw, 0f) * Vector3.forward;

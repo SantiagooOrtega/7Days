@@ -30,6 +30,9 @@ namespace SevenDays.Combat
         private bool _navDirty;
         private float _nextNavRefresh;
         public ZombieController ActiveBoss { get; private set; }
+        /// <summary>Parámetros del día que fija la IA director (multiplicadores y proporciones). Todos los spawns los respetan.</summary>
+        public DirectorTuning Tuning { get; private set; } = new DirectorTuning();
+        private readonly System.Random _rng = new System.Random(20240601);
         public Transform PlayerTransform => _player;
         public Health PlayerHealth => _playerHealth;
         /// <summary>Cuánto lleva el jugador seguido en cobertura (la IA del lanzador decide con esto cuándo flanquear).</summary>
@@ -53,6 +56,16 @@ namespace SevenDays.Combat
             _cover = player.GetComponent<PlayerCover>();
             foreach (var z in _all) z.SetPlayer(_player, _playerHealth);
         }
+
+        public void SetTuning(DirectorTuning t)
+        {
+            var errors = t.Validate();
+            if (errors.Count > 0) { Debug.LogWarning("[7Days] DirectorTuning inválido, se ignora: " + string.Join("; ", errors)); return; }
+            Tuning = t.Clone();
+        }
+
+        /// <summary>Genera un zombi cuyo tipo sale de las proporciones del director.</summary>
+        public ZombieController SpawnByTuning(Vector3 position) => Spawn(Tuning.Pick(_rng.NextDouble()), position);
 
         public ZombieTypeData TypeById(string id) => _types.TryGetValue(id, out var t) ? t : null;
 
@@ -95,7 +108,9 @@ namespace SevenDays.Combat
                 z.SetPlayer(_player, _playerHealth);
                 _all.Add(z);
             }
-            z.Activate(type, position, healthMult, speedMult, damageMult);
+            // los parámetros del director multiplican a los pedidos; la vida de un jefe no se toca (siempre 10–30 veces la de un común)
+            z.Activate(type, position, healthMult * (type.isBoss ? 1f : Tuning.healthMultiplier), speedMult * Tuning.speedMultiplier, damageMult * Tuning.damageMultiplier);
+            if (type.isBoss && z.Boss != null && z.Boss.Brain != null) z.Boss.Brain.Aggressiveness = Tuning.bossAggressiveness;
             if (type.isBoss) ActiveBoss = z;
             return z;
         }

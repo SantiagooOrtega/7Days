@@ -23,6 +23,9 @@ namespace SevenDays.Combat
         public bool DiedByHeadshot => Health.KilledByHeadshot;
         /// <summary>La cabeza voló: el director cuenta estas muertes como habilidad (headshots).</summary>
         public bool HeadDestroyed { get; private set; }
+        /// <summary>Instante del primer impacto del jugador (para medir el tiempo que cuesta matarlo); -1 si aún no lo han tocado.</summary>
+        public float FirstHitTime { get; private set; } = -1f;
+        public float TimeToKill => FirstHitTime < 0f ? -1f : Mathf.Max(0f, _deadAt - FirstHitTime);
         public ZombieHealthBar Bar { get; private set; }
         public BossBehaviour Boss { get; private set; }
         public Color BodyColor { get; set; }
@@ -100,6 +103,7 @@ namespace SevenDays.Combat
             _sm.Reset(); _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
             _brain = type.projectile != "none" ? SpitterBrain.For(type) : null;
             _pulseOn = false;
+            FirstHitTime = -1f;
             HeadDestroyed = false; _knock = Vector3.zero; _puddle.gameObject.SetActive(false);
             Rig.HeadPivot.localScale = Vector3.one;
             Bar.Suppressed = type.isBoss; Bar.ResetBar(2.25f * type.scale);
@@ -137,6 +141,7 @@ namespace SevenDays.Combat
 
         private void OnDamaged(DamageInfo info)
         {
+            if (FirstHitTime < 0f) FirstHitTime = Time.time;
             _flashUntil = Time.time + 0.07f;
             Rig.SetFlash(true, _flashMat);
             // Un disparo avisa al zombie: empieza a perseguir aunque no vea al jugador.

@@ -450,3 +450,12 @@ Pasos manuales (nada de esto lo puedo verificar sin el editor):
 5. **B** otra vez: **El Devorador (día 7)**. Avisa una onda expansiva (círculo rojo grande): **salta** justo antes de que termine y debe salir "¡Esquivaste la onda!". Cada ~14 s (y tras la onda) se enciende un núcleo naranja en su pecho: un disparo ahí debe hacer mucho más daño que en el torso.
 6. Mátalo: debe soltar un objeto raro o mejor cerca de su cuerpo aunque ya hayas agotado los drops del día (mensaje "¡El jefe soltó un botín raro!").
 7. Con 3 o 4 jefes y 20 zombis en pantalla vigila los FPS (F3 muestra el gobernador de calidad); si bajan de 55 dime qué hacía el jefe en ese momento.
+
+### Bloque 6: métricas y parámetros para el director
+Teclas: **F4** panel de métricas, **N** siguiente día (aplica `DirectorTuning.ForDay`), **V** mini oleada de 8 zombis con las proporciones del día.
+Pasos manuales:
+1. Play, pulsa **F4**: aparece el panel con precisión, headshots, TTK medio, tiempo en cobertura, daño recibido por tipo y los parámetros activos.
+2. Dispara a varios zombis (Z) con headshots y sin ellos: la precisión y la proporción de headshots deben moverse con lo que haces; el TTK sale de la primera bala a la muerte.
+3. Pégate a una caja con **C** durante unos segundos: "en cobertura" debe subir. Recibe daño de un lanzador y de un común: deben aparecer por separado en "daño recibido".
+4. Pulsa **N** varias veces y luego **V**: al día 1 salen casi todos comunes; al día 7 hay más corredores, tanques, blindados, lanzadores y explosivos, y los zombis tienen más vida (compruébalo con los números de daño). El panel F4 muestra los multiplicadores.
+5. Con una mini oleada (V) pulsada dos o tres veces (16–24 zombis), mira los FPS del HUD: deben seguir en ~60.
