@@ -6,7 +6,7 @@ using SevenDays.Look;
 using SevenDays.Net;
 using SevenDays.Player;
 using SevenDays.UI;
-using SevenDays.Weapons;
+using SevenDays.World.Loot;
 
 namespace SevenDays.World
 {
@@ -23,6 +23,10 @@ namespace SevenDays.World
         private LookSettings _look;
         private SevenDays.Procedural.PropLayoutData _layout;
         private bool _loading;
+        private Transform _levelRoot;
+        private SevenDays.Procedural.LootLayoutData _lootLayout;
+        private LootManager _lootManager;
+        private int _day = 1;
 
         private IEnumerator Start()
         {
@@ -56,13 +60,18 @@ namespace SevenDays.World
             _loading = false;
 
             _fire = FireManager.Create(transform, _look.Fire); // antes del mapa: los barriles, fogatas, coches y antorchas lo usan
+            _lootLayout = LootIO.Load(_layout.items, HouseIO.Load()); // botín: tablas, drops y puntos (coches y arbustos de este mapa)
+            _lootManager = LootManager.Create(transform, _lootLayout, 20240517);
             BuildLevel();
 
-            var weapons = new List<WeaponDefinition> { DefaultWeapons.Rifle(), DefaultWeapons.Pistol() };
-            var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, weapons, _look.Movement);
+            var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, _lootLayout, _look.Movement);
             _playerHealth = player.GetComponent<Health>();
             _player = player;
             _fire.SetPlayer(player);
+            _lootManager.SetPlayer(player);
+            LootBuilder.Build(_levelRoot, _lootLayout, _lootManager); // contenedores buscables y objetos sueltos (necesita la casa y los coches ya construidos)
+            Physics.SyncTransforms();
+            ColliderAudit.Run(_levelRoot);
 
             Particles.CreateDust(player.transform);
             Atmosphere.Build(transform, player.transform, _look);
@@ -86,6 +95,18 @@ namespace SevenDays.World
             if (k.tKey.wasPressedThisFrame)
                 _playerHealth.TakeDamage(new DamageInfo { Amount = 20f, Point = transform.position });
             if (k.yKey.wasPressedThisFrame) _playerHealth.Heal(50f);
+            if (k.lKey.wasPressedThisFrame && _player != null && _lootManager != null)
+            {
+                // Drop de prueba delante del jugador (cuenta para el tope diario y el de pickups en el suelo)
+                _lootManager.DebugDrop(_player.transform.position + _player.transform.forward * 2.5f);
+            }
+            if (k.nKey.wasPressedThisFrame && _lootManager != null)
+            {
+                // Siguiente día: el director hace reaparecer un poco de botín y tapa las entradas de la casa según el día
+                _day = _day % 7 + 1;
+                _lootManager.NewDay(_day);
+                if (_house != null) _house.SetDay(_day);
+            }
             if (k.uKey.wasPressedThisFrame && _player != null)
             {
                 // Prueba de caída: sube al jugador 6 m y lo suelta (más de 4 m hace daño y sacude la cámara)
@@ -99,6 +120,7 @@ namespace SevenDays.World
         private void BuildLevel()
         {
             var root = new GameObject("Level").transform;
+            _levelRoot = root;
             IndustrialRuins.Build(root, _look);
             Skyline.Build(root, _look);
             if (_look.House.Enabled) IndustrialRuins.Anchors.AddRange(HouseIO.PerimeterAnchors(HouseIO.Load())); // maleza y sangre también junto a la casa
@@ -106,8 +128,6 @@ namespace SevenDays.World
             Vegetation.Build(root, _look, _layout);
             RoadMarkings.Build(root, _look);
             if (_look.House.Enabled) _house = House.Build(root, _look, HouseIO.Load());
-            Physics.SyncTransforms();
-            ColliderAudit.Run(root);
 
             // Blancos de práctica: cuerpo claro, cabeza pálida y ojos brillantes para que se distingan del fondo
             for (int i = 0; i < 6; i++)
