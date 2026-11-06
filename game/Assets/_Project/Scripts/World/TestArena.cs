@@ -93,6 +93,7 @@ namespace SevenDays.World
 
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
             hud.Initialize(player);
+            hud.gameObject.AddComponent<SettingsOverlay>().Initialize(player.GetComponent<PlayerCamera>());
         }
 
         private void OnGUI()
@@ -120,6 +121,7 @@ namespace SevenDays.World
                 // Siguiente día: el director hace reaparecer un poco de botín y tapa las entradas de la casa según el día
                 _day = _day % 7 + 1;
                 _lootManager.NewDay(_day);
+                CombatMetricsTracker.Instance?.NewDay();
                 if (_zombies != null) _zombies.SetTuning(SevenDays.Procedural.DirectorTuning.ForDay(_day));
                 if (_house != null) _house.SetDay(_day);
             }

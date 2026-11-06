@@ -18,6 +18,8 @@ namespace SevenDays.Combat
 
         private PlayerShooting _shooting;
         private PlayerCover _cover;
+        private PlayerCamera _camera;
+        private float _sprintBase;
         private Health _playerHealth;
         private bool _headThisShot, _showPanel;
         private GUIStyle _style;
@@ -36,6 +38,7 @@ namespace SevenDays.Combat
             Instance = this;
             _shooting = player.GetComponent<PlayerShooting>();
             _cover = player.GetComponent<PlayerCover>();
+            _camera = player.GetComponent<PlayerCamera>();
             _playerHealth = player.GetComponent<Health>();
             _shooting.ShotFired += Metrics.RecordShot;
             _shooting.ShotHitReported += OnShotHit;
@@ -49,6 +52,13 @@ namespace SevenDays.Combat
             if (Instance == this) Instance = null;
             if (_shooting != null) { _shooting.ShotFired -= Metrics.RecordShot; _shooting.ShotHitReported -= OnShotHit; _shooting.HitConfirmed -= OnHitConfirmed; }
             if (_playerHealth != null) _playerHealth.Damaged -= OnPlayerDamaged;
+        }
+
+        /// <summary>Empieza un día: métricas a cero (el tiempo corriendo se cuenta desde ahora).</summary>
+        public void NewDay()
+        {
+            Metrics.Reset();
+            if (_camera != null && _camera.RunCam != null) _sprintBase = _camera.RunCam.TotalSprintSeconds;
         }
 
         private void OnShotHit(ShotHit s) { if (s.Report.Headshot) _headThisShot = true; }
@@ -71,6 +81,7 @@ namespace SevenDays.Combat
         private void Update()
         {
             Metrics.Tick(Time.deltaTime, _cover != null && _cover.Active);
+            if (_camera != null && _camera.RunCam != null) Metrics.RecordMovement(_camera.RunCam.TotalSprintSeconds - _sprintBase, _camera.RunCam.Fatigue);
             var k = UnityEngine.InputSystem.Keyboard.current;
             if (k != null && k.f4Key.wasPressedThisFrame) _showPanel = !_showPanel;
         }
@@ -86,6 +97,7 @@ namespace SevenDays.Combat
             sb.AppendLine("headshots " + s.headshots + "  (" + (s.headshotRatio * 100f).ToString("0") + "% de aciertos)");
             sb.AppendLine("muertes " + s.kills + "  headshot " + s.headshotKills + "  TTK medio " + s.averageTimeToKill.ToString("0.0") + " s");
             sb.AppendLine("en cobertura " + s.timeInCover.ToString("0") + " s  (" + (s.coverRatio * 100f).ToString("0") + "%)");
+            sb.AppendLine("corriendo " + s.sprintSeconds.ToString("0") + " s  fatiga " + (s.fatigue * 100f).ToString("0") + "% (máx. " + (s.maxFatigue * 100f).ToString("0") + "%)");
             sb.AppendLine("daño recibido " + s.damageTaken.ToString("0"));
             for (int i = 0; i < s.damageSources.Length; i++) sb.AppendLine("   " + s.damageSources[i] + ": " + s.damageAmounts[i].ToString("0"));
             var mgr = ZombieManager.Instance;
