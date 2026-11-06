@@ -29,6 +29,7 @@ namespace SevenDays.Combat
         private PlayerCover _cover;
         private bool _navDirty;
         private float _nextNavRefresh;
+        public ZombieController ActiveBoss { get; private set; }
         public Transform PlayerTransform => _player;
         public Health PlayerHealth => _playerHealth;
         /// <summary>Cuánto lleva el jugador seguido en cobertura (la IA del lanzador decide con esto cuándo flanquear).</summary>
@@ -71,15 +72,15 @@ namespace SevenDays.Combat
             NavMeshReady = true;
         }
 
-        public ZombieController Spawn(string typeId, Vector3 position, float healthMult = 1f, float speedMult = 1f, float damageMult = 1f)
+        public ZombieController Spawn(string typeId, Vector3 position, float healthMult = 1f, float speedMult = 1f, float damageMult = 1f, bool ignoreCap = false)
         {
             var type = TypeById(typeId);
-            return type == null ? null : Spawn(type, position, healthMult, speedMult, damageMult);
+            return type == null ? null : Spawn(type, position, healthMult, speedMult, damageMult, ignoreCap);
         }
 
-        public ZombieController Spawn(ZombieTypeData type, Vector3 position, float healthMult = 1f, float speedMult = 1f, float damageMult = 1f)
+        public ZombieController Spawn(ZombieTypeData type, Vector3 position, float healthMult = 1f, float speedMult = 1f, float damageMult = 1f, bool ignoreCap = false)
         {
-            if (ActiveCount >= MaxZombies && !type.isBoss) return null;
+            if (ActiveCount >= MaxZombies && !type.isBoss && !ignoreCap) return null;
             ZombieController z = null;
             foreach (var c in _all) if (!c.InUse) { z = c; break; }
             if (z == null)
@@ -95,6 +96,7 @@ namespace SevenDays.Combat
                 _all.Add(z);
             }
             z.Activate(type, position, healthMult, speedMult, damageMult);
+            if (type.isBoss) ActiveBoss = z;
             return z;
         }
 

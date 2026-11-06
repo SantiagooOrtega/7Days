@@ -12,6 +12,7 @@ namespace SevenDays.Combat
     public class ZombieRig
     {
         public Transform Visual, Spine, HeadPivot, ArmL, ArmR, LegL, LegR;
+        public GameObject WeakPoint;   // núcleo brillante en el pecho de los jefes con punto débil; solo existe como hitbox mientras está expuesto
         public Renderer[] Renderers;
         public Hitbox[] Hitboxes;
         private Renderer[] _skin, _cloth;
@@ -85,6 +86,14 @@ namespace SevenDays.Combat
                 Box("Hitbox_Arms", arm, HitZone.Arms, Capsule(arm, new Vector3(0f, -0.28f, 0f), 0.11f, 0.62f));
             }
 
+            var wp = Prim.Create(PrimitiveType.Sphere, "WeakPoint", new Vector3(0f, 0.38f, 0.17f), Vector3.one * 0.2f, Prim.GetEmissive(new Color(1f, 0.5f, 0.08f), 4f), r.Spine, false);
+            wp.layer = HitboxLayer.Index;
+            wp.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var wpc = wp.AddComponent<SphereCollider>(); wpc.radius = 0.8f;   // en espacio local: 0.8 x 0.2 = 0.16 m
+            var wph = wp.AddComponent<Hitbox>(); wph.Zone = HitZone.WeakPoint; wph.Owner = owner;
+            wp.SetActive(false);
+            r.WeakPoint = wp;
+
             r._skin = skin.ToArray(); r._cloth = cloth.ToArray();
             var all = new System.Collections.Generic.List<Renderer>(skin); all.AddRange(cloth);
             r.Renderers = all.ToArray();
@@ -106,6 +115,8 @@ namespace SevenDays.Combat
             for (int i = 0; i < _skin.Length; i++) _skin[i].sharedMaterial = on ? flash : _skinMat;
             for (int i = 0; i < _cloth.Length; i++) _cloth[i].sharedMaterial = on ? flash : _clothMat;
         }
+
+        public void SetWeakPoint(bool on) { if (WeakPoint != null) WeakPoint.SetActive(on); }
 
         public void SetHitboxesEnabled(bool on) { foreach (var h in Hitboxes) { var c = h.GetComponent<Collider>(); if (c != null) c.enabled = on; } }
 
