@@ -48,12 +48,16 @@ namespace SevenDays.Combat
         }
 
         /// <summary>direction: hacia donde sale la sangre (normalmente la dirección de la bala). big: muerte o headshot.</summary>
-        public void Spray(Vector3 point, Vector3 direction, int count)
+        public void Spray(Vector3 point, Vector3 direction, int count, Color? tint = null, float speedScale = 1f)
         {
             if (_pool == null) return;
             var ps = _pool[_next]; _next = (_next + 1) % PoolSize;
             ps.transform.SetPositionAndRotation(point, Quaternion.LookRotation(direction.sqrMagnitude > 0.001f ? direction.normalized : Vector3.up));
-            ps.Emit(count);
+            if (tint == null && Mathf.Approximately(speedScale, 1f)) { ps.Emit(count); return; }
+            var p = new ParticleSystem.EmitParams();
+            if (tint != null) p.startColor = tint.Value;
+            p.velocity = ps.transform.forward * (3f * speedScale);
+            ps.Emit(p, count);   // emisión con parámetros propios (ácido verde, explosión naranja)
         }
 
         private void OnDestroy() { if (Instance == this) Instance = null; }
