@@ -86,7 +86,7 @@ namespace SevenDays.Tests
             for (int i = 0; i < t.Triangles.Count; i += 3)
             {
                 V3 a = t.Positions[t.Triangles[i]], b = t.Positions[t.Triangles[i + 1]], c = t.Positions[t.Triangles[i + 2]];
-                V3 g = -V3.Cross(b - a, c - a);
+                V3 g = Winding.FrontNormal(a, b, c);
                 V3 n = (t.Normals[t.Triangles[i]] + t.Normals[t.Triangles[i + 1]] + t.Normals[t.Triangles[i + 2]]).Normalized;
                 total++;
                 if (V3.Dot(g, n) > 0f) ok++;
@@ -95,13 +95,15 @@ namespace SevenDays.Tests
         }
 
         [Test]
-        public void Grass_IsLowAndDoubleSided()
+        public void Grass_IsLow_SingleLayer_WithUpwardNormals()
         {
             var g = FoliageGeometry.GrassPatch(1);
             Bounds(g, out var min, out var max);
             Assert.That(max.Y, Is.InRange(0.2f, 0.75f));
             Assert.That(Math.Max(max.X - min.X, max.Z - min.Z), Is.LessThan(0.9f));
-            Assert.AreEqual(0, g.Triangles.Count % 6, "cada hoja = 2 triángulos (delante y detrás)");
+            Assert.AreEqual(g.Positions.Count, g.Triangles.Count, "una hoja = un triángulo (3 vértices, 3 índices): sin capas duplicadas");
+            // con Cull Off las dos caras usan la MISMA normal (URP Lit no la voltea), así que debe ser "hacia arriba" para que ambas se iluminen bien
+            foreach (var n in g.Normals) Assert.AreEqual(1f, n.Y, 1e-4f);
         }
 
         [Test]
