@@ -27,7 +27,10 @@ Si copias archivos a `Assets/_Project/Resources/Look/` con estos nombres exactos
 | floor (asfalto) | `floor_diff.jpg` | `floor_nor.jpg` |
 | wall (ladrillo/revoque) | `wall_diff.jpg` | `wall_nor.jpg` |
 | concrete | `concrete_diff.jpg` | `concrete_nor.jpg` |
-| metal | `metal_diff.jpg` | `metal_nor.jpg` |
+| metal (tuberías, barriles, farolas) | `metal_diff.jpg` | `metal_nor.jpg` |
+| container (chapa corrugada) | `container_diff.jpg` | `container_nor.jpg` |
+| crate (caja de madera, una cara completa) | `crate_diff.jpg` | `crate_nor.jpg` |
+| cardboard (caja de cartón, una cara completa) | `cardboard_diff.jpg` | `cardboard_nor.jpg` |
 
 Fuentes CC0 de Poly Haven que encajan: [Concrete](https://polyhaven.com/a/concrete) y [Rusty Metal 02](https://polyhaven.com/a/rusty_metal_02)
 (resolución 1K, mapas Diffuse y Normal GL). Un script (`LookTextureImporter`) marca los `_nor` como mapas de normales y limita el tamaño a 1024 px.

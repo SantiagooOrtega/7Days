@@ -88,3 +88,22 @@ Sobre la iluminación **baked**: no se puede hornear porque el mapa se construye
    b. Apuntando a un barril con fuego (para ver bloom y luces).
    c. Disparando (destello y trazadoras).
 3. Dime también: ¿se ve demasiado oscuro, demasiado gris o demasiado borroso? Ajusto `LookSettings`.
+
+---
+
+## Ajuste de luz y "Brillo global" (Fase 2.5, 2ª pasada)
+El look era demasiado oscuro. Cambios:
+- **Brillo global:** `LookSettings.GlobalBrightness` (en `Scripts/Look/LookAndFeel.cs`). 1 = valores base, por defecto **1.25** (medio-alto); rango útil 0.5 a 2. Un solo número sube o baja de golpe el sol, el ambiente, la exposición, la niebla y la paleta de las texturas.
+- **Luz:** sol más alto (52°, antes 28°) y de luz fría y difusa (tarde nublada), sombras más suaves (fuerza 0.78), ambiente azul-gris más claro. Exposición base +0.35 EV, que con el brillo por defecto queda en +0.65 EV.
+- **Niebla y fondo:** gris azulado medio (antes casi negro) y densidad a la mitad (0.008).
+- **Post-procesado:** contraste de 28 a 14, saturación de -38 a -30 (sigue desaturado), viñeta 0.22 (tope 0.25).
+- **Texturas:** la paleta base es ~30% más clara y además escala con el brillo global. El asfalto sigue siendo lo más oscuro y la suciedad se mantiene.
+- **Jugador legible:** cuerpo y casco claros, franja y mochila naranjas, más una luz de contorno fría (`RimLight`) delante del jugador. Los blancos de práctica tienen cuerpo rojo claro, cabeza pálida y ojos brillantes.
+- **Cajas y contenedores:**
+  - Caja de madera: marco, tablas con veta, riostra diagonal, tornillos, nudos, marcas estarcidas, bordes gastados y manchas.
+  - Caja de cartón: cinta, solapa, etiqueta, flechas, manchas de agua y esquinas aplastadas.
+  - Contenedor: chapa corrugada con óxido y chorreras, más marco de acero, barras de puerta y números estarcidos.
+  - Cada objeto varía de tono y de posición de la textura, así que no se ven iguales.
+- **UV por cara:** las cajas se construyen con `BoxMesh` (UV en metros por cara), por lo que la textura ya no se estira en muros, barreras y contenedores largos.
+
+Si algo sigue oscuro o lavado, sube o baja `GlobalBrightness` (pasos de 0.1) antes de tocar otros valores.
