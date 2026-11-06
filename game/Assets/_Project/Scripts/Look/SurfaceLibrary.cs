@@ -81,7 +81,8 @@ namespace SevenDays.Look
                     continue;
                 }
                 var r = j.task.Result;
-                Entries[j.name] = new Entry { Diffuse = ToTexture(r.Diffuse, r.Size, false), Normal = ToTexture(r.Normal, r.Size, true) };
+                var wrap = IsWholeFace(j.name) ? TextureWrapMode.Clamp : TextureWrapMode.Repeat; // las cajas no se repiten: Clamp evita sangrado en los bordes
+                Entries[j.name] = new Entry { Diffuse = ToTexture(r.Diffuse, r.Size, false, wrap), Normal = ToTexture(r.Normal, r.Size, true, wrap) };
                 yield return null;
             }
 
@@ -89,13 +90,15 @@ namespace SevenDays.Look
             Debug.Log("[7Days] Texturas procedurales listas (" + jobs.Count + " materiales, " + p.Size + " px) en " + sw.ElapsedMilliseconds + " ms");
         }
 
-        private static Texture2D ToTexture(byte[] rgba, int size, bool linear)
+        private static bool IsWholeFace(string name) => name == CrateWood || name == Cardboard;
+
+        private static Texture2D ToTexture(byte[] rgba, int size, bool linear, TextureWrapMode wrap)
         {
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, true, linear)
             {
-                wrapMode = TextureWrapMode.Repeat,
+                wrapMode = wrap,
                 filterMode = FilterMode.Trilinear,
-                anisoLevel = 4,
+                anisoLevel = 8, // ángulos rasantes (suelo, muros largos) sin borroneo
             };
             tex.SetPixelData(rgba, 0);
             tex.Apply(true, true); // genera mipmaps y libera la copia en CPU
