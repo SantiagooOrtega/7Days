@@ -20,7 +20,7 @@ namespace SevenDays.Tests
                         var shape = SolidCatalog.ShapeFor(type, variant, scale);
                         bool solid = SolidCatalog.IsSolid(type, variant, scale);
                         Assert.AreEqual(solid, shape != ColliderShape.None, type + " v" + variant + " x" + scale + ": sólido y collider deben coincidir");
-                        Assert.That(shape, Is.AnyOf(ColliderShape.None, ColliderShape.Box, ColliderShape.Capsule, ColliderShape.Sphere), "solo colliders simples");
+                        CollectionAssert.Contains(new[] { ColliderShape.None, ColliderShape.Box, ColliderShape.Capsule, ColliderShape.Sphere }, shape, "solo colliders simples");
                     }
                 }
             }
@@ -60,7 +60,7 @@ namespace SevenDays.Tests
             Assert.GreaterOrEqual(SolidCatalog.MapPieces.Count(p => p.Solid), 15);
             foreach (var p in SolidCatalog.MapPieces)
             {
-                if (p.Solid) Assert.That(p.Shape, Is.AnyOf(ColliderShape.Box, ColliderShape.Capsule, ColliderShape.Sphere), p.Name + ": todo lo sólido debe tener un collider simple");
+                if (p.Solid) CollectionAssert.Contains(new[] { ColliderShape.Box, ColliderShape.Capsule, ColliderShape.Sphere }, p.Shape, p.Name + ": todo lo sólido debe tener un collider simple");
                 else Assert.AreEqual(ColliderShape.None, p.Shape, p.Name + ": lo no sólido no lleva collider");
                 Assert.IsFalse(string.IsNullOrEmpty(p.Reason), p.Name + " sin motivo documentado");
             }
