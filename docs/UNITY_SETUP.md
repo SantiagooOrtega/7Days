@@ -412,3 +412,11 @@ Pasos manuales en Unity (no los puedo verificar sin el editor):
 5. Dispara a la cabeza y al cuerpo: la cabeza debe quitar mucha más vida. Abre `Window > Analysis > Physics Debugger` o selecciona un zombi en la Jerarquía y mira que sus hijos `Hitbox_Head/Torso/Arms/Legs` tienen la capa Hitbox.
 6. Si el zombi no se mueve y solo "resbala" en línea recta, el NavMesh no se generó: busca en la Consola avisos de `NavMeshSurface`.
 7. Para cambiar el cuerpo por un modelo de Quaternius: ver "Cambiar el cuerpo del zombi" más abajo (cuando se importe el modelo, solo hay que crear otra clase con las mismas partes que `ZombieRig`).
+
+### Bloque 2: daño por arma
+Las armas son `WeaponData` (JSON/ScriptableObject) con `minDamageFraction`, `falloffStart`, `armorPenetration`, `headshotMultiplier` y `knockback`. Si tienes assets de armas creados antes, regénéralos: menú `7Days > ...` de `WeaponAssetCreator` (los viejos tienen el daño anterior). Números y fórmula en `docs/BALANCE.md`.
+Pasos manuales:
+1. Regenera los assets de armas con el menú del `WeaponAssetCreator` (si usas assets en vez de los valores por defecto) y revisa en el Inspector que pistola = 18 de daño.
+2. En Play, pulsa **Z** y dispara a un zombi común con la pistola: 2 tiros a la cabeza, unos 6 al cuerpo. Con el fusil (tecla 5) unos 3 al cuerpo; con el francotirador (6) 1 a la cabeza.
+3. Escopeta a quemarropa: 1–2 disparos; a 25 m apenas hace daño.
+4. Colócate tras una caja o pared con el zombi detrás: la bala no debe atravesar el obstáculo.

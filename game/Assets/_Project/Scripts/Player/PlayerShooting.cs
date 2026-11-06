@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SevenDays.Combat;
 using SevenDays.Core;
 using SevenDays.Procedural;
 using SevenDays.Weapons;
@@ -16,6 +17,16 @@ namespace SevenDays.Player
         public float Accuracy => ShotsFired == 0 ? 0f : (float)ShotsHit / ShotsFired;
     }
 
+    public struct ShotHit
+    {
+        public HitReport Report;
+        public Vector3 Point;
+        public float Distance;
+        public string WeaponId;
+        public bool Melee;
+        public GameObject Target;
+    }
+
     /// <summary>
     /// Disparo (raycast desde el centro de la cámara; la escopeta lanza varios perdigones), cuerpo a cuerpo, recarga con la reserva del tipo de
     /// munición y cambio de arma (teclas 1-5 o rueda). Las armas y la munición viven en PlayerInventory.
@@ -29,6 +40,8 @@ namespace SevenDays.Player
         public float ReloadProgress => Reloading ? 1f - Mathf.Clamp01((_reloadEnd - Time.time) / Current.Data.reloadTime) : 0f;
         public PlayerStats Stats { get; } = new PlayerStats();
         public event Action HitConfirmed;
+        /// <summary>Cada impacto en un enemigo, con zona, daño final y si mató. Lo usan el hitmarker, los números flotantes y las métricas del director.</summary>
+        public event Action<ShotHit> ShotHitReported;
         public event Action<WeaponState> WeaponChanged;
 
         private PlayerInventory _inventory;
@@ -36,6 +49,9 @@ namespace SevenDays.Player
         private float _nextFire;
         private float _reloadEnd;
         private float _swingStart = -10f;
+        // Todo menos la capa 2 (jugador y cuerpo de movimiento de los zombis): los hitboxes (capa Hitbox) y el mundo sí cuentan, y el primero que toca el rayo
+        // gana; así una pared o una cobertura delante del zombi bloquea la bala, y un brazo delante del torso se lleva el impacto.
+        private const int ShotMask = ~(1 << 2);
 
         private PlayerCamera _camera;
         private PlayerMotor _motor;
@@ -145,16 +161,10 @@ namespace SevenDays.Player
             {
                 Vector3 dir = SpreadDirection(cam, spread);
                 Vector3 end = origin + dir * data.range;
-                if (Physics.Raycast(origin, dir, out RaycastHit hit, data.range, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                if (Physics.Raycast(origin, dir, out RaycastHit hit, data.range, ShotMask, QueryTriggerInteraction.Ignore))
                 {
                     end = hit.point;
-                    var target = hit.collider.GetComponentInParent<IDamageable>();
-                    if (target != null && !target.IsDead)
-                    {
-                        anyHit = true;
-                        bool killed = target.TakeDamage(new DamageInfo { Amount = data.damage, Point = hit.point, Direction = dir, Source = gameObject });
-                        if (killed) Stats.Kills++;
-                    }
+                    if (ApplyHit(hit, dir, data, Vector3.Distance(origin, hit.point), false)) anyHit = true;
                     if (p < 3) _fx.SpawnImpact(hit.point, hit.normal); // con muchos perdigones solo se dibujan unos pocos efectos
                 }
                 if (p < 3) _fx.SpawnTracer(_muzzle.position, end);
@@ -176,18 +186,32 @@ namespace SevenDays.Player
 
             Vector3 forward = Quaternion.Euler(0f, _camera.Yaw, 0f) * Vector3.forward;
             Vector3 origin = transform.position + Vector3.up * 1.1f;
-            if (Physics.SphereCast(origin, 0.45f, forward, out RaycastHit hit, data.range, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            if (Physics.SphereCast(origin, 0.45f, forward, out RaycastHit hit, data.range, ShotMask, QueryTriggerInteraction.Ignore))
             {
-                var target = hit.collider.GetComponentInParent<IDamageable>();
-                if (target != null && !target.IsDead)
-                {
-                    bool killed = target.TakeDamage(new DamageInfo { Amount = data.damage, Point = hit.point, Direction = forward, Source = gameObject });
-                    if (killed) Stats.Kills++;
-                    HitConfirmed?.Invoke();
-                }
+                if (ApplyHit(hit, forward, data, hit.distance, true)) HitConfirmed?.Invoke();
                 _fx.SpawnImpact(hit.point, hit.normal);
             }
             _camera.Kick(data.recoil);
+        }
+
+        /// <summary>Aplica el daño del arma a lo que tocó el rayo: con falloff por distancia y, si es un hitbox, con su zona. Devuelve true si dañó a un enemigo.</summary>
+        private bool ApplyHit(RaycastHit hit, Vector3 dir, WeaponData data, float distance, bool melee)
+        {
+            var target = hit.collider.GetComponentInParent<IDamageable>();
+            if (target == null || target.IsDead) return false;
+            var health = (target as Hitbox)?.Owner;
+            var info = new DamageInfo
+            {
+                Amount = data.damage * DamageModel.Falloff(data, distance),
+                Point = hit.point, Direction = dir, Source = gameObject,
+                ArmorPenetration = data.armorPenetration, HeadshotMultiplier = data.headshotMultiplier, Knockback = data.knockback,
+                Distance = distance, WeaponId = data.id,
+            };
+            bool killed = target.TakeDamage(info);
+            if (killed) Stats.Kills++;
+            if (health != null && health.LastReport.Valid)
+                ShotHitReported?.Invoke(new ShotHit { Report = health.LastReport, Point = hit.point, Distance = distance, WeaponId = data.id, Melee = melee, Target = health.gameObject });
+            return true;
         }
 
         /// <summary>Balanceo visual de la barra: el arma baja y vuelve en 0.3 s.</summary>
