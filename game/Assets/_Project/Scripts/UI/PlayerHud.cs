@@ -98,7 +98,16 @@ namespace SevenDays.UI
             DrawMessages(w);
 
             if (_cover.Active)
-                GUI.Label(new Rect(w / 2 - 200, h - 150, 400, 50), _cover.IsExposed ? "ASOMADO" : "EN COBERTURA", _center);
+                {
+                    // CUBIERTO / ASOMADO / A CIEGAS; si no hay sitio para asomarse al apuntar, lo dice
+                    string state = _cover.IsBlindFiring ? "A CIEGAS" : (_cover.IsPoppedOut ? "ASOMADO" : "CUBIERTO");
+                    Color sc = _cover.IsBlindFiring ? new Color(1f, 0.7f, 0.3f) : (_cover.IsPoppedOut ? new Color(1f, 0.4f, 0.35f) : new Color(0.6f, 0.9f, 1f));
+                    Color prevS = GUI.color; GUI.color = sc;
+                    GUI.Label(new Rect(w / 2 - 200, h - 150, 400, 50), state, _center);
+                    GUI.color = prevS;
+                    if (_camera.Aiming && _cover.PopDir == SevenDays.Procedural.PopDirection.None)
+                        GUI.Label(new Rect(w / 2 - 300, h - 105, 600, 30), "Sin sitio para asomarse: solo fuego a ciegas (clic izq. sin apuntar)", new GUIStyle(_label) { fontSize = 18, alignment = TextAnchor.MiddleCenter });
+                }
 
             // FPS (objetivo: 60)
             Color prevColor = GUI.color;
@@ -116,7 +125,7 @@ namespace SevenDays.UI
                     "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar · Q cambiar de hombro\n" +
                     "Clic der. apuntar · Clic izq. disparar/golpear · R recargar · X modo de disparo · 1-5/rueda cambiar arma\n" +
                     "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
-                    "C cobertura (cerca de cajas y muros bajos) · A/D deslizarse · Esc soltar ratón\n" +
+                    "C cobertura · A/D deslizarse · en cobertura: clic der. = asomarse y disparar, clic izq. sin apuntar = a ciegas, Q cambia el lado · Esc soltar ratón\n" +
                     "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
                     "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: siguiente día (respawn) · F3 ambiente · F4 métricas · F5 ajustes en vivo · Esc ajustes · F1 ayuda", _label);
             }
