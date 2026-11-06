@@ -126,6 +126,9 @@ namespace SevenDays.Look
         /// <summary>Ambiente apocalíptico: niebla baja, bruma, ceniza, humo, chispas, rayos de luz y suciedad del suelo.</summary>
         public AtmosphereSettings Atmosphere = new AtmosphereSettings();
 
+        /// <summary>Vegetación y relleno: árboles muertos, arbustos, hierba, coches, neumáticos... con topes de cantidad.</summary>
+        public VegetationSettings Vegetation = new VegetationSettings();
+
         // Niebla y ambiente: gris azulado medio (tarde nublada)
         public Color FogColor = new Color(0.50f, 0.55f, 0.60f);
         public float FogDensity = 0.008f;

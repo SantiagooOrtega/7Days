@@ -2,7 +2,7 @@ using System;
 
 namespace SevenDays.Procedural
 {
-    public enum SurfaceKind { Asphalt, Wall, Concrete, Metal, Container, CrateWood, Cardboard }
+    public enum SurfaceKind { Asphalt, Wall, Concrete, Metal, Container, CrateWood, Cardboard, Bark }
 
     public readonly struct Rgb
     {
@@ -34,6 +34,8 @@ namespace SevenDays.Procedural
         public Rgb WoodA = new Rgb(0.34f, 0.23f, 0.14f);
         public Rgb WoodB = new Rgb(0.50f, 0.36f, 0.22f);
         public Rgb CardboardColor = new Rgb(0.58f, 0.46f, 0.30f);
+        public Rgb BarkDark = new Rgb(0.14f, 0.10f, 0.07f);
+        public Rgb BarkLight = new Rgb(0.30f, 0.23f, 0.17f);
 
         /// <summary>Multiplicador de brillo de toda la paleta (1 = valores base). No borra la suciedad: solo sube/baja el conjunto.</summary>
         public float Brightness = 1.3f;
@@ -75,6 +77,7 @@ namespace SevenDays.Procedural
                 SurfaceKind.Container => Container,
                 SurfaceKind.CrateWood => CrateWood,
                 SurfaceKind.Cardboard => Cardboard,
+                SurfaceKind.Bark => Bark,
                 _ => Metal,
             };
 
