@@ -22,7 +22,7 @@ namespace SevenDays.Tests
             for (int t = 0; t < m.Triangles.Count / 3; t++)
             {
                 V3 a = Tri(m, t, 0), b = Tri(m, t, 1), c = Tri(m, t, 2);
-                V3 geometric = -V3.Cross(b - a, c - a); // en Unity (horario = frente) la normal es el cruce invertido
+                V3 geometric = Winding.FrontNormal(a, b, c); // convención de Unity: ver Winding
                 V3 centroid = (a + b + c) * (1f / 3f);
                 Assert.Greater(V3.Dot(geometric, centroid), 0f, "triángulo " + t + " mira hacia adentro");
                 V3 n = m.Normals[m.Triangles[t * 3]];
@@ -60,7 +60,7 @@ namespace SevenDays.Tests
 
                 Assert.AreEqual(Tile, T.Length, 1e-3f, "cara " + f + ": 1 unidad de UV debe valer " + Tile + " m en u");
                 Assert.AreEqual(Tile, B.Length, 1e-3f, "cara " + f + ": 1 unidad de UV debe valer " + Tile + " m en v");
-                Assert.Greater(V3.Dot(V3.Cross(T, B), n), 0f, "cara " + f + " con la textura espejada");
+                Assert.Less(V3.Dot(V3.Cross(T, B), n), 0f, "cara " + f + " con la textura espejada (u a la derecha y v arriba vistos desde fuera)");
                 Assert.Greater(V3.Dot(T.Normalized, m.Tangents[i0]), 0.999f, "la tangente debe seguir la dirección de u");
                 if (Math.Abs(n.Y) < 0.5f)
                     Assert.Greater(B.Normalized.Y, 0.999f, "cara " + f + ": la 'arriba' de la textura debe apuntar a +Y (veta y líneas verticales)");
