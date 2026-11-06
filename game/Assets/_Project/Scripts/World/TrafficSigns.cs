@@ -11,7 +11,8 @@ namespace SevenDays.World
     /// Señales de tráfico desgastadas con GPU instancing: poste metálico oxidado + placa con la textura procedural del tipo
     /// y de la variante de desgaste. Estados: erguida, inclinada, doblada, caída, solo poste y placa colgando de un tornillo.
     /// Los postes finos no tienen collider (no bloquean el NavMesh); una señal caída lleva un collider pequeño y se marca
-    /// "no caminable". Placas y postes no proyectan sombras. Un par de señales llevan una luz roja parpadeante.
+    /// "no caminable". Placas y postes no proyectan sombras y usan material de doble cara (Cull Off); la placa es un sólido cerrado con
+    /// grosor real y su dorso tiene la normal volteada. Un par de señales llevan una luz roja parpadeante.
     /// </summary>
     public static class TrafficSigns
     {
@@ -138,7 +139,7 @@ namespace SevenDays.World
             // Postes: un solo grupo instanciado con el material de metal oxidado
             var poleGo = new GameObject("Instanced Poles");
             poleGo.transform.SetParent(parent, false);
-            poleGo.AddComponent<InstancedBatch>().Init(PoleMesh(), Prim.GetTextured(new Color(0.33f, 0.34f, 0.35f), SurfaceLibrary.Metal, Vector2.one, 0.3f, 0.4f, true), poleMatrices.ToArray(), false);
+            poleGo.AddComponent<InstancedBatch>().Init(PoleMesh(), Prim.GetTextured(new Color(0.33f, 0.34f, 0.35f), SurfaceLibrary.Metal, Vector2.one, 0.3f, 0.4f, true, 1f, true), poleMatrices.ToArray(), false);
 
             // Placas: un grupo por tipo y variante (submesh 0 = frente con la textura de la señal, 1 = dorso metálico)
             foreach (var kv in plateMatrices)
@@ -146,8 +147,8 @@ namespace SevenDays.World
                 var (type, variant) = kv.Key;
                 if (!SignLibrary.TryGet(type, variant, out var diff, out var nor)) continue;
                 float tone = 0.9f + 0.05f * (((int)type + variant * 2) % 3); // pequeña variación de tono por grupo
-                var front = Prim.GetWithTextures(diff, nor, new Color(tone, tone, tone, 1f), 0.4f, 0.2f, "sign|" + type + "|" + variant);
-                var back = Prim.GetTextured(new Color(0.4f, 0.41f, 0.42f), SurfaceLibrary.Metal, Vector2.one, 0.3f, 0.4f, true);
+                var front = Prim.GetWithTextures(diff, nor, new Color(tone, tone, tone, 1f), 0.4f, 0.2f, "sign|" + type + "|" + variant, true);
+                var back = Prim.GetTextured(new Color(0.4f, 0.41f, 0.42f), SurfaceLibrary.Metal, Vector2.one, 0.3f, 0.4f, true, 1f, true);
                 var go = new GameObject("Instanced Signs " + type + " v" + variant);
                 go.transform.SetParent(parent, false);
                 go.AddComponent<InstancedBatch>().Init(PlateMesh(type), new[] { front, back }, kv.Value.ToArray(), false);

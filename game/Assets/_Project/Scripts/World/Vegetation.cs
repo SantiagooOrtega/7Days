@@ -10,7 +10,8 @@ namespace SevenDays.World
     /// <summary>
     /// Coloca la vegetación y los props de abandono a partir de una distribución (PropLayoutData): por defecto la generada
     /// por VegetationLayout, o la de Resources/Layouts/props.json si existe (mapa de la BD). Árboles, arbustos, hierba,
-    /// neumáticos y bolsas se dibujan con GPU instancing, sin sombras salvo los árboles si se activa. Árboles y arbustos
+    /// neumáticos y bolsas se dibujan con GPU instancing, sin sombras salvo los árboles si se activa. La vegetación (árboles, arbustos,
+    /// hierba) usa material de doble cara (Cull Off); neumáticos y bolsas son sólidos cerrados (Cull Back). Árboles y arbustos
     /// grandes llevan collider y se marcan "no caminable" para el NavMesh; la hierba no tiene collider ni afecta al NavMesh.
     /// </summary>
     public static class Vegetation
@@ -124,9 +125,9 @@ namespace SevenDays.World
         {
             switch (type)
             {
-                case PropTypes.TreeDead: return Prim.GetTextured(new Color(0.5f, 0.45f, 0.4f), SurfaceLibrary.Bark, Vector2.one, 0.05f);
-                case PropTypes.Bush: return Prim.GetMaterial(variant == 0 ? new Color(0.30f, 0.33f, 0.15f) : new Color(0.24f, 0.19f, 0.12f));
-                case PropTypes.Grass: return Prim.GetMaterial(variant == 0 ? new Color(0.32f, 0.38f, 0.17f) : new Color(0.52f, 0.44f, 0.24f));
+                case PropTypes.TreeDead: return Prim.GetTextured(new Color(0.5f, 0.45f, 0.4f), SurfaceLibrary.Bark, Vector2.one, 0.05f, 0f, false, 1f, true);
+                case PropTypes.Bush: return Prim.GetMaterial(variant == 0 ? new Color(0.30f, 0.33f, 0.15f) : new Color(0.24f, 0.19f, 0.12f), true);
+                case PropTypes.Grass: return Prim.GetMaterial(variant == 0 ? new Color(0.32f, 0.38f, 0.17f) : new Color(0.52f, 0.44f, 0.24f), true);
                 case PropTypes.Tire: return Prim.GetMaterial(new Color(0.07f, 0.07f, 0.075f));
                 default:
                     Color[] bags = { new Color(0.12f, 0.12f, 0.13f), new Color(0.55f, 0.55f, 0.5f), new Color(0.2f, 0.26f, 0.36f) };
