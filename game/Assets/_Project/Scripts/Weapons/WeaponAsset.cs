@@ -38,6 +38,11 @@ namespace SevenDays.Weapons
             foreach (var asset in Resources.LoadAll<WeaponAsset>("Weapons"))
             {
                 if (asset == null || asset.Data == null || string.IsNullOrEmpty(asset.Data.id)) continue;
+                if (asset.Data.dataVersion < WeaponData.CurrentDataVersion)
+                {
+                    Debug.LogWarning("[7Days] El arma '" + asset.Data.id + "' en Resources/Weapons es de una versión anterior: se usan los valores por defecto (abre el editor para actualizarla).");
+                    continue;
+                }
                 var copy = JsonUtility.FromJson<WeaponData>(JsonUtility.ToJson(asset.Data)); // copia: el juego no modifica el asset
                 copy.Validate();
                 _all[copy.id] = copy;
