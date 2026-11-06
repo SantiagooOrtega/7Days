@@ -51,6 +51,8 @@ namespace SevenDays.Procedural
         /// <summary>Daño que recibe de más mientras está aturdido contra un muro (1 = normal).</summary>
         public float VulnerabilityMultiplier => WallStunned ? Data.stunnedExtraDamage : 1f;
         public bool Busy => Telegraphing != null;
+        /// <summary>Lo fija el director: multiplica la frecuencia de ataques del jefe y acorta su pausa global.</summary>
+        public float Aggressiveness = 1f;
 
         public static int PhaseFor(BossData d, float fraction) => fraction <= d.phase3At ? 2 : (fraction <= d.phase2At ? 1 : 0);
 
@@ -88,9 +90,9 @@ namespace SevenDays.Procedural
                 return _events;
             }
 
-            float rate = AttackRateMultiplier;
+            float rate = AttackRateMultiplier * Math.Max(0.1f, Aggressiveness);
             for (int i = 0; i < _cooldowns.Length; i++) _cooldowns[i] = Math.Max(0f, _cooldowns[i] - dt * rate);
-            _globalCooldown = Math.Max(0f, _globalCooldown - dt);
+            _globalCooldown = Math.Max(0f, _globalCooldown - dt * Math.Max(0.1f, Aggressiveness));
             TickWeak(dt);
 
             if (Telegraphing != null)
