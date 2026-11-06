@@ -8,7 +8,7 @@ namespace SevenDays.Procedural
     /// <summary>
     /// Formas genéricas de placas (octágono, triángulos, círculo, rectángulo; sin logos ni textos protegidos) y su malla:
     /// frente hacia +Z (submesh 0, con la textura de la señal) y dorso + cantos (submesh 1, metal). Las UV del frente
-    /// coinciden con las coordenadas que usa SignGenerator.
+    /// coinciden con las coordenadas que usa SignGenerator, con u hacia la derecha de quien mira la placa (por eso u = 0.5 - x/w).
     /// </summary>
     public static class SignGeometry
     {
@@ -88,7 +88,7 @@ namespace SevenDays.Procedural
         {
             var poly = Outline(type);
             var (w, h) = Dimensions(type);
-            var m = new MeshData();
+            var m = new MeshData { TangentSign = -1f };
             float half = Thickness * 0.5f;
             int n = poly.Count;
 
@@ -98,8 +98,8 @@ namespace SevenDays.Procedural
             {
                 m.Positions.Add(new V3(poly[i].X, poly[i].Y, half));
                 m.Normals.Add(new V3(0, 0, 1));
-                m.Tangents.Add(new V3(1, 0, 0));
-                m.Uvs.Add(new V2(poly[i].X / w + 0.5f, poly[i].Y / h + 0.5f));
+                m.Tangents.Add(new V3(-1, 0, 0)); // u crece hacia -X: es la derecha de quien mira la placa desde +Z (no sale espejada)
+                m.Uvs.Add(new V2(0.5f - poly[i].X / w, poly[i].Y / h + 0.5f));
             }
             for (int i = 1; i < n - 1; i++) AddOriented(m, s, s + i, s + i + 1, new V3(0, 0, 1));
             m.SubmeshSplit = m.Triangles.Count;
@@ -110,8 +110,8 @@ namespace SevenDays.Procedural
             {
                 m.Positions.Add(new V3(poly[i].X, poly[i].Y, -half));
                 m.Normals.Add(new V3(0, 0, -1));
-                m.Tangents.Add(new V3(-1, 0, 0));
-                m.Uvs.Add(new V2(poly[i].X / w + 0.5f, poly[i].Y / h + 0.5f));
+                m.Tangents.Add(new V3(1, 0, 0));
+                m.Uvs.Add(new V2(poly[i].X / w + 0.5f, poly[i].Y / h + 0.5f)); // dorso: se ve desde -Z, u crece hacia +X
             }
             for (int i = 1; i < n - 1; i++) AddOriented(m, b0, b0 + i, b0 + i + 1, new V3(0, 0, -1));
 
@@ -137,8 +137,7 @@ namespace SevenDays.Procedural
         private static void AddOriented(MeshData m, int a, int b, int c, V3 outward)
         {
             V3 p0 = m.Positions[a], p1 = m.Positions[b], p2 = m.Positions[c];
-            // frente de Unity = sentido horario visto desde fuera => normal geométrica = -cross
-            bool flip = V3.Dot(-V3.Cross(p1 - p0, p2 - p0), outward) < 0f;
+            bool flip = !Winding.FacesOutward(p0, p1, p2, outward); // la normal frontal de Unity es +Cross
             m.Triangles.Add(a); m.Triangles.Add(flip ? c : b); m.Triangles.Add(flip ? b : c);
         }
     }
