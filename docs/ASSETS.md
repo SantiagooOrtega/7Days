@@ -4,25 +4,39 @@ Regla: todo debe ser gratis y con licencia que permita uso en un proyecto univer
 de cada cosa que importes en `docs/CREDITS.md`. Los nombres exactos de los packs pueden cambiar en los sitios:
 si uno no aparece, busca por la categoría indicada. Descarga solo lo que se pida en cada fase.
 
-## Fase 2 (jugador y armas)
+## Fase 2 (jugador y armas) — se importan en la Fase 3, junto a los zombies
+Los modelos animados necesitan un Animator, así que se integran con los zombies en la Fase 3. No los descargues todavía.
+
 | Qué | Dónde | Licencia | Uso |
 |-----|-------|----------|-----|
 | Personaje humanoide (p. ej. "X Bot"/"Y Bot") | mixamo.com (cuenta Adobe gratis) | Gratis, uso en proyectos | Modelo del jugador |
 | Animaciones: idle, walk, run, strafe con rifle, aim, fire, reload, crouch/cover idle | mixamo.com | Gratis | Animator del jugador |
-| Arma (rifle/pistola low-poly) | kenney.nl (Blaster Kit) o quaternius.com | CC0 | Arma del jugador |
+| Arma (rifle/pistola low-poly) | [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) o [Quaternius](https://quaternius.com) | CC0 | Arma del jugador (Fase 3) |
 
-## Fase 2.5 (ambiente: ruinas industriales)
-| Qué | Dónde | Licencia | Uso |
-|-----|-------|----------|-----|
-| Kit modular industrial / ruinas / props (barriles, cajas, contenedores) | quaternius.com, kenney.nl | CC0 | Mapa de prueba y coberturas |
-| Texturas PBR de concreto, metal oxidado, asfalto | polyhaven.com (1K o 2K) | CC0 | Materiales del suelo y paredes |
-| Skybox HDRI nublado/atardecer | polyhaven.com (1K) | CC0 | Cielo |
-| Texturas de prototipo | kenney.nl (Prototype Textures) | CC0 | Greybox |
+## Fase 2.5 (ambiente: ruinas industriales) — OPCIONAL, solo 4 archivos
+El mapa funciona sin descargar nada (colores lisos). Estas texturas solo le dan más realismo al concreto y al metal.
+Todas son CC0 de Poly Haven: [Concrete](https://polyhaven.com/a/concrete), [Rusty Metal 02](https://polyhaven.com/a/rusty_metal_02).
+
+| Qué descargar | Se guarda como (en `Assets/_Project/Resources/Look/`) |
+|---------------|-------------------------------------------------------|
+| Concrete, 1K, mapa **Diffuse** (JPG) | `concrete_diff.jpg` |
+| Concrete, 1K, mapa **Normal (GL)** (JPG o PNG) | `concrete_nor.jpg` |
+| Rusty Metal 02, 1K, mapa **Diffuse** (JPG) | `metal_diff.jpg` |
+| Rusty Metal 02, 1K, mapa **Normal (GL)** (JPG o PNG) | `metal_nor.jpg` |
+
+Pasos:
+1. Abre cada enlace, en el panel de descarga elige resolución **1K** y el formato JPG, y descarga solo el mapa Diffuse y el Normal GL (no hace falta el resto).
+2. Renombra los archivos exactamente como en la tabla (respeta mayúsculas/minúsculas y `_diff` / `_nor`).
+3. Arrástralos a la carpeta `Resources/Look` dentro de `Assets/_Project` en la ventana Project de Unity.
+4. No toques nada más: un script del proyecto (`LookTextureImporter`) marca los `_nor` como mapas de normales y limita el tamaño a 1024 px.
+5. Pulsa Play: las texturas se aplican solas al suelo, muros, barreras y contenedores. Si borras los archivos, el mapa vuelve a los colores lisos.
+
+No uses el HDRI de Poly Haven: el look usa fondo sólido del color de la niebla; un cielo real rompería la atmósfera.
 
 ## Fase 3 (zombies)
 | Qué | Dónde | Licencia |
 |-----|-------|----------|
-| Modelo zombie o humanoide para recolorear | quaternius.com o Mixamo (zombie) | CC0 / gratis |
+| Modelo zombie o humanoide para recolorear | [Quaternius Zombie Apocalypse Kit](https://quaternius.com/packs/zombieapocalypsekit.html) (4 personajes jugables con 20 animaciones, 4 enemigos, FBX/glTF, CC0) o Mixamo | CC0 / gratis |
 | Animaciones: idle, walk, run, attack, hit, death | mixamo.com | Gratis |
 
 Los jefes y variantes se obtienen escalando y coloreando el mismo modelo, así que no hacen falta más descargas.

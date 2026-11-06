@@ -38,8 +38,8 @@ namespace SevenDays.Weapons
 
         private Tracer CreateTracer()
         {
-            var go = Prim.Create(PrimitiveType.Cube, "Tracer", Vector3.zero, new Vector3(0.025f, 0.025f, 0.5f),
-                new Color(1f, 0.85f, 0.4f), _root, false);
+            var go = Prim.Create(PrimitiveType.Cube, "Tracer", Vector3.zero, new Vector3(0.03f, 0.03f, 0.6f),
+                Prim.GetEmissive(new Color(1f, 0.8f, 0.35f), 6f), _root, false);
             go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var t = go.AddComponent<Tracer>();
             t.Pool = _tracers;
@@ -48,8 +48,8 @@ namespace SevenDays.Weapons
 
         private Impact CreateImpact()
         {
-            var go = Prim.Create(PrimitiveType.Sphere, "Impact", Vector3.zero, Vector3.one * 0.12f,
-                new Color(1f, 0.7f, 0.3f), _root, false);
+            var go = Prim.Create(PrimitiveType.Sphere, "Impact", Vector3.zero, Vector3.one * 0.14f,
+                Prim.GetEmissive(new Color(1f, 0.65f, 0.25f), 5f), _root, false);
             go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var i = go.AddComponent<Impact>();
             i.Pool = _impacts;

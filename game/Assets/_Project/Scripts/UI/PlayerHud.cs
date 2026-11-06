@@ -15,6 +15,7 @@ namespace SevenDays.UI
         private PlayerCamera _camera;
         private float _hitUntil;
         private bool _showHelp = true;
+        private float _fps = 60f;
         private GUIStyle _label, _big, _center;
 
         public void Initialize(GameObject player)
@@ -29,6 +30,7 @@ namespace SevenDays.UI
         private void Update()
         {
             if (GameInput.HelpPressed) _showHelp = !_showHelp;
+            _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime), 0.05f);
             if (_health != null && _health.IsDead && GameInput.ReloadPressed)
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
@@ -73,6 +75,13 @@ namespace SevenDays.UI
 
             if (_cover.Active)
                 GUI.Label(new Rect(w / 2 - 200, h - 150, 400, 50), _cover.IsExposed ? "ASOMADO" : "EN COBERTURA", _center);
+
+            // FPS (objetivo: 60)
+            Color prevColor = GUI.color;
+            GUI.color = _fps >= 55f ? new Color(0.5f, 1f, 0.5f) : (_fps >= 40f ? Color.yellow : new Color(1f, 0.4f, 0.4f));
+            GUI.Label(new Rect(w - 330, 20, 300, 40), "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)",
+                new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
+            GUI.color = prevColor;
 
             // Cuenta
             string who = Session.IsLoggedIn ? Session.User.username : "(sin sesión)";

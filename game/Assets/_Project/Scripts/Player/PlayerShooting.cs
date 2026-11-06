@@ -53,6 +53,7 @@ namespace SevenDays.Player
         private Transform _muzzle;
         private GameObject _gunVisual;
         private ShotFx _fx;
+        private MuzzleFlash _flash;
 
         public void Initialize(PlayerCamera cam, PlayerMotor motor, Transform weaponHolder, Transform muzzle,
             IEnumerable<WeaponDefinition> weapons)
@@ -64,6 +65,7 @@ namespace SevenDays.Player
             _muzzle = muzzle;
             foreach (var w in weapons) _weapons.Add(new WeaponState(w));
             _fx = new ShotFx(new GameObject("ShotFxPool").transform);
+            _flash = muzzle.gameObject.AddComponent<MuzzleFlash>();
             BuildGunVisual();
         }
 
@@ -156,6 +158,7 @@ namespace SevenDays.Player
                 _fx.SpawnImpact(hit.point, hit.normal);
             }
             _fx.SpawnTracer(_muzzle.position, end);
+            _flash.Flash();
             _camera.Kick(def.recoil * (_camera.Aiming ? 0.6f : 1f));
         }
 
