@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: CameraRunSettings
+  m_EditorClassIdentifier: Assembly-CSharp:SevenDays.Player:CameraRunSettings
+  Settings:
+    fovBoost: 6
+    distanceDelta: -0.3
+    heightDelta: -0.08
+    swayMeters: 0.045
+    rollDegrees: 0.7
+    bobMeters: 0.03
+    runStride: 1.15
+    walkStride: 0.8
+    asymmetry: 0.2
+    fatigueDelay: 4
+    fatigueRamp: 5
+    fatigueAmplitudeBoost: 0.4
+    fatigueCadenceBoost: 0.12
+    breathPitch: 0.5
+    breathMeters: 0.006
+    breathRate: 0.45
+    recoverSeconds: 2.5
+    maxRoll: 1.5
+    maxOffset: 0.08
+    aimCancelSeconds: 0.15
+    sideOrBackFactor: 0.5
+    blendIn: 0.35
+    blendOut: 0.25
+    contextBlend: 0.2

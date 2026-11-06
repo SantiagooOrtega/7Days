@@ -18,6 +18,7 @@ namespace SevenDays.Core
         public float Knockback;            // del arma
         public float Distance;
         public string WeaponId;
+        public bool ScaledByCover;         // golpe cuerpo a cuerpo: lo reduce la cobertura según la exposición del jugador
     }
 
     public interface IDamageable
@@ -55,6 +56,8 @@ namespace SevenDays.Core
         public event Action<float> Stunned;                // segundos
         /// <summary>Permite redirigir la zona de impacto (el punto débil de un jefe solo cuenta cuando está expuesto).</summary>
         public Func<HitZone, HitZone> ZoneFilter;
+        /// <summary>Multiplicador del daño recibido sin zona (la cobertura del jugador lo reduce según la exposición). Null = sin cambios.</summary>
+        public Func<DamageInfo, float> DamageScale;
 
         private void Awake() { _core = new CombatantCore(maxHealth); }
 
@@ -90,6 +93,7 @@ namespace SevenDays.Core
                 Died?.Invoke();
                 return true;
             }
+            if (DamageScale != null) info.Amount *= Mathf.Max(0f, DamageScale(info));
             bool killed = Core.ApplyResolved(info.Amount);
             LastReport = new HitReport { Valid = true, FinalDamage = info.Amount, BaseDamage = info.Amount, Zone = HitZone.Torso, Killed = killed };
             Damaged?.Invoke(info);

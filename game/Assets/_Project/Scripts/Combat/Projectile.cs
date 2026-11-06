@@ -160,7 +160,7 @@ namespace SevenDays.Combat
         {
             // jugador pegado a una cobertura y proyectil que viene de frente: el daño lo absorbe la cobertura
             var cover = _player != null ? _player.GetComponent<PlayerCover>() : null;
-            bool absorbed = cover != null && cover.Active && Vector3.Dot(_vel.normalized, cover.FacingDirection) > 0.1f;
+            bool absorbed = cover != null && cover.Active && Vector3.Dot(_vel.normalized, cover.FacingDirection) > 0.1f && CoverProtection.AbsorbsProjectile(cover.ExposureValue);   // asomado ya no te protege
             float dmg = CoverRules.DamageAfterCover(ProjectileMode.Direct, _damage, absorbed);
             if (dmg > 0f) _playerHealth.TakeDamage(new DamageInfo { Amount = dmg, Point = transform.position, Direction = _vel.normalized, Source = _source });
             else HudMessages.Add("La cobertura absorbió el golpe", new Color(0.6f, 0.9f, 1f), 1.2f);
