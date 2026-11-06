@@ -78,6 +78,8 @@ namespace SevenDays.UI
             if (d.IsMelee) GUI.Label(new Rect(w - 560, h - 130, 500, 70), "—", _big);
             else GUI.Label(new Rect(w - 560, h - 130, 500, 70), wpn.Magazine + " / " + reserve, _big);
             if (!d.IsMelee)
+                GUI.Label(new Rect(w - 860, h - 118, 280, 40), SevenDays.Procedural.FireModes.Label(_shooting.FireControl.Mode) + (d.fireModes != null && d.fireModes.Length > 1 ? "  [X]" : ""), new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontSize = 22 });
+            if (!d.IsMelee)
                 GUI.Label(new Rect(w - 560, h - 60, 500, 36), "reserva de " + PlayerInventory.AmmoName(d.ammoType) + " (máx. " + _inventory.Ammo.Max(d.ammoType) + ")", new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontSize = 20 });
             DrawSlots(w, h);
             DrawInventoryLine(w, h);
@@ -111,12 +113,12 @@ namespace SevenDays.UI
             if (_showHelp)
             {
                 GUI.Label(new Rect(30, 60, 900, 260),
-                    "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar\n" +
-                    "Clic der. apuntar · Clic izq. disparar/golpear · R recargar · 1-5/rueda cambiar arma\n" +
+                    "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar · Q cambiar de hombro\n" +
+                    "Clic der. apuntar · Clic izq. disparar/golpear · R recargar · X modo de disparo · 1-5/rueda cambiar arma\n" +
                     "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
                     "C cobertura (cerca de cajas y muros bajos) · A/D deslizarse · Esc soltar ratón\n" +
                     "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
-                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: siguiente día (respawn) · F3 ambiente · F1 ayuda", _label);
+                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: siguiente día (respawn) · F3 ambiente · F4 métricas · F5 ajustes en vivo · Esc ajustes · F1 ayuda", _label);
             }
 
             if (SevenDays.World.FireManager.PlayerBurning)
@@ -188,10 +190,13 @@ namespace SevenDays.UI
             Fill(new Rect(r.x, r.y, r.width * Mathf.Clamp01(t), r.height), c);
         }
 
+        /// <summary>Retícula dinámica: el hueco marca la dispersión real (se abre al moverse y en ráfaga, se cierra al apuntar). Con la mira telescópica no se dibuja.</summary>
         private void DrawCrosshair(float w, float h)
         {
-            float gap = _camera.Aiming ? 5f : 16f;
-            float len = 12f;
+            if (_camera.IsScoped) { DrawHitmarker(w / 2f, h / 2f); return; }
+            float gap = Mathf.Clamp(SevenDays.Procedural.CameraMath.SpreadToPixels(_shooting.CurrentSpread, _camera.CurrentFov, h), 3f, 140f);
+            if (_shooting.Current.Data.IsMelee) gap = 4f;
+            float len = Mathf.Lerp(12f, 8f, _camera.Aim.Eased);
             Color c = Time.time < _hitUntil ? new Color(1f, 0.2f, 0.2f) : new Color(1f, 1f, 1f, 0.9f);
             float cx = w / 2f, cy = h / 2f;
             Fill(new Rect(cx - 1.5f, cy - 1.5f, 3f, 3f), c);
