@@ -309,6 +309,9 @@ namespace SevenDays.Procedural
         public float Value { get; private set; }   // -1 izquierda .. +1 derecha
         public float Seconds = 0.2f;
 
+        /// <summary>Fija el valor directamente (el pop-out lo calcula como lado x exposición).</summary>
+        public void Set(float v) => Value = CameraMath.Clamp(v, -1f, 1f);
+
         public void Tick(float dt, bool inCover, bool aiming, int shoulderSide, bool tallCover)
         {
             float target = inCover && aiming ? shoulderSide * (tallCover ? 1f : 0.35f) : 0f;
