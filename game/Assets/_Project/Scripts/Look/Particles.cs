@@ -56,6 +56,54 @@ namespace SevenDays.Look
             return go.transform;
         }
 
+        /// <summary>Chispas que saltan de un barril encendido: rayitas brillantes (aditivas, color HDR para el Bloom) que suben y caen.</summary>
+        public static ParticleSystem CreateSparks(Transform parent, Vector3 pos, float amount)
+        {
+            if (amount <= 0f) return null;
+            var go = new GameObject("Sparks");
+            go.SetActive(false);
+            go.transform.SetParent(parent, false);
+            go.transform.position = pos;
+            go.transform.rotation = Quaternion.Euler(-90f, 0f, 0f); // el cono apunta hacia arriba
+            var ps = go.AddComponent<ParticleSystem>();
+
+            var main = ps.main;
+            main.loop = true;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.7f, 1.5f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.06f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.7f, 0.3f, 1f), new Color(1f, 0.95f, 0.6f, 1f));
+            main.gravityModifier = 0.5f;
+            main.maxParticles = Mathf.Max(4, Mathf.RoundToInt(24 * amount));
+
+            var emission = ps.emission;
+            emission.rateOverTime = 8f * amount;
+
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 25f;
+            shape.radius = 0.15f;
+
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(1f, 0.5f, 0.2f), 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.6f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.sharedMaterial = ParticleMaterials.Spark;
+            r.renderMode = ParticleSystemRenderMode.Stretch;
+            r.lengthScale = 3f;
+            r.velocityScale = 0.05f;
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            go.SetActive(true);
+            AtmosphereBudget.Register(ps);
+            return ps;
+        }
+
         /// <summary>Llamas pequeñas para un barril encendido.</summary>
         public static void CreateFire(Transform parent, Vector3 localPos)
         {
