@@ -69,6 +69,12 @@ namespace SevenDays.Procedural
         public string dropKind = "common";   // tabla de drops (LootRules.Zombies)
         // explosivo
         public float explosionRadius = 0f, explosionDamage = 0f;
+        public float fuseTriggerRadius = 3f;     // al acercarse tanto el jugador se detiene y arranca la mecha
+        public float fuseCancelRadius = 5.5f;    // si el jugador se aleja más de esto antes de que acabe la mecha, se cancela
+        public float fuseSeconds = 1.35f;
+        public float explosionKnockback = 9f;    // velocidad de empuje en el centro (m/s)
+        public float explosionBlockedFactor = 0.25f; // fracción del daño que pasa a través de un muro sólido
+        public bool explosionBreaksCover = true; // rompe coberturas ligeras (Destructible de fuerza 0)
         // lanzador: "none" | "direct" (línea recta, la frena la cobertura) | "arc" (cae sobre el jugador, ignora la cobertura frontal) | "mixed" (directo, y en arco si el jugador se cubre)
         public string projectile = "none";
         public float flankAfterSeconds = 4f;   // segundos del jugador en cobertura tras los que el lanzador busca un ángulo lateral
@@ -103,7 +109,7 @@ namespace SevenDays.Procedural
             list.Add(new ZombieTypeData { id = ZombieIds.Spitter, displayName = "Lanzador", maxHealth = 80f, speed = 2.0f, attackDamage = 8f, attackRange = 1.4f, color = new[] { 0.5f, 0.6f, 0.25f }, dropKind = "spitter",
                 projectile = "mixed", projectileDamage = 14f, projectileSpeed = 15f, projectileCooldown = 3.2f, preferredRange = 12f, areaRadius = 1.3f });
             list.Add(new ZombieTypeData { id = ZombieIds.Explosive, displayName = "Explosivo", maxHealth = 70f, speed = 3.0f, attackDamage = 10f, color = new[] { 0.7f, 0.35f, 0.15f }, dropKind = "runner",
-                explosionRadius = 3.2f, explosionDamage = 42f });
+                explosionRadius = 3.6f, explosionDamage = 45f });
 
             list.Add(new ZombieTypeData
             {
@@ -200,6 +206,14 @@ namespace SevenDays.Procedural
                 if (z.projectile != "none" && (z.projectileDamage < 0f || z.projectileCooldown < 0.5f || z.projectileSpeed < 2f || z.preferredRange < 3f || z.flankAfterSeconds < 0.5f)) v.Errors.Add(n + "proyectil con daño, velocidad, rango, flanqueo o cooldown inválido");
                 if (Array.IndexOf(ProjectileKinds, z.projectileKind) < 0) v.Errors.Add(n + "projectileKind desconocido '" + z.projectileKind + "'");
                 if (z.explosionRadius < 0f || z.explosionRadius > 12f || z.explosionDamage < 0f) v.Errors.Add(n + "explosión inválida");
+                if (z.explosionRadius > 0f)
+                {
+                    if (z.fuseSeconds < 0.5f || z.fuseSeconds > 3f) v.Errors.Add(n + "fuseSeconds fuera de 0.5..3");
+                    if (z.fuseTriggerRadius < 1f || z.fuseTriggerRadius > 8f) v.Errors.Add(n + "fuseTriggerRadius fuera de 1..8");
+                    if (z.fuseCancelRadius < z.fuseTriggerRadius + 1f) v.Errors.Add(n + "fuseCancelRadius debe superar al de activación en al menos 1 m");
+                    if (z.explosionBlockedFactor < 0f || z.explosionBlockedFactor > 1f) v.Errors.Add(n + "explosionBlockedFactor fuera de 0..1");
+                    if (z.explosionKnockback < 0f || z.explosionKnockback > 30f) v.Errors.Add(n + "explosionKnockback fuera de 0..30");
+                }
                 if (z.navRadius < 0f || z.navRadius > 2f) v.Errors.Add(n + "navRadius fuera de 0..2");
                 if (!z.canEnterBuildings && z.navRadius < GiantMinRadius) v.Errors.Add(n + "un zombi que no entra a edificios necesita navRadius >= " + GiantMinRadius + " (puertas de 1.1–1.2 m)");
                 if (z.color == null || z.color.Length != 3) v.Errors.Add(n + "color debe tener 3 valores");
