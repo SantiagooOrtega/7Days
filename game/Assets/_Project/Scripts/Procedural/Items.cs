@@ -39,12 +39,45 @@ namespace SevenDays.Procedural
         public float headshotMultiplier = 1f;  // multiplica el multiplicador de cabeza del zombie (propio de cada arma)
         public float knockback = 1f;           // empuje al enemigo: la escopeta empuja más que la pistola
 
+        // --- manejo (Bloques de cámara y combate: retroceso, dispersión, apuntado, sway). Ver docs/BALANCE.md.
+        public int dataVersion;                // versión de los datos: un asset más viejo que CurrentDataVersion se actualiza solo (editor)
+        public string[] fireModes = new string[0]; // auto | semi | burst | pump | bolt; el primero es el inicial (X cambia entre ellos)
+        public int burstCount = 3;
+        public float recoilHorizontal = 0.3f;  // desviación lateral máxima por disparo (grados, aleatoria y acotada)
+        public float recoilRecovery = 9f;      // grados por segundo que se recuperan al soltar el gatillo
+        public float recoilMaxPitch = 8f;      // retroceso vertical acumulado máximo (grados)
+        public float recoilAimMultiplier = 0.6f, recoilCrouchMultiplier = 0.8f;
+        public float spreadPerShot = 0.35f;    // grados que crece la dispersión por disparo (ráfaga)
+        public float spreadMax = 6f;           // dispersión máxima total (grados)
+        public float spreadRecovery = 6f;      // grados por segundo que se recuperan
+        public float spreadMove = 1.2f;        // grados extra corriendo a toda velocidad (proporcional a la velocidad)
+        public float spreadAir = 2f;           // grados extra en el aire
+        public float spreadCrouchMultiplier = 0.75f;
+        public float aimFov = 42f;             // campo de visión al apuntar
+        public float aimDistance = 1.7f;       // distancia de la cámara al apuntar (tercera persona)
+        public float aimSensitivity = 0.6f;    // multiplicador de sensibilidad al apuntar
+        public float adsTime = 0.18f;          // segundos para entrar/salir del apuntado (ease in/out)
+        public bool aimFirstPerson;            // al apuntar, la cámara pasa detrás de la mira (SightPoint)
+        public float[] scopeFovs = new float[0]; // con mira telescópica: FOV de cada nivel de zoom (rueda del ratón)
+        public float swayAmount = 1f, bobAmount = 1f;
+        public float kickback = 0.06f;         // metros que el arma retrocede visualmente por disparo
+        public float kickbackPitch = 4f;       // grados que se levanta visualmente
+        public float fireShake = 0.05f;        // impulso de cámara por disparo
+        public bool ejectsCasings = true;
+
+        public const int CurrentDataVersion = 2;
+
         public bool IsMelee => kind == WeaponKind.Melee;
+        public bool HasScope => scopeFovs != null && scopeFovs.Length > 0;
+        /// <summary>Modo de disparo inicial (si no hay lista: "auto" o "semi" según "automatic").</summary>
+        public string DefaultFireMode => fireModes != null && fireModes.Length > 0 ? fireModes[0] : (automatic ? "auto" : "semi");
         public bool UsesAmmo => ammoType != AmmoType.None;
         public float SecondsBetweenShots => 60f / Math.Max(1f, roundsPerMinute);
         public float DamagePerShot => damage * Math.Max(1, pellets);
         /// <summary>Daño por segundo teórico (sin recargas), para equilibrar.</summary>
         public float Dps => DamagePerShot * roundsPerMinute / 60f;
+
+        private static float Clamp(float v, float lo, float hi) => v < lo ? lo : (v > hi ? hi : v);
 
         /// <summary>Corrige valores imposibles.</summary>
         public void Validate()
@@ -63,13 +96,41 @@ namespace SevenDays.Procedural
             knockback = Math.Max(0f, knockback);
             if (IsMelee) ammoType = AmmoType.None;
             else if (ammoType == AmmoType.None) ammoType = AmmoType.Pistol;
+            burstCount = Math.Max(2, Math.Min(6, burstCount));
+            recoilHorizontal = Clamp(recoilHorizontal, 0f, 3f);
+            recoilRecovery = Clamp(recoilRecovery, 0.5f, 60f);
+            recoilMaxPitch = Clamp(recoilMaxPitch, 0.5f, 25f);
+            recoilAimMultiplier = Clamp(recoilAimMultiplier, 0.1f, 1f);
+            recoilCrouchMultiplier = Clamp(recoilCrouchMultiplier, 0.1f, 1f);
+            spreadPerShot = Clamp(spreadPerShot, 0f, 5f);
+            spreadMax = Math.Max(spreadHip, Clamp(spreadMax, 0f, 20f));
+            spreadRecovery = Clamp(spreadRecovery, 0.1f, 60f);
+            spreadMove = Clamp(spreadMove, 0f, 10f);
+            spreadAir = Clamp(spreadAir, 0f, 10f);
+            spreadCrouchMultiplier = Clamp(spreadCrouchMultiplier, 0.2f, 1f);
+            aimFov = Clamp(aimFov, 5f, 70f);
+            aimDistance = Clamp(aimDistance, 0.5f, 4f);
+            aimSensitivity = Clamp(aimSensitivity, 0.05f, 1.5f);
+            adsTime = Clamp(adsTime, 0.05f, 0.8f);
+            swayAmount = Clamp(swayAmount, 0f, 3f); bobAmount = Clamp(bobAmount, 0f, 3f);
+            kickback = Clamp(kickback, 0f, 0.3f); kickbackPitch = Clamp(kickbackPitch, 0f, 25f);
+            fireShake = Clamp(fireShake, 0f, 1f);
+            if (scopeFovs != null) for (int i = 0; i < scopeFovs.Length; i++) scopeFovs[i] = Clamp(scopeFovs[i], 2f, 60f);
+            if (fireModes != null) foreach (var m in fireModes) if (Array.IndexOf(FireModes.All, m) < 0) { fireModes = new string[0]; break; }
         }
+    }
+
+    public static class FireModes
+    {
+        public const string Auto = "auto", Semi = "semi", Burst = "burst", Pump = "pump", Bolt = "bolt";
+        public static readonly string[] All = { Auto, Semi, Burst, Pump, Bolt };
+        public static string Label(string m) => m == Auto ? "AUTO" : m == Burst ? "RÁFAGA" : m == Pump ? "BOMBEO" : m == Bolt ? "CERROJO" : "SEMI";
     }
 
     /// <summary>Las 7 armas por defecto. Sus ScriptableObjects se crean desde estos datos y el JSON puede reemplazarlos.</summary>
     public static class WeaponCatalog
     {
-        public static List<WeaponData> Defaults() => new List<WeaponData>
+        public static List<WeaponData> Defaults() => WithHandling(new List<WeaponData>
         {
             new WeaponData { id = "pistol", displayName = "Pistola", kind = WeaponKind.Pistol, rarity = Rarity.Common, ammoType = AmmoType.Pistol,
                 damage = 18f, roundsPerMinute = 330f, magazineSize = 12, reloadTime = 1.3f, recoil = 1.2f, spreadHip = 1.4f, spreadAim = 0.25f, range = 70f, automatic = false,
@@ -92,7 +153,52 @@ namespace SevenDays.Procedural
             new WeaponData { id = "bar", displayName = "Barra metálica", kind = WeaponKind.Melee, rarity = Rarity.Common, ammoType = AmmoType.None,
                 damage = 38f, roundsPerMinute = 100f, magazineSize = 0, reloadTime = 0.2f, recoil = 1.0f, spreadHip = 0f, spreadAim = 0f, range = 2.1f, automatic = false,
                 color = new[] { 0.42f, 0.4f, 0.38f }, length = 0.9f, thickness = 0.05f, minDamageFraction = 1f, armorPenetration = 0.2f, headshotMultiplier = 1.0f, knockback = 1.8f },
-        };
+        });
+
+        /// <summary>
+        /// Valores de manejo de cada arma (retroceso, dispersión, apuntado, sway, modos de disparo). Separados para que la tabla de daño de arriba siga legible.
+        /// </summary>
+        private static List<WeaponData> WithHandling(List<WeaponData> list)
+        {
+            foreach (var w in list)
+            {
+                w.dataVersion = WeaponData.CurrentDataVersion;
+                switch (w.id)
+                {
+                    case "pistol":
+                        Set(w, new[] { FireModes.Semi }, rh: 0.35f, rr: 10f, rmax: 6f, sps: 0.45f, smax: 5f, srec: 7f, smove: 1.0f, fov: 46f, dist: 1.8f, sens: 0.65f, ads: 0.15f, sway: 0.8f, bob: 0.8f, kb: 0.05f, kbp: 6f, shake: 0.04f); break;
+                    case "revolver":
+                        Set(w, new[] { FireModes.Semi }, rh: 0.6f, rr: 7f, rmax: 9f, sps: 0.9f, smax: 6f, srec: 5f, smove: 1.2f, fov: 42f, dist: 1.7f, sens: 0.6f, ads: 0.18f, sway: 1f, bob: 0.9f, kb: 0.08f, kbp: 12f, shake: 0.09f); break;
+                    case "smg":
+                        Set(w, new[] { FireModes.Auto, FireModes.Burst }, rh: 0.45f, rr: 12f, rmax: 6f, sps: 0.22f, smax: 7f, srec: 9f, smove: 0.8f, fov: 48f, dist: 1.9f, sens: 0.7f, ads: 0.14f, sway: 0.9f, bob: 0.9f, kb: 0.03f, kbp: 2.5f, shake: 0.025f); break;
+                    case "shotgun":
+                        Set(w, new[] { FireModes.Pump }, rh: 0.8f, rr: 6f, rmax: 10f, sps: 0.6f, smax: 8f, srec: 4f, smove: 1.5f, fov: 50f, dist: 1.9f, sens: 0.7f, ads: 0.2f, sway: 1.2f, bob: 1.1f, kb: 0.12f, kbp: 14f, shake: 0.14f); break;
+                    case "assault_rifle":
+                        Set(w, new[] { FireModes.Auto, FireModes.Burst, FireModes.Semi }, rh: 0.3f, rr: 10f, rmax: 7f, sps: 0.18f, smax: 5.5f, srec: 8f, smove: 1.4f, fov: 40f, dist: 1.6f, sens: 0.55f, ads: 0.2f, sway: 1.1f, bob: 1.1f, kb: 0.04f, kbp: 3.5f, shake: 0.035f); break;
+                    case "sniper":
+                        Set(w, new[] { FireModes.Bolt }, rh: 0.4f, rr: 5f, rmax: 10f, sps: 1.5f, smax: 8f, srec: 3f, smove: 3f, fov: 30f, dist: 1.4f, sens: 0.35f, ads: 0.28f, sway: 1.4f, bob: 1.3f, kb: 0.1f, kbp: 9f, shake: 0.12f);
+                        w.aimFirstPerson = true;
+                        w.scopeFovs = new[] { 20f, 12f, 7f };     // zoom variable (rueda del ratón mientras apuntas)
+                        w.spreadAir = 6f;
+                        break;
+                    case "bar":
+                        Set(w, new[] { FireModes.Semi }, rh: 0f, rr: 20f, rmax: 2f, sps: 0f, smax: 0f, srec: 10f, smove: 0f, fov: 60f, dist: 3f, sens: 1f, ads: 0.15f, sway: 1.3f, bob: 1.2f, kb: 0f, kbp: 0f, shake: 0.06f);
+                        w.ejectsCasings = false; w.spreadAir = 0f;
+                        break;
+                }
+                w.spreadMax = Math.Max(w.spreadMax, w.spreadHip);
+            }
+            return list;
+        }
+
+        private static void Set(WeaponData w, string[] modes, float rh, float rr, float rmax, float sps, float smax, float srec, float smove, float fov, float dist, float sens, float ads,
+            float sway, float bob, float kb, float kbp, float shake)
+        {
+            w.fireModes = modes; w.recoilHorizontal = rh; w.recoilRecovery = rr; w.recoilMaxPitch = rmax;
+            w.spreadPerShot = sps; w.spreadMax = smax; w.spreadRecovery = srec; w.spreadMove = smove;
+            w.aimFov = fov; w.aimDistance = dist; w.aimSensitivity = sens; w.adsTime = ads;
+            w.swayAmount = sway; w.bobAmount = bob; w.kickback = kb; w.kickbackPitch = kbp; w.fireShake = shake;
+        }
 
         public static WeaponData Get(string id)
         {
