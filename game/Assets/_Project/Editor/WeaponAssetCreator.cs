@@ -26,17 +26,29 @@ namespace SevenDays.EditorTools
         private static void CreateMissing(bool verbose)
         {
             Directory.CreateDirectory(Dir);
-            int created = 0;
+            int created = 0, upgraded = 0;
             foreach (var data in WeaponCatalog.Defaults())
             {
                 string path = Dir + "/" + data.id + ".asset";
-                if (File.Exists(path)) continue;
+                if (File.Exists(path))
+                {
+                    // datos de una versión anterior (sin retroceso/dispersión/apuntado nuevos y con el daño viejo): se actualizan a los valores por defecto
+                    var existing = AssetDatabase.LoadAssetAtPath<WeaponAsset>(path);
+                    if (existing != null && (existing.Data == null || existing.Data.dataVersion < WeaponData.CurrentDataVersion))
+                    {
+                        existing.Data = data;
+                        EditorUtility.SetDirty(existing);
+                        upgraded++;
+                    }
+                    continue;
+                }
                 var asset = ScriptableObject.CreateInstance<WeaponAsset>();
                 asset.Data = data;
                 AssetDatabase.CreateAsset(asset, path);
                 created++;
             }
-            if (created > 0) { AssetDatabase.SaveAssets(); AssetDatabase.Refresh(); Debug.Log("[7Days] Creados " + created + " ScriptableObjects de armas en " + Dir); }
+            if (upgraded > 0) Debug.Log("[7Days] Actualizados " + upgraded + " ScriptableObjects de armas de una versión anterior (valores por defecto nuevos).");
+            if (created > 0 || upgraded > 0) { AssetDatabase.SaveAssets(); AssetDatabase.Refresh(); Debug.Log("[7Days] Creados " + created + " ScriptableObjects de armas en " + Dir); }
             else if (verbose) Debug.Log("[7Days] Ya existen los ScriptableObjects de armas en " + Dir);
         }
     }
