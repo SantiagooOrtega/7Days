@@ -11,12 +11,12 @@ namespace SevenDays.Tests
         private static readonly SurfaceKind[] AllKinds =
         {
             SurfaceKind.Asphalt, SurfaceKind.Wall, SurfaceKind.Concrete, SurfaceKind.Metal,
-            SurfaceKind.Container, SurfaceKind.CrateWood, SurfaceKind.Cardboard,
+            SurfaceKind.Container, SurfaceKind.CrateWood, SurfaceKind.Cardboard, SurfaceKind.Bark,
         };
 
         // Las cajas son una cara completa (no se repiten), así que no se les exige encajar en los bordes.
         private static readonly SurfaceKind[] TileableKinds =
-            { SurfaceKind.Asphalt, SurfaceKind.Wall, SurfaceKind.Concrete, SurfaceKind.Metal, SurfaceKind.Container };
+            { SurfaceKind.Asphalt, SurfaceKind.Wall, SurfaceKind.Concrete, SurfaceKind.Metal, SurfaceKind.Container, SurfaceKind.Bark };
 
         private static SurfaceParams Params() => new SurfaceParams { Size = N };
 

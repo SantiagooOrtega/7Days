@@ -117,6 +117,29 @@ namespace SevenDays.Procedural
             height = h - worn * 0.05f;
         }
 
+        // ---------------------------------------------------------------- Corteza de árbol muerto
+        // Tileable. Surcos verticales profundos, zonas grises de madera seca y algo de musgo.
+        private static void Bark(float u, float v, SurfaceParams p, out Rgb color, out float height)
+        {
+            int s = p.Seed + 700;
+            float ridge = 0.5f + 0.5f * TileableNoise.Perlin(u * 18f, v * 2f, 18, 2, s + 1);
+            float fine = 0.5f + 0.5f * TileableNoise.Perlin(u * 40f + 7f, v * 4f, 40, 4, s + 2);
+            float macro = Fbm(u, v, 4, 4, s + 3);
+            float h = ridge * 0.6f + fine * 0.3f + macro * 0.1f;
+            float groove = 1f - Smooth(0f, 0.35f, ridge);
+
+            Rgb c = Rgb.Lerp(p.BarkDark, p.BarkLight, Smooth(0.2f, 0.8f, h));
+            c = Mul(c, 1f - 0.5f * groove);
+
+            float weather = Smooth(0.55f, 0.8f, Fbm(u, v, 5, 3, s + 4));
+            c = Rgb.Lerp(c, new Rgb(0.38f, 0.36f, 0.33f), weather * 0.45f); // madera seca plateada
+            float moss = Smooth(0.62f, 0.82f, Fbm(u, v, 7, 3, s + 5)) * p.DirtAmount;
+            c = Rgb.Lerp(c, new Rgb(0.2f, 0.28f, 0.12f), moss * 0.4f);
+
+            color = c;
+            height = h;
+        }
+
         // ---------------------------------------------------------------- Caja de cartón
         private static void Cardboard(float u, float v, SurfaceParams p, out Rgb color, out float height)
         {
