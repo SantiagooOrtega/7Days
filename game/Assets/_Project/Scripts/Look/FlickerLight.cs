@@ -34,7 +34,6 @@ namespace SevenDays.Look
             _baseColor = _light.color;
             _seed = Random.value * 100f;
             _nextBlackout = Time.time + Random.Range(4f, 12f);
-            if (Bulb != null) _mpb = new MaterialPropertyBlock();
         }
 
         private void Update()
@@ -67,6 +66,8 @@ namespace SevenDays.Look
 
             if (Bulb != null)
             {
+                // Bulb se asigna DESPUÉS de AddComponent (Awake ya corrió), así que el bloque se crea aquí la primera vez.
+                if (_mpb == null) _mpb = new MaterialPropertyBlock();
                 _mpb.SetColor("_EmissionColor", c * (5f * Mathf.Clamp01(k)));
                 Bulb.SetPropertyBlock(_mpb);
             }
