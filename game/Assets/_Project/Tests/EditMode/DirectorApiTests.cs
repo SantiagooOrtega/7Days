@@ -111,3 +111,20 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class MovementTelemetryTests
+    {
+        [Test]
+        public void Snapshot_ExposesSprintTimeAndFatigue()
+        {
+            var m = new CombatMetrics();
+            m.RecordMovement(12f, 0.6f); m.RecordMovement(14f, 0.3f);
+            var s = m.Snapshot();
+            Assert.AreEqual(14f, s.sprintSeconds); Assert.AreEqual(0.3f, s.fatigue); Assert.AreEqual(0.6f, s.maxFatigue);
+            m.Reset();
+            Assert.AreEqual(0f, m.Snapshot().maxFatigue);
+        }
+    }
+}

@@ -500,3 +500,24 @@ Pasos: Play y mira la Console: debe decir `3 pickups activos + ... (3+ armas, 3 
 1. Play, mata unos 20 zombis comunes (**Z**): deberías ver ~2 drops brillando suavemente; el tanque suelta con más frecuencia (~30 %).
 2. En la Console cada drop escribe `[7Days] Drop #N de 'tipo': ...` con el contador del día (hoy X/8). Al reiniciar la línea `Loot reconstruido` muestra "Drops de zombis: 0 en 0 muertes".
 3. Tras 8 drops en un día aparece "descartado por el tope"; **N** pasa de día y reinicia el contador.
+
+## Cámara y combate estilo Gears of War / Call of Duty
+
+### Bloque 1: cámara sobre el hombro
+Ajustes en `Resources/Config/CameraSettings.asset` (se crea solo al abrir Unity; menú **7Days > Crear ajustes de cámara**): sensibilidad, límites de pitch, suavizado, tiempo de cambio de hombro y sacudidas. Por arma (en `Resources/Weapons/*.asset`): `aimFov`, `aimDistance`, `aimSensitivity`, `adsTime`, `fireShake`.
+Pasos manuales:
+1. Abre Unity y espera a que compile. La Console debe decir "Creados 2 ajustes de cámara" y, si tenías armas creadas antes, "Actualizados N ScriptableObjects de armas de una versión anterior".
+2. Play. Pulsa **Q**: la cámara pasa al hombro izquierdo en ~0.25 s, sin saltos; **Q** otra vez vuelve.
+3. Acércate de espaldas a una pared: la cámara se acerca y no la atraviesa.
+4. Mantén clic derecho: el FOV y la distancia cambian con suavidad (entra y sale con ease) y el ratón gira más despacio.
+5. Dispara: pequeña sacudida (más fuerte con escopeta y revólver). Pulsa **T** (recibir daño): sacudida de golpe. Salta y aterriza desde algo alto (**U**): sacudida de aterrizaje. Corre: un golpe muy leve en cada paso.
+6. Esc: aparece "Ajustes" con **Movimiento de cámara** (0–100 %) y sensibilidad. Con 0 % no debe haber balanceo, jadeo ni sacudidas.
+
+### Bloque 1B: cámara al correr
+Valores en `Resources/Config/CameraRunSettings.asset`. Límites duros en código: roll ≤ 1.5°, desplazamiento ≤ 8 cm.
+Pasos manuales:
+1. Corre con **Shift** por la calle: la cámara baja un poco, se acerca y abre el FOV (~+6°). Se balancea de lado a lado con cada paso (±4.5 cm), con un leve roll y rebote.
+2. Corre más de 4 s seguidos: el balanceo crece poco a poco (hasta +40 %), los pasos se aceleran un poco y aparece un jadeo (cabeceo suave). Para: en 2–3 s vuelve todo a la calma.
+3. Apunta (clic derecho) mientras corres: el efecto desaparece en 0.15 s y la mira queda estable.
+4. Agáchate (Ctrl), entra en cobertura (C), salta o haz un vault: el efecto se apaga con suavidad. Correr en diagonal o de lado lo reduce a la mitad.
+5. **F4** (métricas del director) muestra "corriendo N s, fatiga X %". **F5** (panel de ajuste, Bloque 6) muestra balanceo, roll y fatiga en vivo.

@@ -15,6 +15,8 @@ namespace SevenDays.Procedural
         public float damageTaken;
         public string[] damageSources;    // tipos de zombie (o "fall", "other") ...
         public float[] damageAmounts;     // ... y cuánto daño vino de cada uno
+        public float sprintSeconds;       // tiempo total corriendo
+        public float fatigue, maxFatigue; // cansancio de la cámara de carrera (0..1): ahora y el máximo del día
     }
 
     /// <summary>Recoge las métricas de combate. Pura: Unity solo le avisa de los eventos; el director lee Snapshot().</summary>
@@ -23,6 +25,10 @@ namespace SevenDays.Procedural
         private int _shots, _hits, _heads, _kills, _headKills, _ttkCount;
         private float _ttkSum, _coverTime, _time, _damage;
         private readonly Dictionary<string, float> _bySource = new Dictionary<string, float>();
+        private float _sprint, _fatigue, _maxFatigue;
+
+        /// <summary>Datos de carrera y fatiga (los da la cámara de carrera).</summary>
+        public void RecordMovement(float sprintSeconds, float fatigue) { _sprint = sprintSeconds; _fatigue = fatigue; if (fatigue > _maxFatigue) _maxFatigue = fatigue; }
 
         public void RecordShot() => _shots++;
         /// <summary>Un disparo que acertó (una ráfaga de escopeta cuenta como un solo acierto).</summary>
@@ -40,7 +46,7 @@ namespace SevenDays.Procedural
             _bySource[source] = (_bySource.TryGetValue(source, out float v) ? v : 0f) + amount;
         }
         public void Tick(float dt, bool inCover) { _time += dt; if (inCover) _coverTime += dt; }
-        public void Reset() { _shots = _hits = _heads = _kills = _headKills = _ttkCount = 0; _ttkSum = _coverTime = _time = _damage = 0f; _bySource.Clear(); }
+        public void Reset() { _shots = _hits = _heads = _kills = _headKills = _ttkCount = 0; _ttkSum = _coverTime = _time = _damage = 0f; _sprint = _fatigue = _maxFatigue = 0f; _bySource.Clear(); }
 
         public CombatSnapshot Snapshot()
         {
@@ -52,6 +58,7 @@ namespace SevenDays.Procedural
                 averageTimeToKill = _ttkCount == 0 ? 0f : _ttkSum / _ttkCount,
                 timeInCover = _coverTime, timePlayed = _time, coverRatio = _time <= 0f ? 0f : _coverTime / _time,
                 damageTaken = _damage,
+                sprintSeconds = _sprint, fatigue = _fatigue, maxFatigue = _maxFatigue,
             };
             var keys = new List<string>(_bySource.Keys); keys.Sort(StringComparer.Ordinal);
             s.damageSources = keys.ToArray();
