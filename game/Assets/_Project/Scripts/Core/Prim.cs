@@ -27,7 +27,8 @@ namespace SevenDays.Core
             go.transform.localPosition = position;
             go.transform.localScale = scale;
             go.GetComponent<Renderer>().sharedMaterial = material;
-            if (!collider) Object.Destroy(go.GetComponent<Collider>());
+            // Inmediato: Destroy() espera al final del frame y la auditoría de colisiones (que corre en el mismo frame) aún vería el collider.
+            if (!collider) Object.DestroyImmediate(go.GetComponent<Collider>());
             return go;
         }
 
