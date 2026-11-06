@@ -36,19 +36,19 @@ namespace SevenDays.Look
         {
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = s.FogColor;
+            RenderSettings.fogColor = s.EffectiveFogColor;
             RenderSettings.fogDensity = s.FogDensity;
 
             // Sin skybox: el fondo es del color de la niebla, así el horizonte se funde con ella.
             RenderSettings.skybox = null;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = s.FogColor;
+            cam.backgroundColor = s.EffectiveFogColor;
             cam.farClipPlane = 120f;
 
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = s.AmbientSky;
-            RenderSettings.ambientEquatorColor = s.AmbientEquator;
-            RenderSettings.ambientGroundColor = s.AmbientGround;
+            RenderSettings.ambientSkyColor = s.AmbientSky * s.GlobalBrightness;
+            RenderSettings.ambientEquatorColor = s.AmbientEquator * s.GlobalBrightness;
+            RenderSettings.ambientGroundColor = s.AmbientGround * s.GlobalBrightness;
         }
 
         private static void ApplySun(LookSettings s)
@@ -58,9 +58,9 @@ namespace SevenDays.Look
                 if (l.type != LightType.Directional) continue;
                 l.transform.rotation = Quaternion.Euler(s.SunPitch, s.SunYaw, 0f);
                 l.color = s.SunColor;
-                l.intensity = s.SunIntensity;
+                l.intensity = s.SunIntensity * s.GlobalBrightness;
                 l.shadows = LightShadows.Soft;
-                l.shadowStrength = 0.92f;
+                l.shadowStrength = s.ShadowStrength;
                 break;
             }
         }
@@ -80,11 +80,11 @@ namespace SevenDays.Look
             var adj = profile.Add<ColorAdjustments>(false);
             adj.saturation.Override(s.Saturation);
             adj.contrast.Override(s.Contrast);
-            adj.postExposure.Override(s.PostExposure);
+            adj.postExposure.Override(s.EffectivePostExposure);
             adj.colorFilter.Override(s.ColorFilter);
 
             var vig = profile.Add<Vignette>(false);
-            vig.intensity.Override(s.VignetteIntensity);
+            vig.intensity.Override(Mathf.Min(s.VignetteIntensity, LookSettings.MaxVignette));
             vig.smoothness.Override(0.45f);
             vig.color.Override(Color.black);
 
@@ -107,35 +107,63 @@ namespace SevenDays.Look
         }
     }
 
-    /// <summary>Todos los valores del look en un solo sitio.</summary>
+    /// <summary>
+    /// Todos los valores del look en un solo sitio. "GlobalBrightness" sube o baja de un golpe la luz del sol,
+    /// el ambiente, la exposición, la niebla y la paleta de las texturas (1 = neutro, rango útil 0.5 a 2).
+    /// </summary>
     public class LookSettings
     {
         public int TargetFps = 60;
 
+        /// <summary>Brillo global. 1 = valores base; por defecto medio-alto para que se distinga bien el escenario.</summary>
+        public float GlobalBrightness = 1.25f;
+
         /// <summary>Texturas procedurales: tamaño (512 o 1024), colores, óxido, grietas y suciedad. Ver SurfaceParams.</summary>
         public SurfaceParams Surface = new SurfaceParams { Size = 512 };
 
-        // Niebla y ambiente
-        public Color FogColor = new Color(0.36f, 0.35f, 0.33f);
-        public float FogDensity = 0.016f;
-        public Color AmbientSky = new Color(0.34f, 0.37f, 0.42f);
-        public Color AmbientEquator = new Color(0.24f, 0.24f, 0.25f);
-        public Color AmbientGround = new Color(0.1f, 0.1f, 0.1f);
+        // Niebla y ambiente: gris azulado medio (tarde nublada)
+        public Color FogColor = new Color(0.50f, 0.55f, 0.60f);
+        public float FogDensity = 0.008f;
+        public Color AmbientSky = new Color(0.50f, 0.56f, 0.64f);
+        public Color AmbientEquator = new Color(0.40f, 0.42f, 0.46f);
+        public Color AmbientGround = new Color(0.22f, 0.22f, 0.23f);
 
-        // Sol (atardecer bajo, sombras largas)
-        public float SunPitch = 28f;
-        public float SunYaw = -38f;
-        public Color SunColor = new Color(1f, 0.78f, 0.58f);
-        public float SunIntensity = 1.15f;
+        // Sol alto y de luz fría y difusa (nublado), sombras suaves para que no queden negras
+        public float SunPitch = 52f;
+        public float SunYaw = -35f;
+        public Color SunColor = new Color(0.96f, 0.95f, 0.93f);
+        public float SunIntensity = 1.0f;
+        public float ShadowStrength = 0.78f;
 
-        // Post-procesado
-        public float Saturation = -38f;
-        public float Contrast = 28f;
-        public float PostExposure = -0.15f;
-        public Color ColorFilter = new Color(0.9f, 0.95f, 1f);
-        public float VignetteIntensity = 0.38f;
+        // Post-procesado: sigue desaturado, pero con menos contraste y viñeta
+        public float Saturation = -30f;
+        public float Contrast = 14f;
+        public float PostExposure = 0.35f;
+        public Color ColorFilter = new Color(0.94f, 0.97f, 1f);
+        public float VignetteIntensity = 0.22f;
+        public const float MaxVignette = 0.25f;
         public float BloomThreshold = 1.0f;
-        public float BloomIntensity = 0.45f;
-        public float GrainIntensity = 0.22f;
+        public float BloomIntensity = 0.4f;
+        public float GrainIntensity = 0.15f;
+
+        /// <summary>Exposición en pasos (EV): +0.3 por cada +0.25 de brillo.</summary>
+        public float EffectivePostExposure => PostExposure + (GlobalBrightness - 1f) * 1.2f;
+
+        public Color EffectiveFogColor
+        {
+            get
+            {
+                float k = Mathf.Sqrt(GlobalBrightness); // la niebla cambia más despacio que la luz
+                return new Color(Mathf.Min(1f, FogColor.r * k), Mathf.Min(1f, FogColor.g * k), Mathf.Min(1f, FogColor.b * k), 1f);
+            }
+        }
+
+        /// <summary>Parámetros de textura con el brillo global aplicado a la paleta (curva suave: el brillo pesa menos que en la luz).</summary>
+        public SurfaceParams EffectiveSurface()
+        {
+            var p = Surface.Clone();
+            p.Brightness = Surface.Brightness * Mathf.Pow(GlobalBrightness, 0.6f);
+            return p;
+        }
     }
 }
