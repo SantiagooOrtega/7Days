@@ -28,6 +28,7 @@ namespace SevenDays.Core
             Destructible.All.Clear();
             Projectile.ResetPool();
             GroundMarker.ResetPools();
+            HouseController.Footprints.Clear();
             HudMessages.Clear();
         }
     }

@@ -63,6 +63,8 @@ namespace SevenDays.Procedural
         public float stunResistance = 0f;    // 0..1 (los jefes ~0.9)
         public ZoneMultipliers zones = new ZoneMultipliers();
         public float scale = 1f;
+        public bool canEnterBuildings = true;   // false: usa un agente de NavMesh grande que no cabe por puertas y ventanas
+        public float navRadius = 0f;            // radio del agente; 0 = automático (0.35 x escala). Los que no entran a edificios necesitan >= 0.7
         public float[] color = { 0.4f, 0.5f, 0.35f };
         public string dropKind = "common";   // tabla de drops (LootRules.Zombies)
         // explosivo
@@ -95,7 +97,7 @@ namespace SevenDays.Procedural
             list.Add(new ZombieTypeData { id = ZombieIds.Runner, displayName = "Corredor", maxHealth = 55f, speed = 5.2f, patrolSpeed = 1.6f, attackDamage = 9f, attackCooldown = 0.9f, aggroRange = 22f, color = new[] { 0.62f, 0.5f, 0.3f }, scale = 0.95f, dropKind = "runner",
                 zones = new ZoneMultipliers { head = 2.5f, torso = 1f, arms = 0.6f, legs = 0.5f } });
             list.Add(new ZombieTypeData { id = ZombieIds.Tank, displayName = "Tanque", maxHealth = 400f, speed = 1.5f, patrolSpeed = 0.7f, attackDamage = 32f, attackCooldown = 1.9f, attackRange = 1.9f, resistance = 0.35f, stunResistance = 0.7f, scale = 1.45f,
-                color = new[] { 0.35f, 0.38f, 0.3f }, dropKind = "brute", zones = new ZoneMultipliers { head = 2.0f, torso = 0.85f, arms = 0.5f, legs = 0.6f } });
+                color = new[] { 0.35f, 0.38f, 0.3f }, canEnterBuildings = false, navRadius = 0.8f, dropKind = "brute", zones = new ZoneMultipliers { head = 2.0f, torso = 0.85f, arms = 0.5f, legs = 0.6f } });
             list.Add(new ZombieTypeData { id = ZombieIds.Armored, displayName = "Blindado", maxHealth = 160f, speed = 1.9f, attackDamage = 18f, color = new[] { 0.45f, 0.45f, 0.5f }, dropKind = "brute", resistance = 0.1f, stunResistance = 0.3f,
                 zones = new ZoneMultipliers { head = 2.5f, torso = 0.35f, arms = 0.5f, legs = 0.6f } }); // el casco no protege: la cabeza sigue vulnerable
             list.Add(new ZombieTypeData { id = ZombieIds.Spitter, displayName = "Lanzador", maxHealth = 80f, speed = 2.0f, attackDamage = 8f, attackRange = 1.4f, color = new[] { 0.5f, 0.6f, 0.25f }, dropKind = "spitter",
@@ -169,6 +171,8 @@ namespace SevenDays.Procedural
     public static class ZombieValidator
     {
         private static readonly string[] AbilityIds = { "charge", "slam", "throw", "summon", "shockwave", "summon_wave" };
+        /// <summary>Con 2 x 0.7 = 1.4 m no cabe por las puertas de la casa (1.1–1.2 m de ancho libre).</summary>
+        public const float GiantMinRadius = 0.7f;
         private static readonly string[] ProjectileKinds = { "debris", "rod", "acid", "grenade" };
         private static readonly string[] Projectiles = { "none", "direct", "arc", "mixed" };
 
@@ -196,6 +200,8 @@ namespace SevenDays.Procedural
                 if (z.projectile != "none" && (z.projectileDamage < 0f || z.projectileCooldown < 0.5f || z.projectileSpeed < 2f || z.preferredRange < 3f || z.flankAfterSeconds < 0.5f)) v.Errors.Add(n + "proyectil con daño, velocidad, rango, flanqueo o cooldown inválido");
                 if (Array.IndexOf(ProjectileKinds, z.projectileKind) < 0) v.Errors.Add(n + "projectileKind desconocido '" + z.projectileKind + "'");
                 if (z.explosionRadius < 0f || z.explosionRadius > 12f || z.explosionDamage < 0f) v.Errors.Add(n + "explosión inválida");
+                if (z.navRadius < 0f || z.navRadius > 2f) v.Errors.Add(n + "navRadius fuera de 0..2");
+                if (!z.canEnterBuildings && z.navRadius < GiantMinRadius) v.Errors.Add(n + "un zombi que no entra a edificios necesita navRadius >= " + GiantMinRadius + " (puertas de 1.1–1.2 m)");
                 if (z.color == null || z.color.Length != 3) v.Errors.Add(n + "color debe tener 3 valores");
                 if (z.isBoss) ValidateBoss(z, v, n);
             }

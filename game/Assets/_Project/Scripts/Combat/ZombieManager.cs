@@ -4,6 +4,7 @@ using UnityEngine.AI;
 using Unity.AI.Navigation;
 using SevenDays.Core;
 using SevenDays.Player;
+using SevenDays.World;
 using SevenDays.Procedural;
 
 namespace SevenDays.Combat
@@ -25,7 +26,10 @@ namespace SevenDays.Combat
         private readonly Dictionary<string, ZombieTypeData> _types = new Dictionary<string, ZombieTypeData>();
         private Transform _player;
         private Health _playerHealth;
-        private NavMeshSurface _surface;
+        private NavMeshSurface _surface, _giantSurface;
+        /// <summary>Tipo de agente de NavMesh de los gigantes (radio grande: no caben por puertas ni ventanas). -1 hasta que se hornea.</summary>
+        public int GiantAgentTypeId { get; private set; } = -1;
+        public const float GiantAgentRadius = 0.8f;
         private PlayerCover _cover;
         private bool _navDirty;
         private float _nextNavRefresh;
@@ -82,7 +86,55 @@ namespace SevenDays.Combat
             }
             Physics.SyncTransforms();
             _surface.BuildNavMesh();
+            BakeGiantNavMesh();
             NavMeshReady = true;
+        }
+
+        /// <summary>
+        /// NavMesh para los gigantes: un tipo de agente con radio 0.8 m (1.6 m de ancho) que no cabe por las puertas (1.1–1.2 m). Además, sobre cada casa se pone un volumen
+        /// "no caminable" que solo afecta a ese agente, así que aunque una puerta fuera ancha, el interior no es transitable para él.
+        /// </summary>
+        private void BakeGiantNavMesh()
+        {
+            var settings = NavMesh.CreateSettings();
+            settings.agentRadius = GiantAgentRadius;
+            settings.agentHeight = 2.8f;
+            settings.agentClimb = 0.4f;
+            settings.agentSlope = 40f;
+            GiantAgentTypeId = settings.agentTypeID;
+
+            foreach (var f in HouseController.Footprints)
+            {
+                var go = new GameObject("House NoGiants");
+                go.transform.SetParent(transform, false);
+                go.transform.position = new Vector3(f.Cx, 1.5f, f.Cz);
+                var vol = go.AddComponent<NavMeshModifierVolume>();
+                vol.size = new Vector3(f.Hx * 2f + 0.4f, 6f, f.Hz * 2f + 0.4f);
+                vol.area = 1;                                   // Not Walkable
+                RestrictToAgent(vol, GiantAgentTypeId);
+            }
+
+            var child = new GameObject("GiantNavMesh");
+            child.transform.SetParent(transform, false);
+            _giantSurface = child.AddComponent<NavMeshSurface>();
+            _giantSurface.agentTypeID = GiantAgentTypeId;
+            _giantSurface.collectObjects = CollectObjects.All;
+            _giantSurface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+            _giantSurface.layerMask = ~((1 << 2) | HitboxLayer.Mask);
+            _giantSurface.defaultArea = 0;
+            _giantSurface.BuildNavMesh();
+        }
+
+        /// <summary>
+        /// NavMeshModifierVolume no expone en código qué agentes afecta (solo en el Inspector); su lista privada m_AffectedAgents vale [-1] = todos.
+        /// Se fija por reflexión a solo el gigante. Si el campo cambiara en otra versión del paquete, el volumen afectaría a todos: se avisa y se quita.
+        /// </summary>
+        private static void RestrictToAgent(NavMeshModifierVolume vol, int agentTypeId)
+        {
+            var field = typeof(NavMeshModifierVolume).GetField("m_AffectedAgents", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (field != null && field.GetValue(vol) is List<int> list) { list.Clear(); list.Add(agentTypeId); return; }
+            Debug.LogWarning("[7Days] No se pudo limitar el volumen de la casa al agente gigante (versión de AI Navigation distinta): se omite; quedan el radio del agente y la barrera de seguridad.");
+            Destroy(vol.gameObject);
         }
 
         public ZombieController Spawn(string typeId, Vector3 position, float healthMult = 1f, float speedMult = 1f, float damageMult = 1f, bool ignoreCap = false)
@@ -126,6 +178,7 @@ namespace SevenDays.Combat
                 _navDirty = false;
                 _nextNavRefresh = Time.time + 2f;
                 _surface.UpdateNavMesh(_surface.navMeshData);
+                if (_giantSurface != null) _giantSurface.UpdateNavMesh(_giantSurface.navMeshData);
             }
         }
 

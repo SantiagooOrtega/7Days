@@ -13,6 +13,12 @@ Para editarlos sin tocar código: menú de Unity **7Days > Exportar zombis por d
 | explosive | 70 | 3.0 | parpadea al acercarse; al morir explota (radio 3.2 m, 42 de daño, también daña a otros zombis) | runner |
 | boss_brute / boss_launcher / boss_final | 1500 / 2400 / 3000 | - | ver `docs/BOSSES.md` | boss (rara garantizada) |
 
+## Zombi gigante: no entra a edificios
+`canEnterBuildings: false` (solo el **tanque** por defecto) le da un tipo de agente de NavMesh propio con `navRadius` ≥ 0.7 m (el tanque usa 0.8 m = 1.6 m de ancho, las puertas libres miden 1.1–1.2 m) y su propio NavMesh horneado. Los demás zombis usan el agente normal y siguen entrando por las puertas.
+Tres capas de seguridad: (1) el radio del agente, (2) un volumen "no caminable" sobre cada casa que solo afecta al agente gigante y (3) en código, si acaba dentro de la planta de una casa se le saca por el borde más cercano (`EnforceBuildingGuard`); el respaldo sin NavMesh también barre una esfera contra los colliders y desliza por las paredes en vez de atravesarlas.
+Cuando el jugador está dentro de una casa a la que no cabe, el gigante: se acerca al punto alcanzable más cercano, **golpea el muro** (daño reducido, polvo y sacudida) si el jugador está a su alcance, y si pasa unos 4 s sin alcanzarlo **rodea la casa** por un perímetro de 8 puntos. Con histéresis (empieza a golpear a 3.5+ m y para a ~1.35x más lejos), así que no vibra.
+- `navRadius`: radio del agente en metros; 0 = automático (0.35 x escala).
+
 ## Lanzador (spitter)
 - `projectile`: `direct` (recto, lo frena la primera `CoverObject`: no daña), `arc` (parábola que cae donde estabas, con marca roja en el suelo 1–1.5 s antes, daño de área, ignora la cobertura frontal) o `mixed` (directo con línea libre; en arco si el jugador lleva ≥ 1 s cubierto y algo tapa el tiro).
 - `flankAfterSeconds`: si el jugador pasa tanto tiempo en cobertura y no hay línea de tiro, el lanzador busca un punto lateral con línea libre en el NavMesh.
@@ -56,7 +62,8 @@ export const zombieType = z.object({
   maxHealth: z.number().min(1).max(20000), speed: z.number().min(0.1).max(12), patrolSpeed: z.number().min(0),
   attackDamage: z.number().min(0).max(200), attackRange: z.number().min(0.5).max(8), attackCooldown: z.number().min(0.2).max(10),
   aggroRange: z.number().min(1), resistance: z.number().min(0).max(0.9), stunResistance: z.number().min(0).max(1),
-  zones, scale: z.number().min(0.3).max(4), color: z.tuple([z.number(), z.number(), z.number()]),
+  zones, scale: z.number().min(0.3).max(4),
+  canEnterBuildings: z.boolean(), navRadius: z.number().min(0).max(2),   // false => navRadius >= 0.7 (ver abajo) color: z.tuple([z.number(), z.number(), z.number()]),
   dropKind: z.enum(DROP_KINDS),
   explosionRadius: z.number().min(0).max(12), explosionDamage: z.number().min(0),
   projectile: z.enum(['none', 'direct', 'arc', 'mixed']), projectileKind: z.enum(['debris', 'rod', 'acid', 'grenade']),
@@ -64,6 +71,7 @@ export const zombieType = z.object({
   preferredRange: z.number().min(3), areaRadius: z.number().min(0), flankAfterSeconds: z.number().min(0.5),
   isBoss: z.boolean(), boss,
 }).superRefine((t, ctx) => {
+  if (!t.canEnterBuildings && t.navRadius < 0.7) ctx.addIssue({ code: 'custom', message: 'un zombi que no entra a edificios necesita navRadius >= 0.7 (puertas de 1.1–1.2 m)' });
   if (t.isBoss) {
     const ratio = t.maxHealth / 100;
     if (ratio < 10 || ratio > 30) ctx.addIssue({ code: 'custom', message: 'un jefe tiene entre 10 y 30 veces la vida de un común' });
