@@ -55,6 +55,7 @@ namespace SevenDays.World
             _playerHealth = player.GetComponent<Health>();
 
             Particles.CreateDust(player.transform);
+            Atmosphere.Build(transform, player.transform, _look);
 
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
             hud.Initialize(player);

@@ -6,8 +6,7 @@ namespace SevenDays.Look
     /// <summary>Partículas ambientales creadas por código (polvo flotante y fuego), usando el material de partículas por defecto de URP.</summary>
     public static class Particles
     {
-        private static Material DefaultParticleMaterial
-            => GraphicsSettings.currentRenderPipeline != null ? GraphicsSettings.currentRenderPipeline.defaultParticleMaterial : null;
+        private static Material DefaultParticleMaterial => ParticleMaterials.Soft;
 
         /// <summary>Polvo en suspensión alrededor del objetivo (sigue al jugador, así hay pocas partículas en total).</summary>
         public static Transform CreateDust(Transform follow)

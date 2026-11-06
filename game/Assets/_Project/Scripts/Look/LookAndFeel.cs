@@ -44,7 +44,7 @@ namespace SevenDays.Look
             // Sin skybox: el fondo es del color de la niebla, así el horizonte se funde con ella.
             RenderSettings.skybox = null;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = s.EffectiveFogColor;
+            cam.backgroundColor = s.EffectiveSkyColor; // cielo apagado: más oscuro y gris que la niebla
             cam.farClipPlane = 120f;
 
             RenderSettings.ambientMode = AmbientMode.Trilight;
@@ -123,6 +123,9 @@ namespace SevenDays.Look
         /// <summary>Texturas procedurales: tamaño (512 o 1024), colores, óxido, grietas y suciedad. Ver SurfaceParams.</summary>
         public SurfaceParams Surface = new SurfaceParams { Size = 512 };
 
+        /// <summary>Ambiente apocalíptico: niebla baja, bruma, ceniza, humo, chispas, rayos de luz y suciedad del suelo.</summary>
+        public AtmosphereSettings Atmosphere = new AtmosphereSettings();
+
         // Niebla y ambiente: gris azulado medio (tarde nublada)
         public Color FogColor = new Color(0.50f, 0.55f, 0.60f);
         public float FogDensity = 0.008f;
@@ -150,6 +153,9 @@ namespace SevenDays.Look
 
         /// <summary>Exposición en pasos (EV): +0.3 por cada +0.25 de brillo.</summary>
         public float EffectivePostExposure => PostExposure + (GlobalBrightness - 1f) * 1.2f;
+
+        /// <summary>Color del cielo: el de la niebla mezclado con gris oscuro según Atmosphere.SkyDim.</summary>
+        public Color EffectiveSkyColor => Color.Lerp(EffectiveFogColor, new Color(0.30f, 0.31f, 0.33f), Mathf.Clamp01(Atmosphere.SkyDim));
 
         public Color EffectiveFogColor
         {
