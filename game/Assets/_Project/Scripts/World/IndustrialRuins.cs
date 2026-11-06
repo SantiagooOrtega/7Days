@@ -5,60 +5,69 @@ using SevenDays.Look;
 namespace SevenDays.World
 {
     /// <summary>
-    /// Mapa de prueba "ruinas industriales" armado solo con primitivas: contenedores, muros rotos,
-    /// barreras de concreto, tuberías, barriles con fuego y farolas. Las piezas bajas con CoverObject
-    /// sirven de cobertura. Si hay texturas en Resources/Look se aplican al concreto y al metal.
+    /// Mapa de prueba "ruinas industriales" armado solo con primitivas y texturas procedurales: contenedores,
+    /// cajas, muros rotos, barreras de concreto, tuberías, barriles con fuego y farolas. Las piezas bajas con
+    /// CoverObject sirven de cobertura. Las cajas usan UV por cara a escala real (no se estiran) y cada objeto
+    /// varía un poco de tono y de posición de la textura para que no se vean idénticos.
     /// </summary>
     public static class IndustrialRuins
     {
-        private static readonly Color Concrete = new Color(0.46f, 0.45f, 0.42f);
-        private static readonly Color ConcreteDark = new Color(0.3f, 0.3f, 0.3f);
-        private static readonly Color Asphalt = new Color(0.17f, 0.17f, 0.18f);
-        private static readonly Color Rust = new Color(0.45f, 0.26f, 0.17f);
-        private static readonly Color Pipe = new Color(0.25f, 0.27f, 0.28f);
+        private static readonly Color Concrete = new Color(0.5f, 0.49f, 0.46f);
+        private static readonly Color ConcreteDark = new Color(0.4f, 0.4f, 0.4f);
+        private static readonly Color Asphalt = new Color(0.2f, 0.2f, 0.21f);
+        private static readonly Color Pipe = new Color(0.36f, 0.38f, 0.4f);
+
+        private static System.Random _rng;
 
         public static void Build(Transform root)
         {
-            var rng = new System.Random(42);
+            _rng = new System.Random(42);
             BuildGround(root);
-            BuildPerimeter(root, rng);
+            BuildPerimeter(root);
             BuildCovers(root);
             BuildContainers(root);
             BuildWarehouse(root);
-            BuildProps(root, rng);
+            BuildProps(root);
             BuildLights(root);
         }
+
+        // ---------- utilidades ----------
+        private static float Rand() => (float)_rng.NextDouble();
+        private static Vector2 UvJitter() => new Vector2(Rand(), Rand());
+
+        /// <summary>Variación de brillo por objeto en pasos de 5% (pocos materiales distintos).</summary>
+        private static float Tone(float range = 0.12f) => Mathf.Round((1f + (Rand() * 2f - 1f) * range) * 20f) / 20f;
+
+        private static Material Tex(Color fallback, string name, float smooth = 0.12f, float metallic = 0f, bool tint = false, float tone = 1f)
+            => Prim.GetTextured(fallback, name, Vector2.one, smooth, metallic, tint, tone);
 
         // ---------- Suelo ----------
         private static void BuildGround(Transform root)
         {
-            var size = new Vector3(60f, 0.5f, 60f);
-            Prim.Create(PrimitiveType.Cube, "Ground", new Vector3(0f, -0.25f, 0f), size,
-                Prim.GetTextured(Concrete, SurfaceLibrary.Concrete, new Vector2(20f, 20f)), root);
+            Prim.CreateBox("Ground", new Vector3(0f, -0.25f, 0f), new Vector3(60f, 0.5f, 60f), Tex(Concrete, SurfaceLibrary.Concrete), root, 3f);
 
-            // Franja de asfalto con líneas amarillas (visualmente guía al jugador hacia el frente)
-            Prim.Create(PrimitiveType.Cube, "Road", new Vector3(0f, 0.01f, 0f), new Vector3(8f, 0.04f, 58f),
-                Prim.GetTextured(Asphalt, SurfaceLibrary.Floor, new Vector2(3f, 19f), 0.25f), root, false);
+            // Franja de asfalto con líneas amarillas (guía visual hacia el frente)
+            Prim.CreateBox("Road", new Vector3(0f, 0.01f, 0f), new Vector3(8f, 0.04f, 58f), Tex(Asphalt, SurfaceLibrary.Floor, 0.25f), root, 3f, default, false);
+            var line = Prim.GetMaterial(new Color(0.85f, 0.7f, 0.2f));
             for (int i = -6; i <= 6; i++)
-                Prim.Create(PrimitiveType.Cube, "Line " + i, new Vector3(0f, 0.04f, i * 4.4f), new Vector3(0.18f, 0.02f, 2.2f),
-                    new Color(0.75f, 0.62f, 0.15f), root, false);
+                Prim.Create(PrimitiveType.Cube, "Line " + i, new Vector3(0f, 0.04f, i * 4.4f), new Vector3(0.18f, 0.02f, 2.2f), line, root, false);
         }
 
         // ---------- Muros perimetrales rotos ----------
-        private static void BuildPerimeter(Transform root, System.Random rng)
+        private static void BuildPerimeter(Transform root)
         {
-            var wall = Prim.GetTextured(ConcreteDark, SurfaceLibrary.Concrete, new Vector2(10f, 2f), 0.12f, 0f, true);
-            Prim.Create(PrimitiveType.Cube, "Wall N", new Vector3(0f, 2f, 30.5f), new Vector3(61f, 4f, 1f), wall, root);
-            Prim.Create(PrimitiveType.Cube, "Wall S", new Vector3(0f, 2f, -30.5f), new Vector3(61f, 4f, 1f), wall, root);
-            Prim.Create(PrimitiveType.Cube, "Wall E", new Vector3(30.5f, 2f, 0f), new Vector3(1f, 4f, 61f), wall, root);
-            Prim.Create(PrimitiveType.Cube, "Wall W", new Vector3(-30.5f, 2f, 0f), new Vector3(1f, 4f, 61f), wall, root);
+            var wall = Tex(ConcreteDark, SurfaceLibrary.Concrete, 0.12f, 0f, true);
+            Prim.CreateBox("Wall N", new Vector3(0f, 2f, 30.5f), new Vector3(61f, 4f, 1f), wall, root, 3f);
+            Prim.CreateBox("Wall S", new Vector3(0f, 2f, -30.5f), new Vector3(61f, 4f, 1f), wall, root, 3f);
+            Prim.CreateBox("Wall E", new Vector3(30.5f, 2f, 0f), new Vector3(1f, 4f, 61f), wall, root, 3f);
+            Prim.CreateBox("Wall W", new Vector3(-30.5f, 2f, 0f), new Vector3(1f, 4f, 61f), wall, root, 3f);
 
-            // Bloques que sobresalen en lo alto para romper la silueta recta
+            // Bloques que sobresalen arriba para romper la silueta recta
             for (int i = 0; i < 18; i++)
             {
-                float t = (float)rng.NextDouble() * 56f - 28f;
-                float h = 0.6f + (float)rng.NextDouble() * 1.6f;
-                float w = 1.2f + (float)rng.NextDouble() * 2.5f;
+                float t = Rand() * 56f - 28f;
+                float h = 0.6f + Rand() * 1.6f;
+                float w = 1.2f + Rand() * 2.5f;
                 int side = i % 4;
                 Vector3 pos = side switch
                 {
@@ -67,27 +76,43 @@ namespace SevenDays.World
                     2 => new Vector3(30.5f, 4f + h / 2f, t),
                     _ => new Vector3(-30.5f, 4f + h / 2f, t),
                 };
-                Vector3 scale = side < 2 ? new Vector3(w, h, 1f) : new Vector3(1f, h, w);
-                Prim.Create(PrimitiveType.Cube, "Crumble " + i, pos, scale, wall, root, false);
+                Vector3 size = side < 2 ? new Vector3(w, h, 1f) : new Vector3(1f, h, w);
+                Prim.CreateBox("Crumble " + i, pos, size, wall, root, 3f, UvJitter(), false);
             }
         }
 
-        // ---------- Coberturas bajas (concreto y cajas) ----------
+        // ---------- Coberturas bajas: barreras de concreto y cajas ----------
         private static void BuildCovers(Transform root)
         {
-            var low = Prim.GetTextured(Concrete, SurfaceLibrary.Concrete, new Vector2(2f, 1f));
-            Cover(root, "Barrier 1", new Vector3(-4f, 0.6f, -8f), new Vector3(3.5f, 1.2f, 0.6f), 0f, low);
-            Cover(root, "Barrier 2", new Vector3(4f, 0.6f, -6f), new Vector3(3.5f, 1.2f, 0.6f), 15f, low);
-            Cover(root, "Barrier 3", new Vector3(-9f, 0.6f, 0f), new Vector3(0.6f, 1.2f, 4f), 0f, low);
-            Cover(root, "Barrier 4", new Vector3(0f, 0.6f, 4f), new Vector3(4f, 1.2f, 0.6f), 0f, low);
-            Cover(root, "Barrier 5", new Vector3(12f, 0.6f, -10f), new Vector3(0.6f, 1.2f, 3.5f), 0f, low);
+            Barrier(root, "Barrier 1", new Vector3(-4f, 0.6f, -8f), new Vector3(3.5f, 1.2f, 0.6f), 0f);
+            Barrier(root, "Barrier 2", new Vector3(4f, 0.6f, -6f), new Vector3(3.5f, 1.2f, 0.6f), 15f);
+            Barrier(root, "Barrier 3", new Vector3(-9f, 0.6f, 0f), new Vector3(0.6f, 1.2f, 4f), 0f);
+            Barrier(root, "Barrier 4", new Vector3(0f, 0.6f, 4f), new Vector3(4f, 1.2f, 0.6f), 0f);
+            Barrier(root, "Barrier 5", new Vector3(12f, 0.6f, -10f), new Vector3(0.6f, 1.2f, 3.5f), 0f);
 
-            var crate = Prim.GetMaterial(new Color(0.42f, 0.32f, 0.2f));
-            Cover(root, "Crate 1", new Vector3(0f, 0.6f, -4f), new Vector3(1.4f, 1.2f, 1.4f), 20f, crate);
-            Cover(root, "Crate 2", new Vector3(8f, 0.6f, 2f), new Vector3(1.4f, 1.2f, 1.4f), -10f, crate);
-            Cover(root, "Crate 3", new Vector3(-13f, 0.6f, -4f), new Vector3(1.4f, 1.2f, 1.4f), 35f, crate);
-            Prim.Create(PrimitiveType.Cube, "Crate Top", new Vector3(8.1f, 1.6f, 2.1f), new Vector3(0.9f, 0.8f, 0.9f), crate, root)
-                .transform.rotation = Quaternion.Euler(0f, 25f, 0f);
+            // Cajas cúbicas: la textura es de una cara completa (marco, tablas, riostra, tornillos), 1 repetición por cara
+            Crate(root, "Crate 1", new Vector3(0f, 0.6f, -4f), 1.2f, 20f, SurfaceLibrary.CrateWood, true);
+            Crate(root, "Crate 2", new Vector3(8f, 0.6f, 2f), 1.2f, -10f, SurfaceLibrary.CrateWood, true);
+            Crate(root, "Crate 3", new Vector3(-13f, 0.6f, -4f), 1.2f, 35f, SurfaceLibrary.Cardboard, true);
+            Crate(root, "Crate Top", new Vector3(8.1f, 1.65f, 2.1f), 0.9f, 25f, SurfaceLibrary.Cardboard, false);
+            Crate(root, "Crate 4", new Vector3(-15f, 0.4f, -3.4f), 0.8f, 10f, SurfaceLibrary.Cardboard, false);
+            Crate(root, "Crate 5", new Vector3(14.5f, 0.4f, 8f), 0.8f, -25f, SurfaceLibrary.CrateWood, false);
+        }
+
+        private static void Barrier(Transform root, string name, Vector3 pos, Vector3 size, float yaw)
+        {
+            var go = Prim.CreateBox(name, pos, size, Tex(Concrete, SurfaceLibrary.Concrete, 0.12f, 0f, false, Tone()), root, 2f, UvJitter());
+            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            go.AddComponent<CoverObject>();
+        }
+
+        private static void Crate(Transform root, string name, Vector3 pos, float side, float yaw, string kind, bool cover)
+        {
+            // tile = lado de la caja: cada cara recibe exactamente una copia de la textura, sin estirarla
+            var mat = Tex(kind == SurfaceLibrary.Cardboard ? new Color(0.55f, 0.43f, 0.28f) : new Color(0.42f, 0.3f, 0.18f), kind, 0.1f, 0f, false, Tone(0.1f));
+            var go = Prim.CreateBox(name, pos, Vector3.one * side, mat, root, side);
+            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            if (cover) go.AddComponent<CoverObject>();
         }
 
         // ---------- Contenedores ----------
@@ -97,62 +122,79 @@ namespace SevenDays.World
             ContainerAt(root, "Container B", new Vector3(19f, 1.3f, -2f), 90f, new Color(0.2f, 0.3f, 0.4f));
             ContainerAt(root, "Container C", new Vector3(-14f, 1.3f, 19f), 20f, new Color(0.3f, 0.35f, 0.2f));
             ContainerAt(root, "Container D", new Vector3(17f, 1.3f, 16f), -15f, new Color(0.45f, 0.35f, 0.15f));
-            // Contenedor apilado
-            var top = ContainerAt(root, "Container E", new Vector3(-19f, 3.9f, 4.4f), 6f, new Color(0.25f, 0.28f, 0.3f));
-            top.GetComponent<CoverObject>().enabled = true;
+            ContainerAt(root, "Container E", new Vector3(-19f, 3.9f, 4.4f), 6f, new Color(0.25f, 0.28f, 0.3f)); // apilado
         }
 
-        private static GameObject ContainerAt(Transform root, string name, Vector3 pos, float yaw, Color color)
+        private static void ContainerAt(Transform root, string name, Vector3 pos, float yaw, Color color)
         {
             var size = new Vector3(2.5f, 2.6f, 6f);
-            var mat = Prim.GetTextured(color, SurfaceLibrary.Metal, new Vector2(2f, 1f), 0.3f, 0.3f, true);
-            var go = Prim.Create(PrimitiveType.Cube, name, pos, size, mat, root);
+            // Chapa corrugada con óxido y chorreras; 2.6 m por repetición = alto real, sin estirar
+            var mat = Tex(color, SurfaceLibrary.Container, 0.3f, 0.3f, true, Tone(0.1f));
+            var go = Prim.CreateBox(name, pos, size, mat, root, 2.6f, UvJitter());
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             go.AddComponent<CoverObject>();
-            // Costillas verticales para que no se vea como una caja lisa
-            var rib = Prim.GetMaterial(color * 0.7f);
-            for (int i = -2; i <= 2; i++)
+            ContainerDetails(go.transform, size, color);
+        }
+
+        /// <summary>Marco (postes y rieles de acero oxidado), barras de la puerta y números estarcidos.</summary>
+        private static void ContainerDetails(Transform c, Vector3 size, Color color)
+        {
+            var frame = Tex(color * 0.45f, SurfaceLibrary.Metal, 0.3f, 0.5f, true, 0.85f);
+            float hx = size.x / 2f, hy = size.y / 2f, hz = size.z / 2f;
+
+            for (int sx = -1; sx <= 1; sx += 2)
             {
-                var r = Prim.Create(PrimitiveType.Cube, "Rib", new Vector3(1.27f, 0f, i * 1.1f), new Vector3(0.08f, 2.4f, 0.12f), rib, go.transform, false);
-                r.transform.localScale = new Vector3(0.08f / size.x, 2.4f / size.y, 0.12f / size.z);
-                r.transform.localPosition = new Vector3(0.5f + 0.015f, 0f, i * 1.1f / size.z);
+                for (int sz = -1; sz <= 1; sz += 2)
+                    Prim.CreateBox("Post", new Vector3(sx * hx, 0f, sz * hz), new Vector3(0.16f, size.y + 0.06f, 0.16f), frame, c, 1f, UvJitter(), false);
+                for (int sy = -1; sy <= 1; sy += 2)
+                {
+                    Prim.CreateBox("Rail", new Vector3(sx * hx, sy * hy, 0f), new Vector3(0.12f, 0.12f, size.z), frame, c, 1f, UvJitter(), false);
+                    Prim.CreateBox("Rail", new Vector3(0f, sy * hy, sx * hz), new Vector3(size.x, 0.12f, 0.12f), frame, c, 1f, UvJitter(), false);
+                }
             }
-            return go;
+
+            // Barras de cierre de la puerta (extremo +Z)
+            for (int i = -1; i <= 1; i += 2)
+                Prim.CreateBox("Door Bar", new Vector3(i * 0.5f, 0f, hz + 0.03f), new Vector3(0.05f, size.y - 0.2f, 0.05f), frame, c, 1f, UvJitter(), false);
+
+            // Número estarcido en el lado +X: bloques de pintura blanca desgastada
+            var paint = Prim.GetMaterial(new Color(0.7f, 0.68f, 0.62f));
+            for (int i = 0; i < 6; i++)
+            {
+                if (Rand() < 0.2f) continue; // pintura caída
+                Prim.CreateBox("Stencil", new Vector3(hx + 0.006f, 0.85f, -1.75f + i * 0.34f), new Vector3(0.012f, 0.24f, 0.14f), paint, c, 1f, default, false);
+            }
         }
 
         // ---------- Nave semiderruida al fondo ----------
         private static void BuildWarehouse(Transform root)
         {
-            var steel = Prim.GetTextured(Pipe, SurfaceLibrary.Metal, new Vector2(4f, 1f), 0.3f, 0.3f, true);
-            // Pilares de ladrillo y revoque
+            var steel = Tex(Pipe, SurfaceLibrary.Metal, 0.3f, 0.3f, true);
             for (int i = -2; i <= 2; i++)
-            {
-                var scale = new Vector3(1.2f, 5.5f, 1.2f);
-                Prim.Create(PrimitiveType.Cube, "Pillar " + i, new Vector3(i * 9f, 2.75f, 23f), scale, BrickWall(scale), root);
-            }
+                BrickBox(root, "Pillar " + i, new Vector3(i * 9f, 2.75f, 23f), new Vector3(1.2f, 5.5f, 1.2f), true);
+
             // Vigas del techo (parcialmente caído)
             for (int i = -2; i < 2; i++)
             {
-                var beam = Prim.Create(PrimitiveType.Cube, "Beam " + i, new Vector3(i * 9f + 4.5f, 5.6f, 23f), new Vector3(8.4f, 0.3f, 0.4f), steel, root, false);
+                var beam = Prim.CreateBox("Beam " + i, new Vector3(i * 9f + 4.5f, 5.6f, 23f), new Vector3(8.4f, 0.3f, 0.4f), steel, root, 2f, UvJitter(), false);
                 if (i == 0) beam.transform.rotation = Quaternion.Euler(0f, 0f, -14f);
             }
             for (int i = -1; i <= 1; i++)
-                Prim.Create(PrimitiveType.Cube, "Roof " + i, new Vector3(i * 9f, 5.85f, 26.5f), new Vector3(8f, 0.15f, 6.5f), steel, root, false);
+                Prim.CreateBox("Roof " + i, new Vector3(i * 9f, 5.85f, 26.5f), new Vector3(8f, 0.15f, 6.5f), steel, root, 3f, UvJitter(), false);
+
             // Muro de fondo con huecos
-            var a = new Vector3(11f, 4f, 0.8f);
-            Prim.Create(PrimitiveType.Cube, "Back Wall A", new Vector3(-13f, 2f, 28f), a, BrickWall(a), root);
-            var b = new Vector3(8f, 2.4f, 0.8f);
-            Prim.Create(PrimitiveType.Cube, "Back Wall B", new Vector3(9f, 1.2f, 28f), b, BrickWall(b), root);
+            BrickBox(root, "Back Wall A", new Vector3(-13f, 2f, 28f), new Vector3(11f, 4f, 0.8f), true);
+            BrickBox(root, "Back Wall B", new Vector3(9f, 1.2f, 28f), new Vector3(8f, 2.4f, 0.8f), true);
         }
 
         /// <summary>Ladrillo y revoque gastado; un ladrillo mide ~0.55 m (la textura se repite cada 2.2 m).</summary>
-        private static Material BrickWall(Vector3 scale)
-            => Prim.GetTextured(new Color(0.4f, 0.22f, 0.18f), SurfaceLibrary.Wall, Prim.TilingFor(scale, 2.2f), 0.1f);
+        private static void BrickBox(Transform root, string name, Vector3 pos, Vector3 size, bool collider)
+            => Prim.CreateBox(name, pos, size, Tex(new Color(0.45f, 0.28f, 0.22f), SurfaceLibrary.Wall, 0.1f, 0f, false, Tone(0.08f)), root, 2.2f, UvJitter(), collider);
 
         // ---------- Props: tuberías, barriles, escombros ----------
-        private static void BuildProps(Transform root, System.Random rng)
+        private static void BuildProps(Transform root)
         {
-            var pipe = Prim.GetTextured(Pipe, SurfaceLibrary.Metal, new Vector2(4f, 1f), 0.35f, 0.4f, true);
+            var pipe = Tex(Pipe, SurfaceLibrary.Metal, 0.35f, 0.4f, true);
             for (int i = 0; i < 3; i++)
             {
                 var p = Prim.Create(PrimitiveType.Cylinder, "Pipe " + i, new Vector3(-25f, 0.4f + i * 0.5f, -12f + i * 1.3f),
@@ -160,17 +202,24 @@ namespace SevenDays.World
                 p.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             }
 
-            var barrel = Prim.GetTextured(new Color(0.35f, 0.18f, 0.12f), SurfaceLibrary.Metal, new Vector2(2f, 1f), 0.3f, 0.35f, true);
+            Color[] barrelColors = { new Color(0.4f, 0.18f, 0.12f), new Color(0.2f, 0.3f, 0.38f), new Color(0.35f, 0.33f, 0.2f) };
             Vector3[] barrels = { new Vector3(-6f, 0.5f, 12f), new Vector3(-5.2f, 0.5f, 12.4f), new Vector3(22f, 0.5f, 8f), new Vector3(-22f, 0.5f, -20f) };
             for (int i = 0; i < barrels.Length; i++)
-                Prim.Create(PrimitiveType.Cylinder, "Barrel " + i, barrels[i], new Vector3(0.6f, 0.5f, 0.6f), barrel, root);
+            {
+                var mat = Tex(barrelColors[i % barrelColors.Length], SurfaceLibrary.Metal, 0.3f, 0.35f, true, Tone(0.1f));
+                var b = Prim.Create(PrimitiveType.Cylinder, "Barrel " + i, barrels[i], new Vector3(0.6f, 0.5f, 0.6f), mat, root);
+                // Aros del barril
+                var ring = Tex(barrelColors[i % barrelColors.Length] * 0.6f, SurfaceLibrary.Metal, 0.3f, 0.5f, true);
+                for (int r = -1; r <= 1; r += 2)
+                    Prim.Create(PrimitiveType.Cylinder, "Ring", new Vector3(0f, r * 0.55f, 0f), new Vector3(1.04f, 0.04f, 1.04f), ring, b.transform, false);
+            }
 
             // Barriles encendidos (fuego + luz parpadeante)
             Vector3[] fires = { new Vector3(-7f, 0f, -12f), new Vector3(10f, 0f, 14f) };
             for (int i = 0; i < fires.Length; i++)
             {
                 var b = Prim.Create(PrimitiveType.Cylinder, "Fire Barrel " + i, fires[i] + Vector3.up * 0.5f, new Vector3(0.6f, 0.5f, 0.6f),
-                    Prim.GetTextured(new Color(0.18f, 0.12f, 0.1f), SurfaceLibrary.Metal, new Vector2(2f, 1f), 0.3f, 0.35f, true), root);
+                    Tex(new Color(0.22f, 0.15f, 0.12f), SurfaceLibrary.Metal, 0.3f, 0.35f, true), root);
                 var lightGo = new GameObject("FireLight");
                 lightGo.transform.SetParent(b.transform, false);
                 lightGo.transform.position = fires[i] + Vector3.up * 1.4f;
@@ -185,15 +234,15 @@ namespace SevenDays.World
             }
 
             // Escombros pequeños sin colisión (no estorban al CharacterController)
-            var rubble = Prim.GetMaterial(new Color(0.38f, 0.37f, 0.35f));
+            var rubble = Tex(new Color(0.42f, 0.41f, 0.39f), SurfaceLibrary.Concrete, 0.1f, 0f, true);
             for (int i = 0; i < 70; i++)
             {
-                float x = (float)rng.NextDouble() * 56f - 28f;
-                float z = (float)rng.NextDouble() * 56f - 28f;
+                float x = Rand() * 56f - 28f;
+                float z = Rand() * 56f - 28f;
                 if (Mathf.Abs(x) < 3.5f) continue; // la calle queda limpia
-                float s = 0.15f + (float)rng.NextDouble() * 0.5f;
-                var r = Prim.Create(PrimitiveType.Cube, "Rubble " + i, new Vector3(x, s * 0.3f, z), new Vector3(s * 1.5f, s * 0.6f, s), rubble, root, false);
-                r.transform.rotation = Quaternion.Euler((float)rng.NextDouble() * 25f, (float)rng.NextDouble() * 360f, (float)rng.NextDouble() * 25f);
+                float s = 0.15f + Rand() * 0.5f;
+                var r = Prim.CreateBox("Rubble " + i, new Vector3(x, s * 0.3f, z), new Vector3(s * 1.5f, s * 0.6f, s), rubble, root, 1f, UvJitter(), false);
+                r.transform.rotation = Quaternion.Euler(Rand() * 25f, Rand() * 360f, Rand() * 25f);
             }
         }
 
@@ -201,7 +250,7 @@ namespace SevenDays.World
         private static void BuildLights(Transform root)
         {
             Vector3[] posts = { new Vector3(-5.5f, 0f, -18f), new Vector3(5.5f, 0f, 0f), new Vector3(-5.5f, 0f, 14f), new Vector3(5.5f, 0f, -26f) };
-            var metal = Prim.GetTextured(Pipe, SurfaceLibrary.Metal, new Vector2(1f, 4f), 0.3f, 0.4f, true);
+            var metal = Tex(Pipe, SurfaceLibrary.Metal, 0.3f, 0.4f, true);
             var bulb = Prim.GetEmissive(new Color(1f, 0.82f, 0.5f), 5f);
             for (int i = 0; i < posts.Length; i++)
             {
@@ -222,13 +271,6 @@ namespace SevenDays.World
                 l.shadows = LightShadows.None;
                 if (i == 2) lightGo.AddComponent<FlickerLight>(); // una farola defectuosa
             }
-        }
-
-        private static void Cover(Transform root, string name, Vector3 pos, Vector3 scale, float yaw, Material mat)
-        {
-            var go = Prim.Create(PrimitiveType.Cube, name, pos, scale, mat, root);
-            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            go.AddComponent<CoverObject>();
         }
     }
 }

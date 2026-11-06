@@ -45,7 +45,7 @@ namespace SevenDays.World
             _look = new LookSettings();
             LookAndFeel.Apply(cam, _look);
             _loading = true;
-            yield return SurfaceLibrary.Build(_look.Surface);
+            yield return SurfaceLibrary.Build(_look.EffectiveSurface());
             _loading = false;
 
             BuildLevel();
@@ -82,13 +82,18 @@ namespace SevenDays.World
             var root = new GameObject("Level").transform;
             IndustrialRuins.Build(root);
 
-            // Blancos de práctica
+            // Blancos de práctica: cuerpo claro, cabeza pálida y ojos brillantes para que se distingan del fondo
             for (int i = 0; i < 6; i++)
             {
                 float x = -12f + i * 4.8f;
                 float z = 10f + (i % 2) * 6f;
                 var d = Prim.Create(PrimitiveType.Capsule, "Dummy " + i, new Vector3(x, 1f, z),
-                    new Vector3(0.8f, 1f, 0.8f), new Color(0.65f, 0.2f, 0.18f), root);
+                    new Vector3(0.8f, 1f, 0.8f), new Color(0.85f, 0.32f, 0.26f), root);
+                var head = Prim.Create(PrimitiveType.Sphere, "Head", new Vector3(0f, 0.72f, 0f), Vector3.one * 0.55f,
+                    new Color(0.82f, 0.74f, 0.62f), d.transform, false);
+                var eye = Prim.GetEmissive(new Color(1f, 0.35f, 0.1f), 6f);
+                for (int e = -1; e <= 1; e += 2)
+                    Prim.Create(PrimitiveType.Sphere, "Eye", new Vector3(e * 0.16f, 0.12f, 0.42f), Vector3.one * 0.14f, eye, head.transform, false);
                 d.AddComponent<Health>().SetMax(60f);
                 var dummy = d.AddComponent<TargetDummy>();
                 if (i % 3 == 2) { dummy.StrafeAmplitude = 3f; dummy.StrafeSpeed = 1.2f; }
