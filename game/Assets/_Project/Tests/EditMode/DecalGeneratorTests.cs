@@ -7,8 +7,8 @@ namespace SevenDays.Tests
     public class DecalGeneratorTests
     {
         private const int N = 96;
-        private static readonly DecalKind[] Kinds = { DecalKind.Blood, DecalKind.Crack, DecalKind.Puddle, DecalKind.DashLine, DecalKind.Zebra, DecalKind.Arrow };
-        private static readonly DecalKind[] DarkKinds = { DecalKind.Blood, DecalKind.Crack, DecalKind.Puddle };
+        private static readonly DecalKind[] Kinds = { DecalKind.Blood, DecalKind.Crack, DecalKind.Puddle, DecalKind.DashLine, DecalKind.Zebra, DecalKind.Arrow, DecalKind.Stain, DecalKind.Burn };
+        private static readonly DecalKind[] DarkKinds = { DecalKind.Blood, DecalKind.Crack, DecalKind.Puddle, DecalKind.Stain, DecalKind.Burn };
         private static readonly DecalKind[] RoadKinds = { DecalKind.DashLine, DecalKind.Zebra, DecalKind.Arrow };
 
         [TestCaseSource(nameof(Kinds))]
