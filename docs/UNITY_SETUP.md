@@ -521,3 +521,24 @@ Pasos manuales:
 3. Apunta (clic derecho) mientras corres: el efecto desaparece en 0.15 s y la mira queda estable.
 4. Agáchate (Ctrl), entra en cobertura (C), salta o haz un vault: el efecto se apaga con suavidad. Correr en diagonal o de lado lo reduce a la mitad.
 5. **F4** (métricas del director) muestra "corriendo N s, fatiga X %". **F5** (panel de ajuste, Bloque 6) muestra balanceo, roll y fatiga en vivo.
+
+### Bloque 2: apuntado por la mira (ADS)
+Por arma: `aimFov`, `aimDistance`, `aimSensitivity`, `adsTime`, `aimFirstPerson`, `scopeFovs` (zoom variable). Cada arma tiene un **SightPoint** (hijo de `Player/WeaponHolder/WeaponPose`): al importar un modelo real, colócalo justo detrás de la mira del arma.
+Pasos manuales:
+1. Con la pistola, clic derecho: el arma se centra, el FOV baja (60 → 46), la retícula se cierra casi a un punto y los disparos se agrupan mucho más.
+2. Con el francotirador (búscalo o usa la caja lejana garantizada): al apuntar, la cámara pasa a la mira en ~0.28 s, aparece el overlay negro de la lente con la cruz y "x3.0". La rueda del ratón cambia el zoom (x3 → x5 → x8.6) y la sensibilidad baja con el zoom. Tu cuerpo y el arma dejan de verse (solo proyectan sombra).
+3. Con la barra metálica no se puede apuntar. Durante un vault tampoco. En cobertura sí (ver el lean en el Bloque 4).
+4. Mientras corres y aprietas clic derecho, dejas de correr y apuntas (la cámara de carrera se anula en 0.15 s).
+
+### Bloque 3: retroceso y manejo del arma
+Por arma: `recoil` (vertical), `recoilHorizontal`, `recoilRecovery`, `recoilMaxPitch`, `recoilAimMultiplier`, `recoilCrouchMultiplier`, `spreadPerShot`, `spreadMax`, `spreadRecovery`, `spreadMove`, `spreadAir`, `spreadCrouchMultiplier`, `swayAmount`, `bobAmount`, `kickback`, `kickbackPitch`, `fireModes`, `burstCount`. Valores en `docs/BALANCE.md`.
+Pasos manuales:
+1. Fusil de asalto: mantén el gatillo contra una pared: la mira sube y serpentea un poco a los lados; suelta: vuelve sola a donde apuntabas. Apuntando y agachado sube menos.
+2. Dispara en ráfaga sin apuntar: la retícula se abre; al parar se cierra. Corriendo o saltando también se abre.
+3. **X** cambia el modo del fusil: AUTO → RÁFAGA (3 balas por clic) → SEMI. El HUD muestra el modo junto a la munición.
+4. Gira la cámara rápido: el arma se retrasa un poco (sway). Camina y corre: se mece con los pasos (bob). Al disparar retrocede y se levanta (kickback). Caen casquillos dorados a la derecha (la escopeta, más grandes).
+
+### Bloque 5: feedback
+1. Cada arma suena distinto (pistola seca, escopeta grave, francotirador largo); tras la escopeta suena el bombeo y tras el francotirador el cerrojo. Al quedarte sin balas suena un "clic".
+2. Destello, trazadoras, hitmarker normal/headshot/muerte y números flotantes siguen como antes.
+3. Pasos: suenan con cada pisada (más fuertes corriendo, más suaves agachado). Corre más de 4 s: la respiración se oye cada vez más y más rápida; al parar se calma.
