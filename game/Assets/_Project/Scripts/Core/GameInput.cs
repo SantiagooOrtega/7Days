@@ -31,6 +31,7 @@ namespace SevenDays.Core
 
         public static bool SprintHeld => Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed;
         public static bool CrouchHeld => Keyboard.current != null && Keyboard.current.leftCtrlKey.isPressed;
+        public static bool JumpPressed => Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
         public static bool ReloadPressed => Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame;
         public static bool CoverPressed => Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame;
         public static bool HelpPressed => Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame;
