@@ -13,6 +13,8 @@ El juego coloca árboles, arbustos, hierba, coches y demás desde una lista de p
   ]
 }
 ```
+Las señales usan además `state`: `upright`, `tilted`, `bent`, `fallen`, `pole_only` o `hanging` (vacío = erguida).
+
 Coordenadas en metros; el mapa jugable va de -30 a 30 en X y Z (muros en ±30.5). `yaw` en grados.
 
 | type | variantes | obstáculo (colisión + NavMesh) | dibujo |
@@ -24,7 +26,8 @@ Coordenadas en metros; el mapa jugable va de -30 a 30 en X y Z (muros en ±30.5)
 | `pole_fallen` | 0 | sí (pequeño) | primitivas |
 | `tire` | 0 | no | GPU instancing |
 | `bag` | 0 a 2 (color) | no | GPU instancing |
-| `sign_broken` | 0 | no | primitivas |
+| `sign_broken` | 0 | no | primitivas (cartel genérico roto; el generador por defecto ya no lo usa) |
+| `sign_stop`, `sign_yield`, `sign_speed`, `sign_no_turn`, `sign_hazard`, `sign_generic` | 0 a 2 = nivel de desgaste (leve, medio, destrozado) | solo la señal `fallen` (collider pequeño) | GPU instancing |
 
 ## Reglas de validación
 `scale` entre 0.25 y 4, |x| y |z| ≤ 60, `variant` dentro del rango del tipo, números finitos, tipo conocido, tope total 600 y topes
@@ -38,7 +41,9 @@ por tipo (los de `LookSettings.Vegetation`). Lo inválido se descarta con un avi
 ## Para el backend (Fase 3, tabla `maps`)
 Esquema zod equivalente, para validar al guardar el mapa:
 ```ts
-const propTypes = ['tree_dead','bush','grass','car_wreck','pole_fallen','tire','bag','sign_broken'] as const;
+const propTypes = ['tree_dead','bush','grass','car_wreck','pole_fallen','tire','bag','sign_broken',
+  'sign_stop','sign_yield','sign_speed','sign_no_turn','sign_hazard','sign_generic'] as const;
+const signStates = ['','upright','tilted','bent','fallen','pole_only','hanging'] as const;
 export const propEntry = z.object({
   type: z.enum(propTypes),
   x: z.number().min(-60).max(60),
@@ -46,7 +51,7 @@ export const propEntry = z.object({
   yaw: z.number().min(-360).max(360).default(0),
   scale: z.number().min(0.25).max(4).default(1),
   variant: z.number().int().min(0).max(3).default(0),
-  state: z.string().max(24).default(''),
+  state: z.enum(signStates).default(''), // solo tiene efecto en las señales
 });
 export const propLayout = z.object({ items: z.array(propEntry).max(600) });
 ```
