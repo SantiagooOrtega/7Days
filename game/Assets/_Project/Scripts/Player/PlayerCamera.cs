@@ -45,6 +45,8 @@ namespace SevenDays.Player
         public bool IsScoped => Weapon != null && Weapon.HasScope && FirstPersonBlend > 0.9f;
         public float CurrentFov { get; private set; } = 60f;
         public float CurrentSensitivity { get; private set; }
+        /// <summary>Mientras el ratón está sobre un panel de UI (ajustes, F5) un clic no vuelve a capturar el ratón.</summary>
+        public static float UiHoverUntil;
         public Quaternion AimRotation => _target != null ? _target.rotation : transform.rotation;
         public Vector3 AimForward => AimRotation * Vector3.forward;
 
@@ -154,7 +156,7 @@ namespace SevenDays.Player
 
             bool locked = Cursor.lockState == CursorLockMode.Locked;
             if (GameInput.EscapePressed) LockCursor(false);
-            else if (!locked && GameInput.FirePressed) LockCursor(true);
+            else if (!locked && GameInput.FirePressed && Time.unscaledTime > UiHoverUntil) LockCursor(true);
 
             if (locked && GameInput.ShoulderSwapPressed) Shoulder.Toggle();
             Shoulder.Tick(dt, Settings.shoulderSwapTime);

@@ -94,6 +94,7 @@ namespace SevenDays.World
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
             hud.Initialize(player);
             hud.gameObject.AddComponent<SettingsOverlay>().Initialize(player.GetComponent<PlayerCamera>());
+            hud.gameObject.AddComponent<CombatDebugPanel>().Initialize(player);
             hud.gameObject.AddComponent<ScopeOverlay>().Initialize(player.GetComponent<PlayerCamera>());
         }
 

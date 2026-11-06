@@ -21,6 +21,7 @@ namespace SevenDays.UI
             _title ??= new GUIStyle(_label) { fontSize = 22, fontStyle = FontStyle.Bold };
             var s = _camera.Settings;
             var r = new Rect(Screen.width - 430, Screen.height * 0.5f - 110, 400, 200);
+            if (r.Contains(Event.current.mousePosition)) PlayerCamera.UiHoverUntil = Time.unscaledTime + 0.15f;
             GUI.Box(r, GUIContent.none);
             GUI.Label(new Rect(r.x + 16, r.y + 10, 380, 30), "Ajustes (clic en el juego para volver)", _title);
 
