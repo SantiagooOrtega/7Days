@@ -71,8 +71,15 @@ Sobre la iluminación **baked**: no se puede hornear porque el mapa se construye
 5. En la barra de niveles, haz que `Demo` sea el nivel por defecto del Mac (clic en la flecha verde bajo el icono de Mac/Standalone, elige `Demo`).
 6. Al dar Play, el juego busca ese nivel por nombre y lo activa; además limita a 60 FPS.
 
-## Texturas opcionales
-Ver `docs/ASSETS.md` (sección Fase 2.5): 4 archivos de Poly Haven copiados a `Assets/_Project/Resources/Look/`.
+## Texturas procedurales (sin descargar nada)
+- Se generan al dar Play: verás "Generando texturas..." menos de un segundo; el resto del tiempo no hay pausas porque se calculan en hilos de fondo. Un mensaje en la Console indica cuánto tardó.
+- Materiales: asfalto (calle), muro de ladrillo y revoque (nave y pilares), concreto (suelo, muros del perímetro y barreras) y metal oxidado (contenedores, tuberías, barriles y farolas). Todos con mapa de normales.
+- Para cambiar colores, óxido, grietas o suciedad: `Scripts/Look/LookAndFeel.cs`, clase `LookSettings`, campo `Surface` (`SurfaceParams` en `Scripts/Procedural/SurfaceGenerator.cs`). `Size` puede ser 512 (por defecto) o 1024.
+- Archivos propios en `Resources/Look` tienen prioridad: ver `docs/ASSETS.md`.
+
+## Pruebas EditMode
+1. Window > General > Test Runner.
+2. Pestaña **EditMode** > Run All. Deben pasar las 30 pruebas de `SevenDays.Tests.EditMode` (ruido tileable, costuras, paleta oscura, normales unitarias, óxido y grietas).
 
 ## Qué probar y la captura que necesito
 1. Pulsa Play en `Game`. Mira el contador FPS arriba a la derecha: debe estar verde (≥ 55). Si no, dime el número.

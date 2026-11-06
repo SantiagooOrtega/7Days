@@ -13,25 +13,25 @@ Los modelos animados necesitan un Animator, así que se integran con los zombies
 | Animaciones: idle, walk, run, strafe con rifle, aim, fire, reload, crouch/cover idle | mixamo.com | Gratis | Animator del jugador |
 | Arma (rifle/pistola low-poly) | [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) o [Quaternius](https://quaternius.com) | CC0 | Arma del jugador (Fase 3) |
 
-## Fase 2.5 (ambiente: ruinas industriales) — OPCIONAL, solo 4 archivos
-El mapa funciona sin descargar nada (colores lisos). Estas texturas solo le dan más realismo al concreto y al metal.
-Todas son CC0 de Poly Haven: [Concrete](https://polyhaven.com/a/concrete), [Rusty Metal 02](https://polyhaven.com/a/rusty_metal_02).
+## Fase 2.5 (ambiente: ruinas industriales) — no hay que descargar nada
+Las texturas de asfalto, muro de ladrillo, concreto y metal oxidado (color + normales) se **generan por código** al iniciar
+(`Scripts/Procedural`, `Scripts/Look/SurfaceLibrary.cs`). Se calculan una sola vez en hilos de fondo y se guardan en caché.
+Sus parámetros (colores, óxido, grietas, suciedad, tamaño 512/1024) están en `LookSettings.Surface`.
 
-| Qué descargar | Se guarda como (en `Assets/_Project/Resources/Look/`) |
-|---------------|-------------------------------------------------------|
-| Concrete, 1K, mapa **Diffuse** (JPG) | `concrete_diff.jpg` |
-| Concrete, 1K, mapa **Normal (GL)** (JPG o PNG) | `concrete_nor.jpg` |
-| Rusty Metal 02, 1K, mapa **Diffuse** (JPG) | `metal_diff.jpg` |
-| Rusty Metal 02, 1K, mapa **Normal (GL)** (JPG o PNG) | `metal_nor.jpg` |
+### Opcional: sustituir una textura procedural por una tuya
+Si copias archivos a `Assets/_Project/Resources/Look/` con estos nombres exactos, **tienen prioridad** sobre la procedural de ese material
+(y para ese material ya no se genera nada):
 
-Pasos:
-1. Abre cada enlace, en el panel de descarga elige resolución **1K** y el formato JPG, y descarga solo el mapa Diffuse y el Normal GL (no hace falta el resto).
-2. Renombra los archivos exactamente como en la tabla (respeta mayúsculas/minúsculas y `_diff` / `_nor`).
-3. Arrástralos a la carpeta `Resources/Look` dentro de `Assets/_Project` en la ventana Project de Unity.
-4. No toques nada más: un script del proyecto (`LookTextureImporter`) marca los `_nor` como mapas de normales y limita el tamaño a 1024 px.
-5. Pulsa Play: las texturas se aplican solas al suelo, muros, barreras y contenedores. Si borras los archivos, el mapa vuelve a los colores lisos.
+| Material | Color | Normales (opcional) |
+|----------|-------|---------------------|
+| floor (asfalto) | `floor_diff.jpg` | `floor_nor.jpg` |
+| wall (ladrillo/revoque) | `wall_diff.jpg` | `wall_nor.jpg` |
+| concrete | `concrete_diff.jpg` | `concrete_nor.jpg` |
+| metal | `metal_diff.jpg` | `metal_nor.jpg` |
 
-No uses el HDRI de Poly Haven: el look usa fondo sólido del color de la niebla; un cielo real rompería la atmósfera.
+Fuentes CC0 de Poly Haven que encajan: [Concrete](https://polyhaven.com/a/concrete) y [Rusty Metal 02](https://polyhaven.com/a/rusty_metal_02)
+(resolución 1K, mapas Diffuse y Normal GL). Un script (`LookTextureImporter`) marca los `_nor` como mapas de normales y limita el tamaño a 1024 px.
+Para volver a lo procedural basta borrar el archivo.
 
 ## Fase 3 (zombies)
 | Qué | Dónde | Licencia |
