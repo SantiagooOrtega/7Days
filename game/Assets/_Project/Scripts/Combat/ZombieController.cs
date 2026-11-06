@@ -136,7 +136,7 @@ namespace SevenDays.Combat
             var reaction = HitReaction.Compute(report.FinalDamage, Health.Max, report.Zone, info.Knockback, Type.stunResistance);
             Vector3 dir = info.Direction; dir.y = 0f;
             if (dir.sqrMagnitude > 0.001f) _knock += dir.normalized * (reaction.KnockbackMeters * 7f);
-            if (reaction.Stagger) Health.Stun(reaction.StunSeconds);
+            if (reaction.Stagger) Health.Stun(reaction.StunSeconds, false);   // HitReaction ya descontó la resistencia
         }
 
         private void OnDied()

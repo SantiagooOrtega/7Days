@@ -123,7 +123,8 @@ namespace SevenDays.Procedural
             if (frac >= threshold)
             {
                 r.StunSeconds = StunMath.Duration(Math.Min(0.7f, 0.15f + frac * 1.2f) * (zone == HitZone.Head ? 1.3f : 1f) * (0.6f + 0.4f * push), stunResistance);
-                r.Stagger = r.StunSeconds > 0.02f;
+                r.Stagger = r.StunSeconds > 0.12f;   // por debajo no se nota: el jefe aguanta el golpe sin inmutarse
+                if (!r.Stagger) r.StunSeconds = 0f;
             }
             return r;
         }
