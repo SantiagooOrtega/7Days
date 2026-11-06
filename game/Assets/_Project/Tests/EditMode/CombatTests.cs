@@ -246,3 +246,115 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class SpitterTests
+    {
+        private static SpitterBrain Brain(string allowed = "mixed") => new SpitterBrain { PreferredRange = 12f, Cooldown = 3f, AimSeconds = 0.9f, FlankAfterSeconds = 4f, Allowed = allowed };
+
+        private static SpitterAction Until(SpitterBrain b, SpitterAction wanted, float dist, bool los, float cover, float maxSeconds = 10f)
+        {
+            SpitterAction a = SpitterAction.Idle;
+            for (float t = 0; t < maxSeconds; t += 0.1f) { a = b.Tick(0.1f, dist, los, cover); if (a == wanted) return a; }
+            return a;
+        }
+
+        [Test]
+        public void ClearLine_AimsThenThrowsDirect()
+        {
+            var b = Brain();
+            Assert.AreEqual(SpitterAction.Aim, Until(b, SpitterAction.Aim, 12f, true, 0f));
+            Assert.AreEqual(ProjectileMode.Direct, b.Mode);
+            Assert.AreEqual(SpitterAction.Throw, Until(b, SpitterAction.Throw, 12f, true, 0f));
+        }
+
+        [Test]
+        public void BlockedLineWithPlayerInCover_ThrowsArc()
+        {
+            var b = Brain();
+            Assert.AreEqual(SpitterAction.Aim, Until(b, SpitterAction.Aim, 12f, false, 2f));
+            Assert.AreEqual(ProjectileMode.Arc, b.Mode);
+        }
+
+        [Test]
+        public void BlockedLineButNotInCover_RepositionsInsteadOfThrowingAtAWall()
+        {
+            var b = Brain();
+            Assert.AreEqual(SpitterAction.Reposition, Until(b, SpitterAction.Aim, 12f, false, 0f, 3f));
+        }
+
+        [Test]
+        public void LongCoverTime_TriggersFlank_UnlessAlreadyHasLine()
+        {
+            var b = Brain();
+            b.Tick(0.1f, 12f, false, 5f);
+            Assert.AreEqual(SpitterAction.Flank, b.Tick(0.1f, 12f, false, 5f));
+            var c = Brain();
+            Assert.AreNotEqual(SpitterAction.Flank, c.Tick(0.1f, 12f, true, 9f), "con línea libre no hace falta flanquear");
+        }
+
+        [Test]
+        public void Cooldown_SpacesThrows()
+        {
+            var b = Brain();
+            Until(b, SpitterAction.Throw, 12f, true, 0f);
+            for (int i = 0; i < 25; i++) Assert.AreNotEqual(SpitterAction.Aim, b.Tick(0.1f, 12f, true, 0f), "en los 2.5 s siguientes no apunta");
+            Assert.AreEqual(SpitterAction.Aim, Until(b, SpitterAction.Aim, 12f, true, 0f, 2f));
+        }
+
+        [Test]
+        public void KeepsDistance_AndOnlyArcTypeIgnoresLine()
+        {
+            var b = Brain();
+            b.Tick(1.5f, 4f, true, 0f);
+            Assert.AreEqual(SpitterAction.Reposition, b.Tick(0.1f, 4f, true, 0f), "demasiado cerca: retrocede");
+            var direct = Brain("direct");
+            Assert.AreNotEqual(SpitterAction.Aim, Until(direct, SpitterAction.Aim, 12f, false, 5f, 3f), "el directo no apunta si algo lo tapa");
+            var arc = Brain("arc");
+            Assert.AreEqual(SpitterAction.Aim, Until(arc, SpitterAction.Aim, 12f, false, 0f));
+            Assert.AreEqual(ProjectileMode.Arc, arc.Mode);
+        }
+
+        [Test]
+        public void CoverBlocksDirectButNeverArc()
+        {
+            Assert.AreEqual(0f, CoverRules.DamageAfterCover(ProjectileMode.Direct, 14f, true));
+            Assert.AreEqual(14f, CoverRules.DamageAfterCover(ProjectileMode.Direct, 14f, false));
+            Assert.AreEqual(14f, CoverRules.DamageAfterCover(ProjectileMode.Arc, 14f, true));
+        }
+
+        [Test]
+        public void ArcLandsOnTarget()
+        {
+            Ballistics.LaunchVelocity(0f, 1.6f, 0f, 10f, 0f, 5f, 1.2f, Ballistics.Gravity, out float vx, out float vy, out float vz);
+            float t = 1.2f;
+            Assert.AreEqual(10f, Ballistics.PositionAt(0f, vx, Ballistics.Gravity, t, false), 1e-3f);
+            Assert.AreEqual(5f, Ballistics.PositionAt(0f, vz, Ballistics.Gravity, t, false), 1e-3f);
+            Assert.AreEqual(0f, Ballistics.PositionAt(1.6f, vy, Ballistics.Gravity, t, true), 1e-3f);
+            Assert.That(Ballistics.FlightTime(3f, 15f), Is.InRange(1.0f, 1.5f));
+            Assert.That(Ballistics.FlightTime(40f, 15f), Is.InRange(1.0f, 1.5f));
+        }
+
+        [Test]
+        public void AreaDamage_FallsOffAndStopsAtRadius()
+        {
+            Assert.AreEqual(40f, AreaDamage.At(0f, 3f, 40f));
+            Assert.AreEqual(10f, AreaDamage.At(3f - 1e-4f, 3f, 40f), 0.1f);
+            Assert.AreEqual(0f, AreaDamage.At(3f, 3f, 40f));
+            Assert.Greater(AreaDamage.At(1f, 3f, 40f), AreaDamage.At(2f, 3f, 40f));
+        }
+
+        [Test]
+        public void Types_SpitterMixedExplosiveHasRadius_DropsMapToLootTables()
+        {
+            var sp = ZombieCatalog.Get(ZombieIds.Spitter); var ex = ZombieCatalog.Get(ZombieIds.Explosive);
+            Assert.AreEqual("mixed", sp.projectile); Assert.Greater(ex.explosionRadius, 0f); Assert.Greater(ex.explosionDamage, 0f);
+            foreach (var z in ZombieCatalog.Defaults()) CollectionAssert.Contains(LootRules.Zombies, z.dropKind, z.id);
+            CollectionAssert.AreEquivalent(LootRules.Zombies, ZombieIds.DropKinds);
+            var fast = ZombieCatalog.Get(ZombieIds.Runner); var tank = ZombieCatalog.Get(ZombieIds.Tank); var c = ZombieCatalog.Get(ZombieIds.Common);
+            Assert.Greater(fast.speed, c.speed * 1.8f); Assert.Less(fast.maxHealth, c.maxHealth);
+            Assert.Less(tank.speed, c.speed); Assert.Greater(tank.resistance, 0.2f); Assert.Greater(tank.maxHealth, 3 * c.maxHealth);
+        }
+    }
+}

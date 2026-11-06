@@ -67,8 +67,10 @@ namespace SevenDays.Procedural
         public string dropKind = "common";   // tabla de drops (LootRules.Zombies)
         // explosivo
         public float explosionRadius = 0f, explosionDamage = 0f;
-        // lanzador: "none" | "direct" (línea recta, la frena la cobertura) | "arc" (cae sobre el jugador, ignora la cobertura frontal)
+        // lanzador: "none" | "direct" (línea recta, la frena la cobertura) | "arc" (cae sobre el jugador, ignora la cobertura frontal) | "mixed" (directo, y en arco si el jugador se cubre)
         public string projectile = "none";
+        public float flankAfterSeconds = 4f;   // segundos del jugador en cobertura tras los que el lanzador busca un ángulo lateral
+        public string projectileKind = "debris"; // debris | rod | acid | grenade (solo cambia el aspecto)
         public float projectileDamage = 0f, projectileSpeed = 14f, projectileCooldown = 3.5f, preferredRange = 12f, areaRadius = 1.2f;
         public bool isBoss;
         public BossData boss = new BossData();
@@ -97,7 +99,7 @@ namespace SevenDays.Procedural
             list.Add(new ZombieTypeData { id = ZombieIds.Armored, displayName = "Blindado", maxHealth = 160f, speed = 1.9f, attackDamage = 18f, color = new[] { 0.45f, 0.45f, 0.5f }, dropKind = "brute", resistance = 0.1f, stunResistance = 0.3f,
                 zones = new ZoneMultipliers { head = 2.5f, torso = 0.35f, arms = 0.5f, legs = 0.6f } }); // el casco no protege: la cabeza sigue vulnerable
             list.Add(new ZombieTypeData { id = ZombieIds.Spitter, displayName = "Lanzador", maxHealth = 80f, speed = 2.0f, attackDamage = 8f, attackRange = 1.4f, color = new[] { 0.5f, 0.6f, 0.25f }, dropKind = "spitter",
-                projectile = "direct", projectileDamage = 14f, projectileSpeed = 15f, projectileCooldown = 3.2f, preferredRange = 12f, areaRadius = 1.3f });
+                projectile = "mixed", projectileDamage = 14f, projectileSpeed = 15f, projectileCooldown = 3.2f, preferredRange = 12f, areaRadius = 1.3f });
             list.Add(new ZombieTypeData { id = ZombieIds.Explosive, displayName = "Explosivo", maxHealth = 70f, speed = 3.0f, attackDamage = 10f, color = new[] { 0.7f, 0.35f, 0.15f }, dropKind = "runner",
                 explosionRadius = 3.2f, explosionDamage = 42f });
 
@@ -150,6 +152,13 @@ namespace SevenDays.Procedural
         }
     }
 
+    /// <summary>Archivo de tipos de zombie (Resources/Zombies/zombies.json y el esquema zod de docs/ZOMBIES.md).</summary>
+    [Serializable]
+    public class ZombieFile
+    {
+        public List<ZombieTypeData> types = new List<ZombieTypeData>();
+    }
+
     public class ZombieValidation
     {
         public readonly List<string> Errors = new List<string>();
@@ -160,7 +169,8 @@ namespace SevenDays.Procedural
     public static class ZombieValidator
     {
         private static readonly string[] AbilityIds = { "charge", "slam", "throw", "summon", "shockwave", "summon_wave" };
-        private static readonly string[] Projectiles = { "none", "direct", "arc" };
+        private static readonly string[] ProjectileKinds = { "debris", "rod", "acid", "grenade" };
+        private static readonly string[] Projectiles = { "none", "direct", "arc", "mixed" };
 
         public static ZombieValidation Validate(IList<ZombieTypeData> types)
         {
@@ -183,7 +193,8 @@ namespace SevenDays.Procedural
                     v.Errors.Add(n + "multiplicadores de zona inválidos");
                 if (Array.IndexOf(ZombieIds.DropKinds, z.dropKind) < 0) v.Errors.Add(n + "dropKind desconocido '" + z.dropKind + "'");
                 if (Array.IndexOf(Projectiles, z.projectile) < 0) v.Errors.Add(n + "projectile desconocido '" + z.projectile + "'");
-                if (z.projectile != "none" && (z.projectileDamage < 0f || z.projectileCooldown < 0.5f)) v.Errors.Add(n + "proyectil con daño o cooldown inválido");
+                if (z.projectile != "none" && (z.projectileDamage < 0f || z.projectileCooldown < 0.5f || z.projectileSpeed < 2f || z.preferredRange < 3f || z.flankAfterSeconds < 0.5f)) v.Errors.Add(n + "proyectil con daño, velocidad, rango, flanqueo o cooldown inválido");
+                if (Array.IndexOf(ProjectileKinds, z.projectileKind) < 0) v.Errors.Add(n + "projectileKind desconocido '" + z.projectileKind + "'");
                 if (z.explosionRadius < 0f || z.explosionRadius > 12f || z.explosionDamage < 0f) v.Errors.Add(n + "explosión inválida");
                 if (z.color == null || z.color.Length != 3) v.Errors.Add(n + "color debe tener 3 valores");
                 if (z.isBoss) ValidateBoss(z, v, n);
