@@ -36,11 +36,22 @@ namespace SevenDays.Procedural
         public const string Tire = "tire";
         public const string Bag = "bag";
         public const string SignBroken = "sign_broken";
+        public const string SignStop = "sign_stop";
+        public const string SignYield = "sign_yield";
+        public const string SignSpeed = "sign_speed";
+        public const string SignNoTurn = "sign_no_turn";
+        public const string SignHazard = "sign_hazard";
+        public const string SignGeneric = "sign_generic";
 
-        public static readonly string[] All = { TreeDead, Bush, Grass, CarWreck, PoleFallen, Tire, Bag, SignBroken };
+        public static readonly string[] SignTypes = { SignStop, SignYield, SignSpeed, SignNoTurn, SignHazard, SignGeneric };
+        public static readonly string[] SignStates = { "", "upright", "tilted", "bent", "fallen", "pole_only", "hanging" };
+
+        public static bool IsSign(string type) => Array.IndexOf(SignTypes, type) >= 0;
+
+        public static readonly string[] All = { TreeDead, Bush, Grass, CarWreck, PoleFallen, Tire, Bag, SignBroken, SignStop, SignYield, SignSpeed, SignNoTurn, SignHazard, SignGeneric };
 
         /// <summary>Piezas grandes: bloquean el paso del jugador y del NavMesh. La hierba, bolsas y neumáticos no.</summary>
-        public static bool IsObstacle(string type) => type == TreeDead || type == CarWreck || type == PoleFallen;
+        public static bool IsObstacle(string type) => type == TreeDead || type == CarWreck || type == PoleFallen; // (una señal caída es un obstáculo pequeño: se decide por su estado)
 
         public static int VariantCount(string type)
         {
@@ -51,6 +62,7 @@ namespace SevenDays.Procedural
                 case Grass: return 2;   // verde / seca
                 case CarWreck: return 3;
                 case Bag: return 3;
+                case SignStop: case SignYield: case SignSpeed: case SignNoTurn: case SignHazard: case SignGeneric: return SignGenerator.Variants;
                 default: return 1;
             }
         }
@@ -101,6 +113,7 @@ namespace SevenDays.Procedural
             if (Math.Abs(e.x) > MaxAbsCoordinate || Math.Abs(e.z) > MaxAbsCoordinate) return "fuera del mapa";
             if (e.scale < MinScale || e.scale > MaxScale) return "escala fuera de rango";
             if (e.variant < 0 || e.variant >= PropTypes.VariantCount(e.type)) return "variante fuera de rango";
+            if (PropTypes.IsSign(e.type) && Array.IndexOf(PropTypes.SignStates, e.state ?? "") < 0) return "estado de señal desconocido '" + e.state + "'";
             return null;
         }
 

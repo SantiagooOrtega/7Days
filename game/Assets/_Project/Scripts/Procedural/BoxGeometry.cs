@@ -13,6 +13,8 @@ namespace SevenDays.Procedural
         public readonly List<int> Triangles = new List<int>();
         /// <summary>Cantidad de vértices que pertenecen a las 6 caras principales (van primero).</summary>
         public int FaceVertexCount;
+        /// <summary>Si es >= 0: los primeros N índices de Triangles forman el submesh 0 y el resto el submesh 1 (placa de señal: frente / dorso y cantos).</summary>
+        public int SubmeshSplit = -1;
     }
 
     /// <summary>
