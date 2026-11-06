@@ -93,6 +93,43 @@ namespace SevenDays.Tests
         }
 
         [Test]
+        public void Campfires_ArePlacedAmongRubble_FarFromTheStreetAndFromEachOther()
+        {
+            var camps = Of(Make(), PropTypes.Campfire).ToList();
+            Assert.GreaterOrEqual(camps.Count, 3, "fogatas entre los escombros");
+            Assert.LessOrEqual(camps.Count, new VegetationParams().MaxFires);
+            foreach (var c in camps)
+            {
+                Assert.GreaterOrEqual(Math.Abs(c.x), 5f, "fuera de la calle");
+                foreach (var z in Zones) Assert.IsFalse(z.Contains(c.x, c.z, 0f), "dentro de una zona ocupada");
+            }
+            for (int i = 0; i < camps.Count; i++) for (int j = i + 1; j < camps.Count; j++)
+                Assert.GreaterOrEqual(Math.Sqrt(Math.Pow(camps[i].x - camps[j].x, 2) + Math.Pow(camps[i].z - camps[j].z, 2)), 6.9, "fogatas encimadas");
+        }
+
+        [Test]
+        public void SomeCars_AreBurning_ButNotAll_AndTheStateIsValidated()
+        {
+            var l = Make();
+            var cars = Of(l, PropTypes.CarWreck).ToList();
+            Assert.Greater(cars.Count(c => c.state == "burning"), 0, "algún coche incendiado");
+            Assert.LessOrEqual(cars.Count(c => c.state == "burning"), new VegetationParams().BaseBurningCars);
+            Assert.AreEqual(0, PropLayoutValidator.Validate(l).Errors.Count);
+            var bad = new PropLayoutData { items = new[] { new PropEntry { type = PropTypes.CarWreck, x = 8, z = 5, scale = 1, state = "inundado" } } };
+            Assert.AreEqual(1, PropLayoutValidator.Validate(bad).Errors.Count);
+        }
+
+        [Test]
+        public void FireCount_NeverExceedsTheCap_EvenAtHighDensity()
+        {
+            var l = Make(10f);
+            var p = new VegetationParams();
+            int fires = Of(l, PropTypes.Campfire).Count() + Of(l, PropTypes.CarWreck).Count(c => c.state == "burning");
+            Assert.LessOrEqual(Of(l, PropTypes.Campfire).Count(), p.MaxFires);
+            Assert.LessOrEqual(fires, p.MaxFires * 2);
+        }
+
+        [Test]
         public void Validator_RejectsBadEntries_AndReportsWhy()
         {
             var layout = new PropLayoutData

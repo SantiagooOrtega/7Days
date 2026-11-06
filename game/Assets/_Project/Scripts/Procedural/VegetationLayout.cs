@@ -33,6 +33,8 @@ namespace SevenDays.Procedural
         public int MaxTrees = 90, MaxBushes = 60, MaxGrass = 260, MaxProps = 48;
         public int BaseTrees = 64, BaseBushes = 34, BaseGrass = 170;
         public int BaseCars = 4, BasePoles = 3, BaseTires = 12, BaseBags = 14, BaseSigns = 3;
+        /// <summary>Fogatas entre escombros y coches incendiados (de los coches que haya). Tope duro MaxFires.</summary>
+        public int BaseCampfires = 5, BaseBurningCars = 2, MaxFires = 12;
     }
 
     /// <summary>
@@ -144,6 +146,28 @@ namespace SevenDays.Procedural
                     carSpots.Add((x, z));
                     float yaw = (F() < 0.5f ? 0f : 180f) + (F() - 0.5f) * 50f; // más o menos paralelos a la calle
                     items.Add(Make(PropTypes.CarWreck, x, z, yaw, 1f, rng.Next(3)));
+                    break;
+                }
+            }
+
+            // ---- Coches incendiados: los primeros coches arden
+            int burning = Math.Min((int)Math.Round(p.BaseBurningCars * d), p.MaxFires);
+            foreach (var e in items) { if (burning <= 0) break; if (e.type == PropTypes.CarWreck) { e.state = "burning"; burning--; } }
+
+            // ---- Fogatas entre los escombros: junto a coberturas y contenedores (borde de las zonas ocupadas), lejos de la calle y entre sí
+            var camps = new List<(float x, float z)>();
+            int campTarget = Math.Max(0, Math.Min((int)Math.Round(p.BaseCampfires * d), p.MaxFires));
+            for (int i = 0; i < campTarget && circles.Count > 0; i++)
+            {
+                for (int attempt = 0; attempt < 50; attempt++)
+                {
+                    var c = circles[rng.Next(circles.Count)];
+                    double ang = F() * Math.PI * 2; float r = c.C + 1.3f + F() * 1.0f;
+                    float x = c.A + (float)Math.Cos(ang) * r, z = c.B + (float)Math.Sin(ang) * r;
+                    if (Math.Abs(x) > p.HalfSize - 2f || Math.Abs(z) > p.HalfSize - 2f || InStreet(p, x, z)) continue;
+                    if (!Free(x, z, 0.6f, exclusions) || TooClose(camps, x, z, 7f)) continue;
+                    camps.Add((x, z));
+                    items.Add(Make(PropTypes.Campfire, x, z, F() * 360f, 1f, 0));
                     break;
                 }
             }
