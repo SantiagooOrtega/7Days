@@ -10,8 +10,11 @@ namespace SevenDays.Look
         public float Density = 1f;
         public int Seed = 3;
         public int MaxTrees = 90;
-        public int MaxBushes = 60;
-        public int MaxGrass = 260;
+        public int MaxBushes = 100;
+        public int MaxGrass = 420;
+        /// <summary>Arbustos y hierba extra agrupados alrededor de la casa (multiplicados por Density).</summary>
+        public int HouseBushes = 12;
+        public int HouseGrass = 50;
         public int MaxProps = 48;
         /// <summary>Los árboles proyectan sombra (más realista, algo más de GPU). Arbustos y hierba nunca.</summary>
         public bool TreeShadows = false;
