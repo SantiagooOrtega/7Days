@@ -142,7 +142,28 @@ namespace SevenDays.Procedural
                 m.Tangents.Add(new V3(1, 0, 0));
                 m.Uvs.Add(new V2(v.X * 0.5f + 0.5f, v.Z * 0.5f + 0.5f));
             }
+            int triStart = m.Triangles.Count;
             foreach (int i in ico.tris) m.Triangles.Add(s + i);
+            SmoothNormals(m, s, triStart); // el bulto está aplastado y deformado: las normales salen de la geometría, no de la esfera
+        }
+
+        /// <summary>Normales suaves de los vértices desde "firstVertex" y los triángulos desde "firstTriIndex" (suma de normales frontales ponderadas por área).</summary>
+        private static void SmoothNormals(MeshData m, int firstVertex, int firstTriIndex)
+        {
+            var acc = new V3[m.Positions.Count - firstVertex];
+            for (int i = firstTriIndex; i < m.Triangles.Count; i += 3)
+            {
+                int a = m.Triangles[i], b = m.Triangles[i + 1], c = m.Triangles[i + 2];
+                V3 n = Winding.FrontNormal(m.Positions[a], m.Positions[b], m.Positions[c]); // su longitud = 2 x área
+                acc[a - firstVertex] = acc[a - firstVertex] + n;
+                acc[b - firstVertex] = acc[b - firstVertex] + n;
+                acc[c - firstVertex] = acc[c - firstVertex] + n;
+            }
+            for (int v = 0; v < acc.Length; v++)
+            {
+                V3 n = acc[v].Normalized;
+                if (n.Length > 0.5f) m.Normals[firstVertex + v] = n;
+            }
         }
 
         private static (List<V3> verts, List<int> tris) _ico;
@@ -186,7 +207,7 @@ namespace SevenDays.Procedural
                 {
                     V3 p0 = v[t3[0]], p1 = v[t3[1]], p2 = v[t3[2]];
                     V3 centroid = (p0 + p1 + p2) * (1f / 3f);
-                    bool inward = V3.Dot(-V3.Cross(p1 - p0, p2 - p0), centroid) < 0f;
+                    bool inward = !Winding.FacesOutward(p0, p1, p2, centroid);
                     tris.Add(t3[0]); tris.Add(inward ? t3[2] : t3[1]); tris.Add(inward ? t3[1] : t3[2]);
                 }
             }
@@ -195,7 +216,11 @@ namespace SevenDays.Procedural
         }
 
         // ------------------------------------------------------------------ Hierba seca
-        /// <summary>Mata de hierba: hojas finas de doble cara (visibles desde cualquier lado) en un radio de ~0.25 m.</summary>
+        /// <summary>
+        /// Mata de hierba: hojas finas de UNA sola capa en un radio de ~0.25 m. Se dibuja con material de doble cara (Cull Off) y
+        /// todas las normales apuntan hacia arriba: así las dos caras reciben la misma luz suave sin duplicar triángulos
+        /// (URP Lit no voltea las normales de las caras traseras).
+        /// </summary>
         public static MeshData GrassPatch(int seed)
         {
             var rng = new Random(seed * 13 + 3);
@@ -210,24 +235,24 @@ namespace SevenDays.Procedural
                 V3 right = new V3((float)Math.Cos(yaw), 0f, (float)Math.Sin(yaw));
                 V3 fwd = new V3(-(float)Math.Sin(yaw), 0f, (float)Math.Cos(yaw));
                 V3 l = b - right * (w * 0.5f), r = b + right * (w * 0.5f), tip = b + new V3(0, h, 0) + fwd * lean;
-                AddDoubleSidedTri(m, l, r, tip);
+                AddSingleLayerTri(m, l, r, tip);
             }
             return m;
         }
 
-        private static void AddDoubleSidedTri(MeshData m, V3 a, V3 b, V3 c)
+        private static void AddSingleLayerTri(MeshData m, V3 a, V3 b, V3 c)
         {
             int s = m.Positions.Count;
-            foreach (var p in new[] { a, b, c, a, b, c })
+            foreach (var p in new[] { a, b, c })
             {
                 m.Positions.Add(p);
-                m.Normals.Add(new V3(0, 1, 0)); // hacia arriba: iluminación suave tipo vegetación
+                m.Normals.Add(new V3(0, 1, 0)); // arriba para las dos caras
                 m.Tangents.Add(new V3(1, 0, 0));
                 m.Uvs.Add(new V2(0, 0));
             }
-            // delantera: se ve en sentido horario desde el lado al que mira (a,b,c invertida según orientación)
-            m.Triangles.Add(s); m.Triangles.Add(s + 2); m.Triangles.Add(s + 1);
-            m.Triangles.Add(s + 3); m.Triangles.Add(s + 4); m.Triangles.Add(s + 5);
+            // con Cull Off el orden da igual, pero se deja con el frente hacia arriba por si se usa con Cull Back
+            if (Winding.FacesOutward(a, b, c, new V3(0, 1, 0))) { m.Triangles.Add(s); m.Triangles.Add(s + 1); m.Triangles.Add(s + 2); }
+            else { m.Triangles.Add(s); m.Triangles.Add(s + 2); m.Triangles.Add(s + 1); }
         }
 
         // ------------------------------------------------------------------ Neumático y bolsa
@@ -281,7 +306,7 @@ namespace SevenDays.Procedural
         {
             V3 p0 = m.Positions[a], p1 = m.Positions[b], p2 = m.Positions[c];
             V3 n = (m.Normals[a] + m.Normals[b] + m.Normals[c]).Normalized;
-            bool flip = V3.Dot(-V3.Cross(p1 - p0, p2 - p0), n) < 0f;
+            bool flip = !Winding.FacesOutward(p0, p1, p2, n);
             m.Triangles.Add(a); m.Triangles.Add(flip ? c : b); m.Triangles.Add(flip ? b : c);
         }
 
