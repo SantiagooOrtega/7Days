@@ -9,7 +9,14 @@ namespace SevenDays.Tests
         private const int N = 96; // pequeño: las pruebas deben ser rápidas
 
         private static readonly SurfaceKind[] AllKinds =
-            { SurfaceKind.Asphalt, SurfaceKind.Wall, SurfaceKind.Concrete, SurfaceKind.Metal };
+        {
+            SurfaceKind.Asphalt, SurfaceKind.Wall, SurfaceKind.Concrete, SurfaceKind.Metal,
+            SurfaceKind.Container, SurfaceKind.CrateWood, SurfaceKind.Cardboard,
+        };
+
+        // Las cajas son una cara completa (no se repiten), así que no se les exige encajar en los bordes.
+        private static readonly SurfaceKind[] TileableKinds =
+            { SurfaceKind.Asphalt, SurfaceKind.Wall, SurfaceKind.Concrete, SurfaceKind.Metal, SurfaceKind.Container };
 
         private static SurfaceParams Params() => new SurfaceParams { Size = N };
 
@@ -49,7 +56,7 @@ namespace SevenDays.Tests
             for (int i = 0; i < r.Diffuse.Length; i += 4)
                 luma += (0.299 * r.Diffuse[i] + 0.587 * r.Diffuse[i + 1] + 0.114 * r.Diffuse[i + 2]) / 255.0;
             luma /= N * N;
-            Assert.That(luma, Is.InRange(0.08, 0.45), "luminancia media de " + kind);
+            Assert.That(luma, Is.InRange(0.08, 0.62), "luminancia media de " + kind);
         }
 
         [TestCaseSource(nameof(AllKinds))]
@@ -64,7 +71,7 @@ namespace SevenDays.Tests
             }
         }
 
-        [TestCaseSource(nameof(AllKinds))]
+        [TestCaseSource(nameof(TileableKinds))]
         public void Texture_TilesWithoutVisibleSeam(SurfaceKind kind)
         {
             var r = SurfaceGenerator.Generate(kind, Params());
@@ -81,6 +88,40 @@ namespace SevenDays.Tests
             }
             // La diferencia en la costura debe ser del mismo orden que entre píxeles vecinos normales.
             Assert.LessOrEqual(seam, inner * 3.0 + 1.0, "costura visible en " + kind);
+        }
+
+        [TestCaseSource(nameof(AllKinds))]
+        public void GlobalBrightness_RaisesAndLowersTheWholePalette(SurfaceKind kind)
+        {
+            var dim = Params();
+            dim.Brightness = 0.8f;
+            var bright = Params();
+            bright.Brightness = 1.6f;
+            Assert.Greater(MeanLuma(SurfaceGenerator.Generate(kind, bright)), MeanLuma(SurfaceGenerator.Generate(kind, dim)) * 1.5);
+        }
+
+        [Test]
+        public void DefaultPalette_IsBrighterThanTheOldDarkOne_ButStillWorn()
+        {
+            // Pedido: subir el brillo base sin perder el aspecto sucio. Asfalto sigue siendo lo más oscuro y nada es casi blanco.
+            double asphalt = MeanLuma(SurfaceGenerator.Generate(SurfaceKind.Asphalt, Params()));
+            double concrete = MeanLuma(SurfaceGenerator.Generate(SurfaceKind.Concrete, Params()));
+            Assert.Greater(asphalt, 0.16, "el asfalto ya no es casi negro");
+            Assert.Less(asphalt, concrete, "el asfalto sigue más oscuro que el concreto");
+            Assert.Less(concrete, 0.6, "el concreto no queda lavado");
+        }
+
+        [Test]
+        public void CrateWood_HasStructure_NotAFlatColor()
+        {
+            var r = SurfaceGenerator.Generate(SurfaceKind.CrateWood, Params());
+            double mean = MeanLuma(r), var = 0;
+            for (int i = 0; i < r.Diffuse.Length; i += 4)
+            {
+                double l = (0.299 * r.Diffuse[i] + 0.587 * r.Diffuse[i + 1] + 0.114 * r.Diffuse[i + 2]) / 255.0;
+                var += (l - mean) * (l - mean);
+            }
+            Assert.Greater(Math.Sqrt(var / (N * N)), 0.05, "tablas, marco y riostra deben crear contraste");
         }
 
         [Test]
@@ -123,6 +164,14 @@ namespace SevenDays.Tests
             var b = a.Clone();
             b.RustAmount = 0.99f;
             Assert.AreNotEqual(a.RustAmount, b.RustAmount);
+        }
+
+        private static double MeanLuma(SurfaceResult r)
+        {
+            double luma = 0;
+            for (int i = 0; i < r.Diffuse.Length; i += 4)
+                luma += (0.299 * r.Diffuse[i] + 0.587 * r.Diffuse[i + 1] + 0.114 * r.Diffuse[i + 2]) / 255.0;
+            return luma / (N * N);
         }
 
         private static double Diff(byte[] d, int pa, int pb)

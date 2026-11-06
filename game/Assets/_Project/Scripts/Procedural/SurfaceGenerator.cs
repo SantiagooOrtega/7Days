@@ -2,7 +2,7 @@ using System;
 
 namespace SevenDays.Procedural
 {
-    public enum SurfaceKind { Asphalt, Wall, Concrete, Metal }
+    public enum SurfaceKind { Asphalt, Wall, Concrete, Metal, Container, CrateWood, Cardboard }
 
     public readonly struct Rgb
     {
@@ -29,6 +29,14 @@ namespace SevenDays.Procedural
         public Rgb MetalPaint = new Rgb(0.32f, 0.34f, 0.35f);
         public Rgb Rust = new Rgb(0.45f, 0.21f, 0.09f);
         public Rgb RustDark = new Rgb(0.22f, 0.09f, 0.05f);
+        /// <summary>Pintura base (neutra) del contenedor; el color final lo da el tinte de cada contenedor.</summary>
+        public Rgb ContainerPaint = new Rgb(0.42f, 0.42f, 0.43f);
+        public Rgb WoodA = new Rgb(0.34f, 0.23f, 0.14f);
+        public Rgb WoodB = new Rgb(0.50f, 0.36f, 0.22f);
+        public Rgb CardboardColor = new Rgb(0.58f, 0.46f, 0.30f);
+
+        /// <summary>Multiplicador de brillo de toda la paleta (1 = valores base). No borra la suciedad: solo sube/baja el conjunto.</summary>
+        public float Brightness = 1.3f;
 
         /// <summary>0..1: cuánto metal está oxidado.</summary>
         public float RustAmount = 0.5f;
@@ -52,7 +60,7 @@ namespace SevenDays.Procedural
     }
 
     /// <summary>Genera mapa de color y de normales de una superficie. Es determinista (misma semilla = mismo resultado) y no usa UnityEngine.</summary>
-    public static class SurfaceGenerator
+    public static partial class SurfaceGenerator
     {
         private delegate void PixelFn(float u, float v, SurfaceParams p, out Rgb color, out float height);
 
@@ -64,6 +72,9 @@ namespace SevenDays.Procedural
                 SurfaceKind.Asphalt => Asphalt,
                 SurfaceKind.Wall => Wall,
                 SurfaceKind.Concrete => Concrete,
+                SurfaceKind.Container => Container,
+                SurfaceKind.CrateWood => CrateWood,
+                SurfaceKind.Cardboard => Cardboard,
                 _ => Metal,
             };
 
@@ -74,6 +85,7 @@ namespace SevenDays.Procedural
                 for (int x = 0; x < n; x++)
                 {
                     fn((x + 0.5f) / n, (y + 0.5f) / n, p, out Rgb c, out float h);
+                    c = c.Scale(p.Brightness);
                     int i = y * n + x;
                     height[i] = h;
                     diffuse[i * 4] = ToByte(c.R);

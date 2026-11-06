@@ -19,6 +19,9 @@ namespace SevenDays.Look
         public const string Wall = "wall";
         public const string Concrete = "concrete";
         public const string Metal = "metal";
+        public const string Container = "container";
+        public const string CrateWood = "crate";
+        public const string Cardboard = "cardboard";
 
         private struct Entry { public Texture2D Diffuse, Normal; }
 
@@ -26,6 +29,7 @@ namespace SevenDays.Look
         private static readonly (string name, SurfaceKind kind)[] Kinds =
         {
             (Floor, SurfaceKind.Asphalt), (Wall, SurfaceKind.Wall), (Concrete, SurfaceKind.Concrete), (Metal, SurfaceKind.Metal),
+            (Container, SurfaceKind.Container), (CrateWood, SurfaceKind.CrateWood), (Cardboard, SurfaceKind.Cardboard),
         };
 
         public static bool Ready { get; private set; }
