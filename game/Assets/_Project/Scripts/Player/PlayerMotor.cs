@@ -32,6 +32,8 @@ namespace SevenDays.Player
         /// <summary>Velocidad horizontal real (m/s) y relativa a correr (0..1).</summary>
         public float HorizontalSpeed => new Vector2(_horizontalVelocity.x, _horizontalVelocity.z).magnitude;
         public float Speed01 => Mathf.Clamp01(HorizontalSpeed / sprintSpeed);
+        /// <summary>Movimiento local respecto al cuerpo (x lateral, y adelante), suavizado: entrada del blend tree de 8 direcciones (strafe). 1 = correr.</summary>
+        public Vector2 LocalMove { get; private set; }
 
         private CharacterController _cc;
         private PlayerCamera _camera;
@@ -169,6 +171,8 @@ namespace SevenDays.Player
                 Quaternion target = Quaternion.LookRotation(face, Vector3.up);
                 transform.rotation = Quaternion.Slerp(transform.rotation, target, 1f - Mathf.Exp(-turnSpeed * dt));
             }
+            Vector3 local = transform.InverseTransformDirection(_horizontalVelocity) / sprintSpeed;
+            LocalMove = Vector2.Lerp(LocalMove, new Vector2(local.x, local.z), 1f - Mathf.Exp(-10f * dt));
         }
 
         /// <summary>Mide la caída y, al aterrizar, lanza el impulso de cámara y aplica el daño si la altura supera el umbral.</summary>
