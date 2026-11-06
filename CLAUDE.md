@@ -5,7 +5,8 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 
 ## Estructura
 - `backend/` Node.js + TypeScript + Express + Prisma (SQLite en dev, esquema compatible con PostgreSQL).
-- `game/` Proyecto Unity (C#). Se crea en la Fase 2. Código propio en `Assets/_Project/`.
+- `game/` Proyecto Unity (C#). Código propio en `Assets/_Project/`. Cobertura: componente `CoverObject`.
+- Documentos de diseño de la Fase 3 en la raíz: `ZOMBIE_LANZADOR.md`, `MAPA_SPAWN_LOOT.md`, `MAPAS_EN_BD.md`.
 - `docs/` Plan, arquitectura, API, guía de demo.
 
 ## Reglas de trabajo
@@ -21,8 +22,11 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 - **Rendimiento:** objetivo 60 FPS en la Mac del usuario. Object pooling (balas, zombies), límite configurable de zombies simultáneos, LODs, GPU instancing, perfil de calidad "Demo".
 - **Assets:** solo gratuitos (Mixamo, Kenney, Quaternius, Polyhaven, Asset Store gratis) o primitivas. Lista y pasos de importación en `docs/ASSETS.md`.
 - **IA director:** C# puro, función pura `rendimiento -> parámetros`, explicable y con tests EditMode. Sin internet.
-- **IA generativa:** Gemini solo desde el backend. Se genera por lotes, se valida con zod y se guarda en `generated_content`. Unity solo lee lo guardado. Fallback procedural local si Gemini falla o no hay cuota. Verificar modelo y límites en la doc actual de Gemini antes de la Fase 5.
-- **BD:** tablas `users`, `refresh_tokens`, `game_progress`, `rankings`, `generated_content`. JSON como texto y enums como string validado con zod (portabilidad SQLite/PostgreSQL).
+- **IA generativa (cambiado):** Gemini es opcional y OFFLINE: solo desde el script manual `npm run content:generate` (zombies, armas, personajes y opcionalmente 2-3 mapas extra), con zod, reintentos/backoff y límite de peticiones; se guarda en la BD con origen `gemini`. El backend nunca llama a Gemini durante el juego ni hay endpoints que generen en caliente. Sin ejecutar el script, el juego usa el seed. Fallback procedural local. Verificar modelo y límites en la doc actual de Gemini antes de la Fase 5.
+- **Mapas en BD (nuevo):** tabla `maps` (nombre, JSON, dificultad base, origen `seed|gemini|procedural`) con seed de 3-5 mapas; `GET /api/maps` y `/api/maps/:id` con JWT. Unity los cachea al iniciar sesión y, si el backend no responde, usa el mapa de pruebas local. El director elige y configura el mapa del día. Ver `MAPAS_EN_BD.md`.
+- **Cobertura útil (nuevo):** zombie lanzador con proyectil directo (lo bloquea `CoverObject`), proyectil en arco (ignora cobertura frontal, con marca en el suelo) y flanqueo si el jugador se queda en cobertura más de N segundos. Jefe del día 5 destruye coberturas. Ver `ZOMBIE_LANZADOR.md`.
+- **Spawn, casa y loot (nuevo):** spawns por los bordes (mín. 8, validados: distancia, sin línea de visión, sobre NavMesh), casa central con 3+ entradas, loot con pooling y munición inicial escasa. Ver `MAPA_SPAWN_LOOT.md`. El mapa de pruebas actual se mantiene como respaldo.
+- **BD:** tablas `users`, `refresh_tokens`, `game_progress`, `rankings`, `generated_content` (tipos `zombie|weapon|character|boss`) y, desde la Fase 3, `maps`. JSON como texto y enums como string validado con zod (portabilidad SQLite/PostgreSQL).
 - **Auth:** contraseñas con argon2 (bcrypt si no compila). JWT de acceso de 15 min; refresh token aleatorio, guardado con hash SHA-256, rotativo; reutilizar uno viejo revoca la sesión. zod, rate limiting en login, helmet, CORS.
 - **Unity:** token solo en memoria (clase estática `Session`). Contenido como JSON cargado en ejecución con `JsonUtility`; ScriptableObjects solo para valores por defecto.
 
