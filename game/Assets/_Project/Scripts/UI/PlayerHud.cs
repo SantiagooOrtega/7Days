@@ -79,7 +79,7 @@ namespace SevenDays.UI
             // FPS (objetivo: 60)
             Color prevColor = GUI.color;
             GUI.color = _fps >= 55f ? new Color(0.5f, 1f, 0.5f) : (_fps >= 40f ? Color.yellow : new Color(1f, 0.4f, 0.4f));
-            GUI.Label(new Rect(w - 330, 20, 300, 40), "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)",
+            GUI.Label(new Rect(w - 520, 20, 490, 40), "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)  ambiente " + (3 - SevenDays.Look.AtmosphereBudget.Level) + "/3",
                 new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
             GUI.color = prevColor;
 
@@ -92,7 +92,7 @@ namespace SevenDays.UI
                     "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar\n" +
                     "Clic der. apuntar · Clic izq. disparar · R recargar · 1/2/rueda cambiar arma\n" +
                     "C cobertura (cerca de cajas y muros bajos) · A/D deslizarse · Esc soltar ratón\n" +
-                    "T/Y: probar daño/curación · F1 ocultar ayuda", _label);
+                    "T/Y: probar daño/curación · F3 recortar ambiente · F1 ocultar ayuda", _label);
             }
 
             if (_health.IsDead)
