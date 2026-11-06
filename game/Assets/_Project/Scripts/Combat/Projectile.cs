@@ -16,6 +16,9 @@ namespace SevenDays.Combat
         private float _lineLength, _lineWidth;
         private static ObjectPool<GroundMarker> _linePool;
 
+        /// <summary>Tras recargar la escena los objetos del pool están destruidos: se descarta el pool entero.</summary>
+        public static void ResetPools() { _pool = null; _linePool = null; }
+
         public static GroundMarker Show(Vector3 center, float radius, float seconds)
         {
             _pool ??= new ObjectPool<GroundMarker>(Create, m => m.gameObject.SetActive(true), m => m.gameObject.SetActive(false), m => Destroy(m.gameObject), false, 8, 24);
@@ -85,6 +88,8 @@ namespace SevenDays.Combat
         private Transform _player;
         private Health _playerHealth;
         private bool _destroysCover;
+
+        public static void ResetPool() { _pool = null; }
 
         public static void Launch(ProjectileMode mode, Vector3 from, Vector3 target, float speed, float damage, float areaRadius, string kind, Transform player, Health playerHealth,
             GameObject source, bool destroysCover = false, float scale = 1f)
