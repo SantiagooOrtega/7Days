@@ -155,3 +155,52 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class ZombieStateMachineTests
+    {
+        private static ZombieStateMachine Make() => new ZombieStateMachine { AggroRange = 18f, AttackRange = 1.5f };
+
+        [Test]
+        public void PatrolsUntilItSeesThePlayer_ThenChasesThenAttacks()
+        {
+            var m = Make();
+            Assert.AreEqual(ZombieState.Patrol, m.Tick(0.1f, 30f, true, false, false));
+            Assert.AreEqual(ZombieState.Patrol, m.Tick(0.1f, 10f, false, false, false), "sin visión no persigue");
+            Assert.AreEqual(ZombieState.Chase, m.Tick(0.1f, 10f, true, false, false));
+            Assert.AreEqual(ZombieState.Attack, m.Tick(0.1f, 1.2f, true, false, false));
+        }
+
+        [Test]
+        public void HasHysteresis()
+        {
+            var m = Make();
+            m.Tick(0.1f, 10f, true, false, false);
+            Assert.AreEqual(ZombieState.Chase, m.Tick(0.1f, 20f, false, false, false), "a 20 m aún no lo pierde (18 x 1.4 = 25.2)");
+            Assert.AreEqual(ZombieState.Patrol, m.Tick(0.1f, 26f, false, false, false));
+            m.Tick(0.1f, 5f, true, false, false); m.Tick(0.1f, 1f, true, false, false);
+            Assert.AreEqual(ZombieState.Attack, m.Tick(0.1f, 1.7f, true, false, false), "1.7 < 1.5 x 1.25: sigue atacando");
+            Assert.AreEqual(ZombieState.Chase, m.Tick(0.1f, 2.0f, true, false, false));
+        }
+
+        [Test]
+        public void StunAndDeathOverrideAndRecover()
+        {
+            var m = Make();
+            m.Tick(0.1f, 5f, true, false, false);
+            Assert.AreEqual(ZombieState.Stunned, m.Tick(0.1f, 5f, true, true, false));
+            Assert.AreEqual(ZombieState.Chase, m.Tick(0.1f, 5f, true, false, false));
+            Assert.AreEqual(ZombieState.Dead, m.Tick(0.1f, 5f, true, false, true));
+            Assert.AreEqual(ZombieState.Dead, m.Tick(0.1f, 0.5f, true, true, true));
+        }
+
+        [Test]
+        public void ReturnsToPatrolWhenPlayerDies()
+        {
+            var m = Make();
+            m.Tick(0.1f, 5f, true, false, false);
+            Assert.AreEqual(ZombieState.Patrol, m.Tick(0.1f, 5f, true, false, false, playerDead: true));
+        }
+    }
+}
