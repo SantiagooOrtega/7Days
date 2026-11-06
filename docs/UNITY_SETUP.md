@@ -548,3 +548,8 @@ Pasos manuales:
 1. Ponte tras un muro alto con **C** y apunta: el cuerpo se inclina hacia el hombro activo y la cámara se desplaza a ese lado (~40 cm). **Q** cambia el lado del lean. Tras una caja baja, al apuntar te asomas por encima y la inclinación es pequeña.
 2. Apunta y muévete en 8 direcciones (strafe): el cuerpo sigue mirando a la cámara y el arma sigue el pitch de la mira (arriba/abajo).
 3. Menú **7Days > Crear Animator del jugador**: aparece `Assets/_Project/Animation/PlayerAnimator.controller`. Ábrelo: 16 parámetros, blend tree `Locomotion` con 10 ranuras vacías, estados Crouch/Cover/Airborne/Vault y capa UpperBody (Fire/Reload/Melee). Cómo conectar los modelos: `docs/ANIMATION_HOOKS.md`.
+
+### Bloque 6: panel de ajuste en vivo (F5)
+1. Play y pulsa **F5**: se suelta el ratón y aparece a la izquierda el panel con los valores en vivo (retroceso, dispersión, bloom, FOV, apuntado, sensibilidad, hombro, lean, cámara de carrera, fatiga, pasos por segundo).
+2. Mueve los deslizadores del arma actual (retroceso, dispersión, FOV de apuntado, sway...), de la cámara y de la cámara de carrera: el cambio se nota al momento (los límites duros siguen aplicándose). Los cambios duran hasta salir de Play: copia los números que te gusten al ScriptableObject del arma o a `CameraRunSettings`.
+3. **F5** otra vez cierra el panel y vuelve a capturar el ratón. Hacer clic sobre el panel no captura el ratón.
