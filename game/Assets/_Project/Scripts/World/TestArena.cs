@@ -74,6 +74,7 @@ namespace SevenDays.World
             _fire.SetPlayer(player);
             _lootManager.SetPlayer(player);
             LootBuilder.Build(_levelRoot, _lootLayout, _lootManager);
+            _lootManager.PlaceGuaranteedWeapons();   // 3 armas visibles: casa, zona expuesta y caja intermedia
             Debug.Log(_lootManager.Describe()); // contenedores buscables y objetos sueltos (necesita la casa y los coches ya construidos)
             Physics.SyncTransforms();
             ColliderAudit.Run(_levelRoot);

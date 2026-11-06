@@ -60,6 +60,13 @@ namespace SevenDays.World.Loot
             if (_glint != null) _glint.enabled = false;
         }
 
+        /// <summary>Se marca como vacío sin buscar (su botín ya está en el suelo).</summary>
+        public void MarkEmpty()
+        {
+            Searched = true;
+            if (_glint != null) _glint.enabled = false;
+        }
+
         /// <summary>El director lo rellena (respawn lento entre días).</summary>
         public void Refill()
         {
