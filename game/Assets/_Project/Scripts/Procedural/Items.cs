@@ -32,6 +32,12 @@ namespace SevenDays.Procedural
         public bool automatic;
         public float[] color = { 0.15f, 0.15f, 0.17f }; // aspecto del arma
         public float length = 0.7f, thickness = 0.09f;
+        // --- daño diferenciado
+        public float minDamageFraction = 1f;   // fracción del daño que queda a distancia máxima (1 = sin falloff)
+        public float falloffStart = 0.4f;      // fracción del alcance donde empieza a caer el daño
+        public float armorPenetration = 0f;    // 0..1: cuánta de la resistencia del enemigo ignora
+        public float headshotMultiplier = 1f;  // multiplica el multiplicador de cabeza del zombie (propio de cada arma)
+        public float knockback = 1f;           // empuje al enemigo: la escopeta empuja más que la pistola
 
         public bool IsMelee => kind == WeaponKind.Melee;
         public bool UsesAmmo => ammoType != AmmoType.None;
@@ -50,6 +56,11 @@ namespace SevenDays.Procedural
             reloadTime = Math.Max(0.2f, reloadTime);
             spreadHip = Math.Max(0f, spreadHip); spreadAim = Math.Max(0f, Math.Min(spreadAim, spreadHip));
             range = Math.Max(1f, range);
+            minDamageFraction = Math.Max(0f, Math.Min(1f, minDamageFraction));
+            falloffStart = Math.Max(0f, Math.Min(0.95f, falloffStart));
+            armorPenetration = Math.Max(0f, Math.Min(1f, armorPenetration));
+            headshotMultiplier = Math.Max(0.1f, headshotMultiplier);
+            knockback = Math.Max(0f, knockback);
             if (IsMelee) ammoType = AmmoType.None;
             else if (ammoType == AmmoType.None) ammoType = AmmoType.Pistol;
         }
@@ -61,26 +72,26 @@ namespace SevenDays.Procedural
         public static List<WeaponData> Defaults() => new List<WeaponData>
         {
             new WeaponData { id = "pistol", displayName = "Pistola", kind = WeaponKind.Pistol, rarity = Rarity.Common, ammoType = AmmoType.Pistol,
-                damage = 28f, roundsPerMinute = 330f, magazineSize = 12, reloadTime = 1.3f, recoil = 1.2f, spreadHip = 1.4f, spreadAim = 0.25f, range = 70f, automatic = false,
-                color = new[] { 0.3f, 0.3f, 0.32f }, length = 0.35f },
+                damage = 18f, roundsPerMinute = 330f, magazineSize = 12, reloadTime = 1.3f, recoil = 1.2f, spreadHip = 1.4f, spreadAim = 0.25f, range = 70f, automatic = false,
+                color = new[] { 0.3f, 0.3f, 0.32f }, length = 0.35f, minDamageFraction = 0.5f, falloffStart = 0.4f, armorPenetration = 0.1f, headshotMultiplier = 1.2f, knockback = 0.8f },
             new WeaponData { id = "revolver", displayName = "Revólver", kind = WeaponKind.Revolver, rarity = Rarity.Uncommon, ammoType = AmmoType.Pistol,
-                damage = 62f, roundsPerMinute = 130f, magazineSize = 6, reloadTime = 2.6f, recoil = 2.6f, spreadHip = 1.8f, spreadAim = 0.2f, range = 90f, automatic = false,
-                color = new[] { 0.36f, 0.33f, 0.3f }, length = 0.4f },
+                damage = 48f, roundsPerMinute = 130f, magazineSize = 6, reloadTime = 2.6f, recoil = 2.6f, spreadHip = 1.8f, spreadAim = 0.2f, range = 90f, automatic = false,
+                color = new[] { 0.36f, 0.33f, 0.3f }, length = 0.4f, minDamageFraction = 0.6f, falloffStart = 0.45f, armorPenetration = 0.35f, headshotMultiplier = 1.3f, knockback = 1.4f },
             new WeaponData { id = "smg", displayName = "Subfusil", kind = WeaponKind.Smg, rarity = Rarity.Uncommon, ammoType = AmmoType.Pistol,
-                damage = 14f, roundsPerMinute = 850f, magazineSize = 30, reloadTime = 2.0f, recoil = 0.5f, spreadHip = 3.2f, spreadAim = 1.2f, range = 55f, automatic = true,
-                color = new[] { 0.2f, 0.21f, 0.23f }, length = 0.55f },
+                damage = 12f, roundsPerMinute = 850f, magazineSize = 30, reloadTime = 2.0f, recoil = 0.5f, spreadHip = 3.2f, spreadAim = 1.2f, range = 55f, automatic = true,
+                color = new[] { 0.2f, 0.21f, 0.23f }, length = 0.55f, minDamageFraction = 0.35f, falloffStart = 0.3f, armorPenetration = 0f, headshotMultiplier = 1.0f, knockback = 0.5f },
             new WeaponData { id = "shotgun", displayName = "Escopeta", kind = WeaponKind.Shotgun, rarity = Rarity.Uncommon, ammoType = AmmoType.Shotgun,
-                damage = 11f, pellets = 8, roundsPerMinute = 70f, magazineSize = 6, reloadTime = 3.2f, recoil = 3.4f, spreadHip = 6f, spreadAim = 4.2f, range = 28f, automatic = false,
-                color = new[] { 0.28f, 0.2f, 0.14f }, length = 0.85f, thickness = 0.11f },
+                damage = 12f, pellets = 8, roundsPerMinute = 70f, magazineSize = 6, reloadTime = 3.2f, recoil = 3.4f, spreadHip = 6f, spreadAim = 4.2f, range = 28f, automatic = false,
+                color = new[] { 0.28f, 0.2f, 0.14f }, length = 0.85f, thickness = 0.11f, minDamageFraction = 0.12f, falloffStart = 0.15f, armorPenetration = 0.05f, headshotMultiplier = 1.0f, knockback = 2.4f },
             new WeaponData { id = "assault_rifle", displayName = "Fusil de asalto", kind = WeaponKind.AssaultRifle, rarity = Rarity.Rare, ammoType = AmmoType.Rifle,
-                damage = 24f, roundsPerMinute = 600f, magazineSize = 30, reloadTime = 2.2f, recoil = 0.8f, spreadHip = 2.2f, spreadAim = 0.4f, range = 120f, automatic = true,
-                color = new[] { 0.15f, 0.15f, 0.17f }, length = 0.8f },
+                damage = 36f, roundsPerMinute = 520f, magazineSize = 30, reloadTime = 2.2f, recoil = 0.8f, spreadHip = 2.2f, spreadAim = 0.4f, range = 120f, automatic = true,
+                color = new[] { 0.15f, 0.15f, 0.17f }, length = 0.8f, minDamageFraction = 0.55f, falloffStart = 0.35f, armorPenetration = 0.3f, headshotMultiplier = 1.0f, knockback = 1.0f },
             new WeaponData { id = "sniper", displayName = "Rifle de francotirador", kind = WeaponKind.SniperRifle, rarity = Rarity.Epic, ammoType = AmmoType.Rifle,
-                damage = 125f, roundsPerMinute = 55f, magazineSize = 5, reloadTime = 3.0f, recoil = 3.8f, spreadHip = 3.5f, spreadAim = 0.03f, range = 260f, automatic = false,
-                color = new[] { 0.12f, 0.16f, 0.13f }, length = 1.1f, thickness = 0.08f },
+                damage = 90f, roundsPerMinute = 55f, magazineSize = 5, reloadTime = 3.0f, recoil = 3.8f, spreadHip = 3.5f, spreadAim = 0.03f, range = 260f, automatic = false,
+                color = new[] { 0.12f, 0.16f, 0.13f }, length = 1.1f, thickness = 0.08f, minDamageFraction = 1f, falloffStart = 0.5f, armorPenetration = 0.8f, headshotMultiplier = 1.3f, knockback = 2.0f },
             new WeaponData { id = "bar", displayName = "Barra metálica", kind = WeaponKind.Melee, rarity = Rarity.Common, ammoType = AmmoType.None,
                 damage = 38f, roundsPerMinute = 100f, magazineSize = 0, reloadTime = 0.2f, recoil = 1.0f, spreadHip = 0f, spreadAim = 0f, range = 2.1f, automatic = false,
-                color = new[] { 0.42f, 0.4f, 0.38f }, length = 0.9f, thickness = 0.05f },
+                color = new[] { 0.42f, 0.4f, 0.38f }, length = 0.9f, thickness = 0.05f, minDamageFraction = 1f, armorPenetration = 0.2f, headshotMultiplier = 1.0f, knockback = 1.8f },
         };
 
         public static WeaponData Get(string id)
