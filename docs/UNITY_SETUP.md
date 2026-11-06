@@ -139,3 +139,14 @@ Todo está en `LookSettings.Atmosphere` (`Scripts/Look/AtmosphereSettings.cs`). 
 
 ### Si haces un Build
 Las partículas usan el shader `Universal Render Pipeline/Particles/Unlit`, que se busca por nombre. Para que entre en un Build: Edit > Project Settings > Graphics > Always Included Shaders, aumenta el tamaño de la lista y arrastra ese shader (está en el paquete Universal RP > Shaders > Particles). En el editor (Play) no hace falta.
+
+---
+
+## Bloque 3: vegetación y relleno
+- **Árboles muertos** (tronco + ramas, 4 variantes, escala y giro aleatorios), **arbustos secos**, **hierba y maleza**, **neumáticos y bolsas**: mallas generadas por código y dibujadas con **GPU instancing** (una llamada de dibujo por tipo), sin sombras (los árboles pueden tenerlas con `Vegetation.TreeShadows`).
+- **Anillo de árboles** fuera de los muros (85% de los árboles) que tapa el borde del mapa; arbustos y hierba en la base de los muros, los bordes de la calle y alrededor de coberturas.
+- **Props de abandono**: coches destrozados (cobertura), postes caídos, carteles rotos.
+- **Textura de corteza** procedural (`bark`), con la misma regla de prioridad: un `bark_diff.jpg` en `Resources/Look` la reemplaza.
+- **Parámetros** en `LookSettings.Vegetation`: `Density`, `MaxTrees`, `MaxBushes`, `MaxGrass`, `MaxProps`, `TreeShadows`, `Seed`. Si bajas de 55 FPS, baja primero `Density`.
+- **Por JSON** (posición, tipo, escala): ver `docs/PROP_LAYOUT.md`. Menú **7Days > Exportar layout de props (JSON)**.
+- **NavMesh**: árboles y arbustos grandes son obstáculos; la hierba no.
