@@ -66,6 +66,9 @@ namespace SevenDays.Player
         private PlayerImpulse _impulse;
         private WeaponHandling _handling;
         private Health _health;
+        private PlayerCover _cover;
+        private float _damageScale = 1f, _nextNoLineWarning;
+        private readonly RaycastHit[] _hits = new RaycastHit[16];
         private Transform _weaponPose;
         private Transform _muzzle;
         private GameObject _gunVisual;
@@ -81,6 +84,7 @@ namespace SevenDays.Player
             _camera = cam;
             _motor = motor;
             _health = GetComponent<Health>();
+            _cover = GetComponent<PlayerCover>();
             _impulse = GetComponent<PlayerImpulse>();
             _handling = GetComponent<WeaponHandling>();
             _weaponPose = weaponPose;
@@ -125,6 +129,11 @@ namespace SevenDays.Player
             bool wants = FireControl.Wants(Time.time, GameInput.FirePressed, GameInput.FireHeld);
             if (!wants || Reloading || _motor.IsVaulting) return; // no se ataca mientras se salta un obstáculo
 
+            // En cobertura: apuntando te asomas y solo disparas cuando ya estás fuera (el clic se recuerda 0.15 s); sin apuntar, o sin sitio para asomarse, es fuego a ciegas.
+            bool inCover = _cover != null && _cover.Active && !data.IsMelee;
+            bool blind = inCover && (!_camera.Aiming || _cover.PopDir == PopDirection.None);
+            if (inCover && !blind && !_cover.Exposure.CanShootAimed) return;
+
             if (data.IsMelee) { Swing(); FireControl.Commit(Time.time, data); }
             else if (Current.Magazine <= 0)
             {
@@ -133,7 +142,7 @@ namespace SevenDays.Player
                 StartReload();
                 if (!Reloading && _inventory.Reserve(Current) <= 0) HudMessages.Add("Sin munición de " + PlayerInventory.AmmoName(data.ammoType), new Color(1f, 0.6f, 0.4f));
             }
-            else { Fire(); FireControl.Commit(Time.time, data); }
+            else if (Fire(blind)) FireControl.Commit(Time.time, data);
         }
 
         // ------------------------------------------------------------------ cambio de arma
@@ -172,6 +181,7 @@ namespace SevenDays.Player
         {
             var w = Current;
             if (Reloading || w.Data.IsMelee || w.Magazine >= w.Data.magazineSize || _inventory.Reserve(w) <= 0) return;
+            if (_cover != null && !_cover.CanReload) { HudMessages.Add("Cúbrete para recargar", new Color(1f, 0.85f, 0.5f), 1.2f); return; }   // solo se recarga cubierto
             Reloading = true;
             _reloadEnd = Time.time + w.Data.reloadTime;
             FireControl.Cancel(Time.time);
@@ -189,30 +199,49 @@ namespace SevenDays.Player
         }
 
         // ------------------------------------------------------------------ disparo
-        private void Fire()
+        private bool Fire(bool blind)
         {
             var w = Current;
             var data = w.Data;
+            bool inCover = _cover != null && _cover.Active;
+
+            // El rayo sale de la cámara en la dirección de la MIRA (rotación lógica con retroceso, sin el balanceo de la carrera ni las sacudidas). El origen es el punto
+            // de la línea de mira más cercano al pecho del jugador (en tercera persona, para no chocar con objetos entre la cámara y el jugador) o, en cobertura, a la
+            // posición ASOMADA (cabeza/arma por encima o por el lado, o la mano sobre el borde a ciegas). Si queda dentro de la cobertura se saca por su borde libre.
+            Transform cam = _camera.Cam.transform;
+            Vector3 forward = _camera.AimForward;
+            Quaternion aimRot = _camera.AimRotation;
+            Vector3 body = inCover ? _cover.PopBase(blind) : transform.position + Vector3.up * _camera.PivotHeight;
+            Vector3 origin = cam.position + forward * (_camera.FirstPersonBlend > 0.5f ? 0f : Mathf.Max(0f, Vector3.Dot(body - cam.position, forward)));
+            if (inCover)
+            {
+                if (blind) origin = body;      // a ciegas el arma sale de la mano sobre el borde, no de la línea de la cámara
+                _cover.ResolveOrigin(ref origin, blind);
+            }
+
+            // sin línea de tiro libre (un muro pegado al cañón que NO es la propia cobertura): no se dispara y se avisa sin gastar munición
+            if (inCover && !HasFreeLine(origin, forward))
+            {
+                if (Time.time >= _nextNoLineWarning) { _nextNoLineWarning = Time.time + 1.2f; HudMessages.Add("Sin línea de tiro", new Color(1f, 0.75f, 0.45f), 1.2f); }
+                FireControl.Cancel(Time.time, 0.25f);
+                return false;
+            }
+
             w.Magazine--;
             Stats.ShotsFired++;
             ShotFired?.Invoke();
             _motor.FaceCameraUntil = Time.time + 0.5f;
-
-            // El rayo sale de la cámara en la dirección de la MIRA (rotación lógica con retroceso, sin el balanceo de la carrera ni las sacudidas), adelantado hasta la
-            // altura del pecho del jugador en tercera persona para no chocar con objetos entre la cámara y el jugador.
-            Transform cam = _camera.Cam.transform;
-            Vector3 forward = _camera.AimForward;
-            Quaternion aimRot = _camera.AimRotation;
-            Vector3 chest = transform.position + Vector3.up * _camera.PivotHeight;
-            Vector3 origin = cam.position + forward * (_camera.FirstPersonBlend > 0.5f ? 0f : Mathf.Max(0f, Vector3.Dot(chest - cam.position, forward)));
-            float spread = CurrentSpread;
+            var cfg = _camera.Settings;
+            float spread = blind ? BlindFire.Spread(data, cfg) : CurrentSpread;
+            _damageScale = blind ? cfg.blindDamageMultiplier : 1f;
+            bool ignoreOwn = inCover && (blind || _cover.Exposure.Value > 0.2f);
 
             bool anyHit = false;
             for (int p = 0; p < data.pellets; p++)
             {
                 Vector3 dir = SpreadDirection(aimRot, spread);
                 Vector3 end = origin + dir * data.range;
-                if (Physics.Raycast(origin, dir, out RaycastHit hit, data.range, ShotMask, QueryTriggerInteraction.Ignore))
+                if (CastShot(origin, dir, data.range, ignoreOwn, out RaycastHit hit))
                 {
                     end = hit.point;
                     if (ApplyHit(hit, dir, data, Vector3.Distance(origin, hit.point), false)) anyHit = true;
@@ -220,7 +249,9 @@ namespace SevenDays.Player
                 }
                 if (p < 3) _fx.SpawnTracer(_muzzle.position, end);
             }
+            _damageScale = 1f;
             if (anyHit) { Stats.ShotsHit++; HitConfirmed?.Invoke(); }
+            if (blind) _cover.OnBlindShot();
 
             // retroceso (cámara, recuperable), dispersión, kickback visual, casquillo, sonido y sacudida
             _camera.AddRecoil(data, _motor.IsCrouched);
@@ -233,6 +264,41 @@ namespace SevenDays.Player
             _impulse?.Fire(data.fireShake);
             _flash.Flash();
             _inventory.NotifyChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// Rayo del disparo. Con "ignoreOwn" (asomado y pegado a su cobertura) se salta SOLO el collider de la propia cobertura y solo en el primer metro: cualquier otra
+        /// cobertura o muro, y la propia cobertura más lejos, siguen deteniendo la bala.
+        /// </summary>
+        private bool CastShot(Vector3 origin, Vector3 dir, float range, bool ignoreOwn, out RaycastHit best)
+        {
+            if (!ignoreOwn || _cover == null || _cover.CoverCollider == null)
+                return Physics.Raycast(origin, dir, out best, range, ShotMask, QueryTriggerInteraction.Ignore);
+            var own = _cover.CoverCollider;
+            int n = Physics.RaycastNonAlloc(origin, dir, _hits, range, ShotMask, QueryTriggerInteraction.Ignore);
+            best = default; float bestD = float.MaxValue; bool found = false;
+            for (int i = 0; i < n; i++)
+            {
+                var h = _hits[i];
+                if (h.collider == own && h.distance < 1f) continue;
+                if (h.distance < bestD) { bestD = h.distance; best = h; found = true; }
+            }
+            return found;
+        }
+
+        /// <summary>¿Hay espacio delante del cañón? Los hitboxes de zombis cuentan como libre (son el objetivo) y la propia cobertura se ignora.</summary>
+        private bool HasFreeLine(Vector3 origin, Vector3 dir)
+        {
+            var own = _cover != null ? _cover.CoverCollider : null;
+            int n = Physics.RaycastNonAlloc(origin, dir, _hits, 0.7f, ShotMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                var c = _hits[i].collider;
+                if (c == own || c.gameObject.layer == HitboxLayer.Index) continue;
+                return false;
+            }
+            return true;
         }
 
         private System.Collections.IEnumerator PlayAction(bool pump)
@@ -270,7 +336,7 @@ namespace SevenDays.Player
             var health = (target as Hitbox)?.Owner;
             var info = new DamageInfo
             {
-                Amount = data.damage * DamageModel.Falloff(data, distance),
+                Amount = data.damage * DamageModel.Falloff(data, distance) * (melee ? 1f : _damageScale),
                 Point = hit.point, Direction = dir, Source = gameObject,
                 ArmorPenetration = data.armorPenetration, HeadshotMultiplier = data.headshotMultiplier, Knockback = data.knockback,
                 Distance = distance, WeaponId = data.id,
