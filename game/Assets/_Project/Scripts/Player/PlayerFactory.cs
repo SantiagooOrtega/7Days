@@ -43,8 +43,11 @@ namespace SevenDays.Player
             var holder = new GameObject("WeaponHolder").transform;
             holder.SetParent(root.transform, false);
             holder.localPosition = new Vector3(0.3f, 1.2f, 0.25f);
+            // pose del arma (sway, bob, kickback, centrado al apuntar): hija del soporte, que sube y baja al agacharse
+            var pose = new GameObject("WeaponPose").transform;
+            pose.SetParent(holder, false);
             var muzzle = new GameObject("Muzzle").transform;
-            muzzle.SetParent(holder, false);
+            muzzle.SetParent(pose, false);
 
             var health = root.AddComponent<Health>();
             health.SetMax(100f);
@@ -58,6 +61,8 @@ namespace SevenDays.Player
             var interact = root.AddComponent<PlayerInteract>();
             var vault = root.AddComponent<PlayerVault>();
             var impulse = root.AddComponent<PlayerImpulse>();
+            var handling = root.AddComponent<WeaponHandling>();
+            root.AddComponent<PlayerAudio>();
             root.AddComponent<PlayerAnimatorHooks>(); // parámetros del Animator listos para la Fase 3
             movement = movement ?? new MovementSettings();
 
@@ -67,7 +72,8 @@ namespace SevenDays.Player
             motor.Initialize(playerCamera, cover, visual, holder, movement, vault, impulse);
             vault.Initialize(movement, cover, motor, impulse);
             inventory.Initialize(loot);
-            shooting.Initialize(playerCamera, motor, holder, muzzle, inventory);
+            shooting.Initialize(playerCamera, motor, pose, muzzle, inventory);
+            handling.Initialize(pose, visual, playerCamera, motor, shooting);
             healing.Initialize(inventory);
             interact.Initialize(inventory);
 
