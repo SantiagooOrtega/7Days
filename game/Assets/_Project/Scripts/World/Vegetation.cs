@@ -29,9 +29,11 @@ namespace SevenDays.World
                 return fromFile;
             }
             var zones = IndustrialRuins.Exclusions();
+            var hz = HouseIO.FootprintZone(HouseIO.Load(), 0f); // rectángulo de la casa: vegetación extra alrededor
             var veg = VegetationLayout.Generate(new VegetationParams
             {
                 Seed = v.Seed, Density = v.Density, MaxTrees = v.MaxTrees, MaxBushes = v.MaxBushes, MaxGrass = v.MaxGrass, MaxProps = v.MaxProps,
+                HouseBushes = v.HouseBushes, HouseGrass = v.HouseGrass, HouseRect = new[] { hz.A, hz.B, hz.C, hz.D },
             }, zones);
             var signs = SignLayout.Generate(new SignLayoutParams { Seed = look.Signs.Seed, Density = look.Signs.Density, MaxSigns = look.Signs.MaxSigns }, zones);
 
@@ -81,8 +83,10 @@ namespace SevenDays.World
                 if (!groups.TryGetValue(key, out var list)) groups[key] = list = new List<Matrix4x4>();
                 list.Add(Matrix4x4.TRS(pos, rot, Vector3.one * e.scale));
 
-                if (e.type == PropTypes.TreeDead) AddTreeCollider(obstacles, pos, e);
-                else if (e.type == PropTypes.Bush && e.variant == 0 && e.scale >= 1.1f) AddBushCollider(obstacles, pos, e);
+                // la forma del collider la decide el catálogo de sólidos (la misma que verifica la prueba EditMode)
+                var shape = SolidCatalog.ShapeFor(e.type, e.variant, e.scale);
+                if (e.type == PropTypes.TreeDead && shape == ColliderShape.Capsule) AddTreeCollider(obstacles, pos, e);
+                else if (e.type == PropTypes.Bush && shape == ColliderShape.Sphere) AddBushCollider(obstacles, pos, e);
             }
 
             TrafficSigns.Build(root, look, signEntries);

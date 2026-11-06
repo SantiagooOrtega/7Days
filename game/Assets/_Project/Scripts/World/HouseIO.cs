@@ -31,6 +31,16 @@ namespace SevenDays.World
             return HouseLayoutData.Default();
         }
 
+        /// <summary>Puntos alrededor de la casa (a unos 2.5 m de su borde) donde se concentran maleza y manchas.</summary>
+        public static System.Collections.Generic.List<Vector3> PerimeterAnchors(HouseLayoutData l, float margin = 2.5f, float spacing = 3.2f)
+        {
+            var zone = FootprintZone(l, margin);
+            var pts = new System.Collections.Generic.List<Vector3>();
+            for (float x = zone.A; x <= zone.C; x += spacing) { pts.Add(new Vector3(x, 0f, zone.B)); pts.Add(new Vector3(x, 0f, zone.D)); }
+            for (float z = zone.B + spacing; z < zone.D; z += spacing) { pts.Add(new Vector3(zone.A, 0f, z)); pts.Add(new Vector3(zone.C, 0f, z)); }
+            return pts;
+        }
+
         /// <summary>Zona rectangular que ocupa la casa (más un margen), para que la vegetación y los props no se coloquen encima.</summary>
         public static Zone FootprintZone(HouseLayoutData l, float margin = 1.5f)
         {
