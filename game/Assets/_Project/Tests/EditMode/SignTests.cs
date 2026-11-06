@@ -50,13 +50,31 @@ namespace SevenDays.Tests
         }
 
         [TestCaseSource(nameof(AllTypes))]
+        public void Plate_FrontTexture_IsNotMirrored_WhenSeenFromTheFront(SignType t)
+        {
+            // Visto desde +Z (de frente), u debe crecer hacia la derecha de quien mira (-X) y v hacia arriba (+Y)
+            var m = SignGeometry.Plate(t);
+            int ia = m.Triangles[0], ib = m.Triangles[1], ic = m.Triangles[2];
+            V3 p0 = m.Positions[ia], p1 = m.Positions[ib], p2 = m.Positions[ic];
+            V2 u0 = m.Uvs[ia], u1 = m.Uvs[ib], u2 = m.Uvs[ic];
+            // resolver dP/du y dP/dv del triángulo
+            float det = (u1.X - u0.X) * (u2.Y - u0.Y) - (u2.X - u0.X) * (u1.Y - u0.Y);
+            Assert.AreNotEqual(0f, det);
+            V3 T = ((p1 - p0) * (u2.Y - u0.Y) - (p2 - p0) * (u1.Y - u0.Y)) * (1f / det);
+            V3 B = ((p2 - p0) * (u1.X - u0.X) - (p1 - p0) * (u2.X - u0.X)) * (1f / det);
+            Assert.Less(T.X, 0f, "u crece hacia -X (la derecha de quien mira la señal)");
+            Assert.Greater(B.Y, 0f, "v crece hacia arriba");
+            Assert.Less(V3.Dot(V3.Cross(T, B), new V3(0, 0, 1)), 0f, "textura espejada");
+        }
+
+        [TestCaseSource(nameof(AllTypes))]
         public void Plate_Triangles_FaceOutward(SignType t)
         {
             var m = SignGeometry.Plate(t);
             for (int i = 0; i < m.Triangles.Count; i += 3)
             {
                 V3 a = m.Positions[m.Triangles[i]], b = m.Positions[m.Triangles[i + 1]], c = m.Positions[m.Triangles[i + 2]];
-                V3 g = -V3.Cross(b - a, c - a);
+                V3 g = Winding.FrontNormal(a, b, c);
                 Assert.Greater(V3.Dot(g, m.Normals[m.Triangles[i]]), 0f, "triángulo " + i / 3 + " mal orientado");
             }
         }
