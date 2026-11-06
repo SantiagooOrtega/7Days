@@ -86,12 +86,16 @@ namespace SevenDays.Player
             for (int i = Registry.Count - 1; i >= 0; i--)
             {
                 var it = Registry[i];
-                if (it == null || !it.CanInteract) continue;
+                // "== null" sobre una interfaz no detecta objetos de Unity destruidos: hay que preguntar por el UnityEngine.Object
+                if (!IsAlive(it)) { Registry.RemoveAt(i); continue; }
+                if (!it.CanInteract) continue;
                 float d = Vector3.Distance(new Vector3(p.x, 0f, p.z), new Vector3(it.Position.x, 0f, it.Position.z));
                 if (d <= it.Radius && d < bestD) { bestD = d; best = it; }
             }
             return best;
         }
+
+        public static bool IsAlive(IInteractable it) => it != null && (!(it is Object o) || o != null);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Registry.Clear();

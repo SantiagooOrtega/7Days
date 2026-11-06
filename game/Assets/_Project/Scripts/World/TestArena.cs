@@ -73,7 +73,8 @@ namespace SevenDays.World
             _player = player;
             _fire.SetPlayer(player);
             _lootManager.SetPlayer(player);
-            LootBuilder.Build(_levelRoot, _lootLayout, _lootManager); // contenedores buscables y objetos sueltos (necesita la casa y los coches ya construidos)
+            LootBuilder.Build(_levelRoot, _lootLayout, _lootManager);
+            Debug.Log(_lootManager.Describe()); // contenedores buscables y objetos sueltos (necesita la casa y los coches ya construidos)
             Physics.SyncTransforms();
             ColliderAudit.Run(_levelRoot);
 

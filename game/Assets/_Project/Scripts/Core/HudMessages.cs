@@ -19,6 +19,8 @@ namespace SevenDays.Core
             if (Items.Count > 5) Items.RemoveAt(0);
         }
 
+        public static void Clear() => Items.Clear();
+
         private static void Prune() => Items.RemoveAll(m => Time.unscaledTime > m.Until);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

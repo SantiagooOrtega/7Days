@@ -39,6 +39,7 @@ namespace SevenDays.World.Loot
             m.State = new LootDirectorState(layout);
             m._rng = new System.Random(seed);
             m._pool = new ObjectPool<LootPickup>(() => LootPickup.Create(go.transform), null, p => p.Release(), p => { if (p != null) Destroy(p.gameObject); }, false, 16, 64);
+            SceneStatics.ResetAll();   // nada de la partida anterior debe sobrevivir
             Instance = m;
             return m;
         }
@@ -47,6 +48,18 @@ namespace SevenDays.World.Loot
         {
             _player = player.transform;
             _inventory = player.GetComponent<PlayerInventory>();
+        }
+
+        public int ContainerCount => _containers.Count;
+
+        /// <summary>Resumen para la consola al (re)construir el mapa: puntos del layout, contenedores creados y pickups activos.</summary>
+        public string Describe()
+        {
+            int ground = 0, weapons = 0;
+            foreach (var p in Layout.points) if (p.container == "ground") ground++;
+            foreach (var a in _active) if (a != null && a.Item != null && a.Item.kind == "weapon") weapons++;
+            return "[7Days] Loot reconstruido: " + Layout.points.Length + " puntos (" + ground + " en el suelo), " + _containers.Count + " contenedores buscables, "
+                + _active.Count + " pickups activos (" + weapons + " armas). Registro de interacción: " + PlayerInteract.Registry.Count + ".";
         }
 
         public void RegisterContainer(SearchableContainer c) { _containers[c.Point.id] = c; _glints.Add(c); }

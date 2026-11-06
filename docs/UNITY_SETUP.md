@@ -459,3 +459,10 @@ Pasos manuales:
 3. Pégate a una caja con **C** durante unos segundos: "en cobertura" debe subir. Recibe daño de un lanzador y de un común: deben aparecer por separado en "daño recibido".
 4. Pulsa **N** varias veces y luego **V**: al día 1 salen casi todos comunes; al día 7 hay más corredores, tanques, blindados, lanzadores y explosivos, y los zombis tienen más vida (compruébalo con los números de daño). El panel F4 muestra los multiplicadores.
 5. Con una mini oleada (V) pulsada dos o tres veces (16–24 zombis), mira los FPS del HUD: deben seguir en ~60.
+
+### Corrección: MissingReferenceException al reiniciar
+Causa: `PlayerInteract.Registry` (lista estática) conservaba los pickups destruidos al recargar la escena (`[RuntimeInitializeOnLoadMethod]` solo corre al dar Play, no al recargar), y `it == null` sobre una interfaz no detecta objetos destruidos de Unity. Arreglo: `SceneStatics.ResetAll()` (al descargar la escena y al crear el `LootManager`), `PlayerInteract.IsAlive`, `OnDestroy` en los pickups y descarte de los pools estáticos de proyectiles y marcas.
+Pasos manuales:
+1. Play, mata o deja que te maten y pulsa **R** para reiniciar. La Console no debe mostrar ningún `MissingReferenceException`.
+2. Tras cada (re)inicio la Console escribe `[7Days] Loot reconstruido: N puntos (...), M contenedores buscables, K pickups activos...`. Deben salir los mismos números en la primera partida y en cada reinicio.
+3. Busca un contenedor (mantén E) y recoge un objeto tras reiniciar: todo funciona como en la primera partida.

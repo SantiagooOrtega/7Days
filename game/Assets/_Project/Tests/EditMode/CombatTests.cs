@@ -358,3 +358,19 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class StaleListTests
+    {
+        [Test]
+        public void PruneDead_RemovesNullAndDestroyedKeepsLive()
+        {
+            var list = new System.Collections.Generic.List<string> { "a", null, "dead", "b" };
+            int removed = StaleList.PruneDead(list, s => s != "dead");
+            Assert.AreEqual(2, removed);
+            CollectionAssert.AreEqual(new[] { "a", "b" }, list);
+            Assert.AreEqual(0, StaleList.PruneDead(list, s => true));
+        }
+    }
+}

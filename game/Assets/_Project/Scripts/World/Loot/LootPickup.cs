@@ -71,6 +71,8 @@ namespace SevenDays.World.Loot
             PlayerInteract.Registry.Add(this);
         }
 
+        private void OnDestroy() => PlayerInteract.Registry.Remove(this);
+
         public void Release()
         {
             PlayerInteract.Registry.Remove(this);
