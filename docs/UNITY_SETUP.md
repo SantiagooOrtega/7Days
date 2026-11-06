@@ -474,3 +474,12 @@ Pasos manuales:
 3. Un zombi común (primer tipo de **Z**) sí debe entrar por la puerta.
 4. Con el jugador fuera de la casa el tanque te persigue con normalidad. Abre **Window > AI > Navigation** y en `ZombieManager` comprueba que hay dos superficies: una del agente por defecto y otra (GiantNavMesh) con un tipo de agente nuevo; en la segunda, el interior de la casa debe verse sin malla azul.
 5. Si ves el aviso "No se pudo limitar el volumen de la casa..." en la Console, dímelo: significa que esa versión del paquete cambió el campo privado (siguen funcionando el radio y la barrera de seguridad).
+
+### Corrección: zombi explosivo tipo creeper
+Pasos manuales:
+1. Play, **Z** hasta "Explosivo" (sexto tipo). Debe perseguirte y, a ~3 m, detenerse, inflarse y parpadear blanco-rojo con un siseo.
+2. Mecha completa (~1.4 s) a menos de 3.6 m: explosión con bola de fuego, humo, destello de luz y sonido; recibes daño con caída por distancia (hasta 45 en el centro), te empuja y sacude la cámara. Un fuego queda ~3 s.
+3. Aléjate rápido más de ~5.5 m durante la mecha: debe cancelarse (se desinfla, deja de silbar) y volver a perseguirte.
+4. Colócate tras la pared de la casa cuando explote al otro lado: el daño debe ser mucho menor (25 %).
+5. Mátalo de un headshot en plena mecha: explota igual. Dispárale desde lejos con otros zombis a su lado: les hace daño y los empuja.
+6. Una caja ligera cerca del estallido desaparece (como con la carga del bruto).

@@ -57,8 +57,6 @@ namespace SevenDays.Combat
         private Vector3 _flankTarget;
         private float _nextFlank, _nextReposition;
         private int _agentTypeId;
-        private bool _pulseOn;
-        private Material _pulseMat;
 
         public void Build()
         {
@@ -103,7 +101,8 @@ namespace SevenDays.Combat
             Rig.SetHitboxesEnabled(true);
             _sm.Reset(); _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
             _brain = type.projectile != "none" ? SpitterBrain.For(type) : null;
-            _pulseOn = false;
+            _fuse = type.explosionRadius > 0f ? FuseBrain.For(type) : null;
+            _exploded = false; StopHiss();
             FirstHitTime = -1f;
             HeadDestroyed = false; _knock = Vector3.zero; _puddle.gameObject.SetActive(false);
             Rig.HeadPivot.localScale = Vector3.one;
@@ -180,7 +179,7 @@ namespace SevenDays.Combat
             if (BloodFx.Instance != null)
                 BloodFx.Instance.Spray(transform.position + Vector3.up * (Health.KilledByHeadshot ? 1.7f : 1.2f) * Type.scale, Vector3.up + (_player != null ? (transform.position - _player.position).normalized : Vector3.zero), Health.KilledByHeadshot ? 40 : 24);
             _puddle.gameObject.SetActive(true);
-            if (Type.explosionRadius > 0f && _player != null) Explode();
+            if (_fuse != null) { _fuse.ForceDetonate(); Explode(); }   // también explota si lo matan, aunque sea de un headshot en plena mecha
             Rig.SetHitboxesEnabled(false);
             _body.enabled = false;
             if (_useAgent && _agent.enabled) _agent.isStopped = true;
@@ -224,7 +223,8 @@ namespace SevenDays.Combat
             if (_sm.State == ZombieState.Chase) _canSee = _canSee || dist < _sm.AggroRange;
 
             float moveAmount = 0f;
-            if (bossHandled) moveAmount = bossMove;
+            if (_fuse != null && !Health.IsStunned && UpdateFuse(dt, toPlayer, dist)) moveAmount = 0f;
+            else if (bossHandled) moveAmount = bossMove;
             else if (!Health.IsStunned && GiantBlockedByBuilding(out _house)) moveAmount = Siege(dt, toPlayer, dist);
             else if (_brain != null && _sm.State == ZombieState.Chase) moveAmount = Ranged(dt, toPlayer, dist); // el lanzador mantiene distancia y lanza
             else switch (_sm.State)
@@ -234,7 +234,6 @@ namespace SevenDays.Combat
                 case ZombieState.Attack: Attack(dt, toPlayer, dist); break;
                 case ZombieState.Stunned: Stop(); break;
             }
-            if (Type.explosionRadius > 0f) Pulse(dist);
             if (!Type.canEnterBuildings) EnforceBuildingGuard();
 
             _walkPhase += dt * (3f + moveAmount * 4f);
@@ -364,40 +363,121 @@ namespace SevenDays.Combat
             return best;
         }
 
-        // ------------------------------------------------------------------ explosivo
-        private void Pulse(float dist)
+        // ------------------------------------------------------------------ explosivo (tipo creeper)
+        private FuseBrain _fuse;
+        private bool _exploded;
+        private AudioSource _hiss;
+        private Material _fuseRed, _fuseWhite;
+
+        /// <summary>Avanza la mecha. Devuelve true mientras arde (el zombi se queda quieto, se infla y parpadea).</summary>
+        private bool UpdateFuse(float dt, Vector3 toPlayer, float dist)
         {
-            bool on = dist < 9f && ((int)(Time.time * 4f) & 1) == 0;
-            if (on == _pulseOn) return;
-            _pulseOn = on;
-            _pulseMat ??= Prim.GetEmissive(new Color(1f, 0.45f, 0.1f), 3f);
-            Rig.SetFlash(on, _pulseMat);
+            var ev = _fuse.Tick(dt, dist);
+            switch (ev)
+            {
+                case FuseEvent.Started: StartHiss(); break;
+                case FuseEvent.Cancelled: StopHiss(); RestoreFuseVisuals(); break;
+                case FuseEvent.Detonate: Detonate(); return false;
+            }
+            if (_fuse.State != FuseState.Burning) return false;
+            Stop();
+            FacePlayer(toPlayer, dt);
+            Rig.Visual.localScale = Vector3.one * Type.scale * _fuse.Inflate(Time.time);
+            _fuseRed ??= Prim.GetEmissive(new Color(1f, 0.1f, 0.05f), 2.5f);
+            _fuseWhite ??= Prim.GetEmissive(Color.white, 3.5f);
+            Rig.SetFlash(true, _fuse.FlashWhite(Time.time) ? _fuseWhite : _fuseRed);
+            _flashUntil = 0f;   // el parpadeo de la mecha manda sobre el destello de impacto
+            return true;
         }
+
+        private void StartHiss()
+        {
+            if (_hiss == null)
+            {
+                _hiss = gameObject.AddComponent<AudioSource>();
+                _hiss.spatialBlend = 1f; _hiss.maxDistance = 40f; _hiss.rolloffMode = AudioRolloffMode.Linear; _hiss.loop = true; _hiss.playOnAwake = false;
+            }
+            if (BlastFx.HissClip == null) return;
+            _hiss.clip = BlastFx.HissClip; _hiss.pitch = 0.9f; _hiss.Play();
+        }
+
+        private void StopHiss() { if (_hiss != null && _hiss.isPlaying) _hiss.Stop(); }
+
+        private void RestoreFuseVisuals()
+        {
+            Rig.Visual.localScale = Vector3.one * Type.scale;
+            Rig.SetColor(BodyColor);
+        }
+
+        /// <summary>Termina la mecha: explota y muere. Si ya explotó (lo mataron antes) no hace nada.</summary>
+        private void Detonate()
+        {
+            Explode();
+            if (!Health.IsDead) Health.TakeDamage(new DamageInfo { Amount = Health.Max * 10f, Point = transform.position, Source = gameObject });
+        }
+
+        private static readonly Collider[] BlastBuf = new Collider[48];
 
         private void Explode()
         {
-            Vector3 center = transform.position + Vector3.up * 0.9f;
-            if (BloodFx.Instance != null)
+            if (_exploded) return;
+            _exploded = true;
+            StopHiss();
+            Vector3 center = transform.position + Vector3.up * (0.9f * Type.scale);
+            float radius = Type.explosionRadius;
+            int solid = ~((1 << 2) | HitboxLayer.Mask);
+            BlastFx.Instance?.Explode(center, radius);
+
+            // jugador: daño con caída por distancia (una pared sólida entre los dos deja pasar solo una fracción), empuje y sacudida de cámara
+            if (_player != null && _playerHealth != null && !_playerHealth.IsDead)
             {
-                BloodFx.Instance.Spray(center, Vector3.up, 40, new Color(1f, 0.55f, 0.15f), 1.8f);
-                BloodFx.Instance.Spray(center, Vector3.up, 25, new Color(0.25f, 0.2f, 0.18f), 1.2f);
+                Vector3 chest = _player.position + Vector3.up * 1.1f;
+                float d = Vector3.Distance(center, chest);
+                bool blocked = d > 0.5f && Physics.Linecast(center, chest, solid, QueryTriggerInteraction.Ignore);
+                float dmg = Blast.Damage(d, radius, Type.explosionDamage * DamageMultiplier, blocked, Type.explosionBlockedFactor);
+                Vector3 away = _player.position - center; away.y = 0f;
+                away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.back;
+                if (dmg > 0f) _playerHealth.TakeDamage(new DamageInfo { Amount = dmg, Point = center, Direction = away, Source = gameObject });
+                float push = Blast.Knockback(d, radius, Type.explosionKnockback, blocked);
+                if (push > 0f) { var motor = _player.GetComponent<SevenDays.Player.PlayerMotor>(); if (motor != null) motor.Push(away * push + Vector3.up * push * 0.25f); }
+                var imp = _player.GetComponent<SevenDays.Player.PlayerImpulse>();
+                if (imp != null) imp.Shake(1.1f * Mathf.Clamp01(1f - d / (radius * 4f)));
             }
-            if (_playerHealth != null && !_playerHealth.IsDead)
-            {
-                float d = Vector3.Distance(center, _player.position + Vector3.up);
-                float dmg = AreaDamage.At(d, Type.explosionRadius, Type.explosionDamage * DamageMultiplier);
-                if (dmg > 0f) _playerHealth.TakeDamage(new DamageInfo { Amount = dmg, Point = center, Direction = (_player.position - center).normalized, Source = gameObject });
-            }
+
+            // otros zombis (en cadena) y coberturas ligeras
             var mgr = ZombieManager.Instance;
-            if (mgr == null) return;
-            foreach (var other in mgr.All)
+            if (mgr != null)
+                foreach (var other in mgr.All)
+                {
+                    if (other == this || !other.InUse || other.Health.IsDead) continue;
+                    Vector3 oc = other.transform.position + Vector3.up;
+                    float d = Vector3.Distance(center, oc);
+                    if (d >= radius) continue;
+                    bool blocked = Physics.Linecast(center, oc, solid, QueryTriggerInteraction.Ignore);
+                    float dmg = Blast.Damage(d, radius, Type.explosionDamage, blocked, Type.explosionBlockedFactor);
+                    Vector3 dir = other.transform.position - center; dir.y = 0f;
+                    other.Push(dir.normalized * Blast.Knockback(d, radius, Type.explosionKnockback, blocked));
+                    if (dmg > 0f) other.Health.TakeDamage(new DamageInfo { Amount = dmg, Point = center, Direction = dir.normalized, Source = gameObject });
+                }
+            if (Type.explosionBreaksCover)
             {
-                if (other == this || !other.InUse || other.Health.IsDead) continue;
-                float d = Vector3.Distance(center, other.transform.position + Vector3.up);
-                float dmg = AreaDamage.At(d, Type.explosionRadius, Type.explosionDamage);
-                if (dmg > 0f) other.Health.TakeDamage(new DamageInfo { Amount = dmg, Point = center, Direction = (other.transform.position - center).normalized, Source = gameObject });
+                int n = Physics.OverlapSphereNonAlloc(center, radius, BlastBuf, ~HitboxLayer.Mask, QueryTriggerInteraction.Ignore);
+                for (int i = 0; i < n; i++) { var dst = BlastBuf[i].GetComponentInParent<World.Destructible>(); if (dst != null) dst.TrySmash(0, center, (BlastBuf[i].transform.position - center).normalized); }
             }
+
+            // fuego breve donde estalló
+            var fire = World.FireManager.Instance != null ? World.FireManager.Instance.Spawn(FireKind.Campfire, transform.position) : null;
+            if (fire != null && mgr != null) mgr.StartCoroutine(Extinguish(fire, 3f));
         }
+
+        private static System.Collections.IEnumerator Extinguish(SevenDays.Look.FireEffect fx, float seconds)
+        {
+            yield return new WaitForSeconds(seconds);
+            if (World.FireManager.Instance != null) World.FireManager.Instance.Despawn(fx);
+        }
+
+        /// <summary>Empujón externo (explosiones): se suma al retroceso del zombi.</summary>
+        public void Push(Vector3 velocity) { velocity.y = 0f; _knock += velocity; }
 
         // ------------------------------------------------------------------ gigante: asedio a edificios
         private readonly SiegeBrain _siege = new SiegeBrain();
