@@ -491,3 +491,7 @@ Pasos manuales:
 3. Busca en 10–15 contenedores normales: deberías encontrar 1 o 2 armas, y nunca una repetida. Tras ~7 búsquedas sin arma la probabilidad sube; a las 15 es seguro.
 4. Pulsa **N** para pasar de día: si ya buscaste los puntos garantizados y te faltan armas, vuelven a armarse (mensaje "Se oye ruido...").
 5. La munición y los botiquines deben seguir igual de escasos que antes.
+
+### Corrección: armas garantizadas visibles
+Causa: las 3 armas garantizadas eran un resultado de búsqueda (solo aparecían al mantener E sobre el mueble/caja), así que no había ninguna arma en el suelo y la consola decía "0 armas". Ahora `LootManager.PlaceGuaranteedWeapons()` pone un pickup visible con brillo sobre cada punto garantizado al construir el mapa (y las repone al cambiar de día si faltan).
+Pasos: Play y mira la Console: debe decir `3 pickups activos + ... (3+ armas, 3 garantizadas)`. Ve al estante de la casa, a la caja lejana (26, 25) y a la de (-12, 13): cada una tiene un arma brillando encima (E para recogerla).

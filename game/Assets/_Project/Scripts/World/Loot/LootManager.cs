@@ -59,7 +59,7 @@ namespace SevenDays.World.Loot
             foreach (var p in Layout.points) if (p.container == "ground") ground++;
             foreach (var a in _active) if (a != null && a.Item != null && a.Item.kind == "weapon") weapons++;
             return "[7Days] Loot reconstruido: " + Layout.points.Length + " puntos (" + ground + " en el suelo), " + _containers.Count + " contenedores buscables, "
-                + SkippedPoints + " puntos omitidos (sin mueble/coche), " + _active.Count + " pickups activos (" + weapons + " armas). Registro de interacción: " + PlayerInteract.Registry.Count + ".";
+                + SkippedPoints + " puntos omitidos (sin mueble/coche), " + _active.Count + " pickups activos (" + weapons + " armas, " + GuaranteedWeaponCount + " garantizadas). Registro de interacción: " + PlayerInteract.Registry.Count + ".";
         }
 
         public void RegisterContainer(SearchableContainer c) { _containers[c.Point.id] = c; _glints.Add(c); }
@@ -107,26 +107,44 @@ namespace SevenDays.World.Loot
 
         public int SkippedPoints;   // puntos del layout que no encontraron su mueble/coche (se avisa en la consola)
 
-        /// <summary>Al empezar un día, vuelve a armar puntos de arma garantizada hasta que haya al menos guaranteedMin armas disponibles (sin pasar de las que le faltan al jugador).</summary>
+        // Armas garantizadas: son pickups VISIBLES (con brillo) colocados sobre su punto, no un resultado de búsqueda. Antes solo daban arma al buscar, así que no había
+        // ninguna arma en el suelo y la consola decía "0 armas".
+        private readonly Dictionary<string, LootPickup> _guaranteedPickups = new Dictionary<string, LootPickup>();
+        public int GuaranteedWeaponCount { get { int n = 0; foreach (var kv in _guaranteedPickups) if (kv.Value != null && kv.Value.gameObject.activeSelf) n++; return n; } }
+
+        /// <summary>Coloca un arma (que el jugador no tenga ni haya ya en el suelo) sobre cada punto garantizado sin pickup vivo, hasta llegar al mínimo. Devuelve cuántas colocó.</summary>
+        public int PlaceGuaranteedWeapons(int maxToPlace = int.MaxValue)
+        {
+            var cfg = Layout.weaponSearch;
+            var taken = OwnedWeapons();
+            foreach (var p in _active) if (p != null && p.Item != null && p.Item.kind == "weapon") taken.Add(p.Item.id);
+            int unowned = 0;
+            foreach (var w in WeaponCatalog.Defaults()) if (!taken.Contains(w.id)) unowned++;
+
+            int available = GuaranteedWeaponCount;
+            int need = Mathf.Min(maxToPlace, WeaponGuarantee.ToRearm(available, 0, unowned + available, cfg.guaranteedMin));
+            int placed = 0;
+            foreach (var pt in Layout.points)
+            {
+                if (need <= 0) break;
+                if (!pt.guaranteeWeapon) continue;
+                if (_guaranteedPickups.TryGetValue(pt.id, out var existing) && existing != null && existing.gameObject.activeSelf) continue;
+                string id = WeaponSearch.PickWeapon(cfg, pt.risk, taken, _rng);
+                if (id == null) break;
+                taken.Add(id);
+                var pickup = Spawn(LootItem.Weapon(id), new Vector3(pt.x, 0.55f, pt.z), pt.id);
+                if (pickup == null) continue;   // tope de pickups en el suelo
+                _guaranteedPickups[pt.id] = pickup;
+                if (_containers.TryGetValue(pt.id, out var c)) c.MarkEmpty();   // el arma ya está a la vista: el mueble/caja no la vuelve a dar
+                placed++; need--;
+            }
+            return placed;
+        }
+
         private void RearmGuaranteedWeapons()
         {
-            var owned = OwnedWeapons();
-            int unowned = 0;
-            foreach (var w in WeaponCatalog.Defaults()) if (!owned.Contains(w.id)) unowned++;
-            var guaranteed = new List<SearchableContainer>();
-            foreach (var c in _containers.Values) if (c != null && c.Point.guaranteeWeapon) guaranteed.Add(c);
-            int available = 0, onGround = 0;
-            foreach (var c in guaranteed) if (!c.Searched) available++;
-            foreach (var p in _active) if (p != null && p.Item != null && p.Item.kind == "weapon" && !owned.Contains(p.Item.id)) onGround++;
-            int need = WeaponGuarantee.ToRearm(available, onGround, unowned, Layout.weaponSearch.guaranteedMin);
-            for (int i = 0; i < guaranteed.Count && need > 0; i++)
-            {
-                if (!guaranteed[i].Searched) continue;
-                guaranteed[i].Refill();
-                foreach (var ps in State.Points) if (ps.Point.id == guaranteed[i].Point.id) ps.Active = true;
-                need--;
-            }
-            if (need < 0 || available + onGround < Layout.weaponSearch.guaranteedMin) HudMessages.Add("Se oye ruido: alguien dejó un arma por ahí", new Color(1f, 0.85f, 0.3f), 3f);
+            int placed = PlaceGuaranteedWeapons();
+            if (placed > 0) HudMessages.Add("Se oye ruido: alguien dejó un arma por ahí", new Color(1f, 0.85f, 0.3f), 3f);
         }
 
         public void Collected(LootPickup p)
