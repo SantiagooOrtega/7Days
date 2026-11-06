@@ -31,6 +31,22 @@ namespace SevenDays.Core
             return go;
         }
 
+        /// <summary>
+        /// Caja con UV por cara a escala real (la textura no se estira). "tileMeters" = metros por repetición;
+        /// "uvOffset" desplaza la textura para que objetos iguales no se vean idénticos. Escala 1: el tamaño va en la malla.
+        /// </summary>
+        public static GameObject CreateBox(string name, Vector3 position, Vector3 size, Material material, Transform parent = null,
+            float tileMeters = 3f, Vector2 uvOffset = default, bool collider = true)
+        {
+            var go = new GameObject(name);
+            if (parent != null) go.transform.SetParent(parent, false);
+            go.transform.localPosition = position;
+            go.AddComponent<MeshFilter>().sharedMesh = BoxMesh.Get(size, tileMeters, uvOffset);
+            go.AddComponent<MeshRenderer>().sharedMaterial = material;
+            if (collider) go.AddComponent<BoxCollider>().size = size;
+            return go;
+        }
+
         /// <summary>Material mate de un color (poco brillo: evita el aspecto de plástico).</summary>
         public static Material GetMaterial(Color color) => GetOrCreate("c|" + Key(color), color, null, null, Vector2.one, 0.1f, 0f);
 
@@ -52,7 +68,7 @@ namespace SevenDays.Core
         /// se multiplica por el color (útil para contenedores de distintos colores).
         /// </summary>
         public static Material GetTextured(Color color, string name, Vector2 tiling, float smoothness = 0.15f, float metallic = 0f,
-            bool tintTexture = false)
+            bool tintTexture = false, float tone = 1f)
         {
             Texture2D diff = Resources.Load<Texture2D>("Look/" + name + "_diff");
             Texture2D nor = null;
@@ -61,7 +77,7 @@ namespace SevenDays.Core
             else if (!SurfaceLibrary.TryGet(name, out diff, out nor)) return GetMaterial(color);
 
             Color tint = !tintTexture ? Color.white : (fromFile ? color : color * 1.5f);
-            tint.a = 1f;
+            tint = new Color(tint.r * tone, tint.g * tone, tint.b * tone, 1f); // tone: variación de brillo por objeto
             string key = "t|" + Key(tint) + "|" + name + "|" + tiling.x.ToString("0") + "x" + tiling.y.ToString("0")
                 + "|" + smoothness.ToString("0.##") + "|" + metallic.ToString("0.##");
             return GetOrCreate(key, tint, diff, nor, tiling, smoothness, metallic);
