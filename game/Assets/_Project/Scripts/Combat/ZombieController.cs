@@ -215,7 +215,9 @@ namespace SevenDays.Combat
             if (Time.time >= _nextSight)
             {
                 _nextSight = Time.time + 0.25f + UnityEngine.Random.value * 0.1f; // escalonado: no todos los zombis lanzan rayos el mismo frame
-                _canSee = dist < 3f || HasLineOfSight();
+                // agachado tras una cobertura el jugador solo se ve de cerca; asomado, hasta el rango de detección
+                float seen = SevenDays.Procedural.CoverProtection.VisibleRange(ZombieManager.Instance != null ? ZombieManager.Instance.PlayerExposure : 1f, Type.aggroRange);
+                _canSee = dist < 3f || (dist <= seen && HasLineOfSight());
             }
             _sm.Tick(dt, dist, _canSee, Health.IsStunned, false, playerDead);
             bool bossHandled = false; float bossMove = 0f;
@@ -286,7 +288,7 @@ namespace SevenDays.Combat
             {
                 _damageDone = true;
                 if (_playerHealth != null && !_playerHealth.IsDead && dist <= _sm.AttackRange * 1.3f)
-                    _playerHealth.TakeDamage(new DamageInfo { Amount = Type.attackDamage * DamageMultiplier, Point = _player.position + Vector3.up, Direction = toPlayer.normalized, Source = gameObject });
+                    _playerHealth.TakeDamage(new DamageInfo { Amount = Type.attackDamage * DamageMultiplier, Point = _player.position + Vector3.up, Direction = toPlayer.normalized, Source = gameObject, ScaledByCover = true });
             }
             if (Time.time - _attackStart > 0.8f) _attackStart = -10f;
         }

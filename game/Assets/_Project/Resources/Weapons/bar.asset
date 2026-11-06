@@ -34,3 +34,35 @@ MonoBehaviour:
     - 0.38
     length: 0.9
     thickness: 0.05
+    minDamageFraction: 1
+    falloffStart: 0.4
+    armorPenetration: 0.2
+    headshotMultiplier: 1
+    knockback: 1.8
+    dataVersion: 2
+    fireModes:
+    - semi
+    burstCount: 3
+    recoilHorizontal: 0
+    recoilRecovery: 20
+    recoilMaxPitch: 2
+    recoilAimMultiplier: 0.6
+    recoilCrouchMultiplier: 0.8
+    spreadPerShot: 0
+    spreadMax: 0
+    spreadRecovery: 10
+    spreadMove: 0
+    spreadAir: 0
+    spreadCrouchMultiplier: 0.75
+    aimFov: 60
+    aimDistance: 3
+    aimSensitivity: 1
+    adsTime: 0.15
+    aimFirstPerson: 0
+    scopeFovs: []
+    swayAmount: 1.3
+    bobAmount: 1.2
+    kickback: 0
+    kickbackPitch: 0
+    fireShake: 0.06
+    ejectsCasings: 0

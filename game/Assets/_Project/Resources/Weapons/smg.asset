@@ -18,7 +18,7 @@ MonoBehaviour:
     kind: 2
     rarity: 1
     ammoType: 1
-    damage: 14
+    damage: 12
     pellets: 1
     roundsPerMinute: 850
     magazineSize: 30
@@ -34,3 +34,36 @@ MonoBehaviour:
     - 0.23
     length: 0.55
     thickness: 0.09
+    minDamageFraction: 0.35
+    falloffStart: 0.3
+    armorPenetration: 0
+    headshotMultiplier: 1
+    knockback: 0.5
+    dataVersion: 2
+    fireModes:
+    - auto
+    - burst
+    burstCount: 3
+    recoilHorizontal: 0.45
+    recoilRecovery: 12
+    recoilMaxPitch: 6
+    recoilAimMultiplier: 0.6
+    recoilCrouchMultiplier: 0.8
+    spreadPerShot: 0.22
+    spreadMax: 7
+    spreadRecovery: 9
+    spreadMove: 0.8
+    spreadAir: 2
+    spreadCrouchMultiplier: 0.75
+    aimFov: 48
+    aimDistance: 1.9
+    aimSensitivity: 0.7
+    adsTime: 0.14
+    aimFirstPerson: 0
+    scopeFovs: []
+    swayAmount: 0.9
+    bobAmount: 0.9
+    kickback: 0.03
+    kickbackPitch: 2.5
+    fireShake: 0.025
+    ejectsCasings: 1

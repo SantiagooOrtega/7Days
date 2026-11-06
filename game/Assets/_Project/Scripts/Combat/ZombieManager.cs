@@ -34,6 +34,8 @@ namespace SevenDays.Combat
         private bool _navDirty;
         private float _nextNavRefresh;
         public ZombieController ActiveBoss { get; private set; }
+        /// <summary>Exposición del jugador (1 = a la vista; baja al cubrirse). Los zombis ven menos lejos a un jugador cubierto.</summary>
+        public float PlayerExposure => _cover != null ? _cover.ExposureValue : 1f;
         /// <summary>Parámetros del día que fija la IA director (multiplicadores y proporciones). Todos los spawns los respetan.</summary>
         public DirectorTuning Tuning { get; private set; } = new DirectorTuning();
         private readonly System.Random _rng = new System.Random(20240601);

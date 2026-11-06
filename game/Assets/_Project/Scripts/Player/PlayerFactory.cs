@@ -68,6 +68,8 @@ namespace SevenDays.Player
 
             playerCamera.Initialize(root.transform, cam, yaw);
             cover.Initialize(playerCamera);
+            // el daño cuerpo a cuerpo que llega depende de cuánto te asomas: cubierto del todo, solo una fracción
+            health.DamageScale = info => info.ScaledByCover && cover.Active ? CoverProtection.DamageMultiplier(cover.Exposure.Value, playerCamera.Settings.coveredDamageFloor) : 1f;
             impulse.Initialize(movement, playerCamera.Settings);
             motor.Initialize(playerCamera, cover, visual, holder, movement, vault, impulse);
             vault.Initialize(movement, cover, motor, impulse);
