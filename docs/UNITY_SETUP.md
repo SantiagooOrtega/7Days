@@ -417,6 +417,16 @@ Pasos manuales en Unity (no los puedo verificar sin el editor):
 Las armas son `WeaponData` (JSON/ScriptableObject) con `minDamageFraction`, `falloffStart`, `armorPenetration`, `headshotMultiplier` y `knockback`. Si tienes assets de armas creados antes, regénéralos: menú `7Days > ...` de `WeaponAssetCreator` (los viejos tienen el daño anterior). Números y fórmula en `docs/BALANCE.md`.
 Pasos manuales:
 1. Regenera los assets de armas con el menú del `WeaponAssetCreator` (si usas assets en vez de los valores por defecto) y revisa en el Inspector que pistola = 18 de daño.
-2. En Play, pulsa **Z** y dispara a un zombi común con la pistola: 2 tiros a la cabeza, unos 6 al cuerpo. Con el fusil (tecla 5) unos 3 al cuerpo; con el francotirador (6) 1 a la cabeza.
+2. En Play, pulsa **Z** y dispara a un zombi común con la pistola: 2 tiros a la cabeza, unos 6 al cuerpo. Con el fusil unos 3 al cuerpo; con el francotirador 1 a la cabeza (cambia de arma con su número o la rueda del ratón, según el orden en que las recojas).
 3. Escopeta a quemarropa: 1–2 disparos; a 25 m apenas hace daño.
 4. Colócate tras una caja o pared con el zombi detrás: la bala no debe atravesar el obstáculo.
+
+### Bloque 3: feedback de combate
+Qué hay: barra de vida sobre el zombi (`ZombieHealthBar`), números flotantes y sonidos de impacto (`CombatFeedback`), hitmarker en la mira (normal, headshot, muerte), reacción al golpe (empujón y aturdimiento ligero), sangre con pooling (`BloodFx`), charco y cabeza que vuela al morir de headshot.
+Pasos manuales:
+1. Play, tecla **Z**, y dispara al zombi: aparece su barra verde sobre la cabeza, baja suavemente y pasa a amarillo y rojo. Si no le disparas, solo se ve a menos de 8 m (a menos de 4 m con la vida llena).
+2. Dispara al cuerpo: número **blanco**. A la cabeza: número **amarillo** con "CABEZA" y un sonido más agudo. Con el blindado al torso: número **gris** (daño reducido).
+3. En la mira debe aparecer una X blanca al impactar (amarilla en headshot) y una X roja más grande al matar, con sonido grave de muerte.
+4. Escopeta a quemarropa: el zombi sale empujado hacia atrás y se tambalea; la pistola solo lo sacude. El tanque casi no se inmuta.
+5. Mata uno de un headshot: la cabeza desaparece y sale un chorro de sangre más grande; el cuerpo cae y deja un charco que crece.
+6. Abre `Window > Analysis > Profiler` con 10+ zombis (pulsa Z varias veces): deben mantenerse 60 FPS. Si ves caídas, anótalo y dime cuántos zombis había.
