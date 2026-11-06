@@ -34,6 +34,8 @@ namespace SevenDays.World
         // ---------- utilidades ----------
         private static float Rand() => (float)_rng.NextDouble();
         private static Vector2 UvJitter() => new Vector2(Rand(), Rand());
+        /// <summary>Solo desplaza en horizontal: la textura del contenedor tiene óxido en el borde superior/inferior que no debe moverse.</summary>
+        private static Vector2 UvJitterU() => new Vector2(Rand(), 0f);
 
         /// <summary>Variación de brillo por objeto en pasos de 5% (pocos materiales distintos).</summary>
         private static float Tone(float range = 0.12f) => Mathf.Round((1f + (Rand() * 2f - 1f) * range) * 20f) / 20f;
@@ -101,7 +103,7 @@ namespace SevenDays.World
 
         private static void Barrier(Transform root, string name, Vector3 pos, Vector3 size, float yaw)
         {
-            var go = Prim.CreateBox(name, pos, size, Tex(Concrete, SurfaceLibrary.Concrete, 0.12f, 0f, false, Tone()), root, 2f, UvJitter());
+            var go = Prim.CreateBox(name, pos, size, Tex(Concrete, SurfaceLibrary.Concrete, 0.12f, 0f, false, Tone()), root, 2f, UvJitter(), true, 0.05f);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             go.AddComponent<CoverObject>();
         }
@@ -110,7 +112,7 @@ namespace SevenDays.World
         {
             // tile = lado de la caja: cada cara recibe exactamente una copia de la textura, sin estirarla
             var mat = Tex(kind == SurfaceLibrary.Cardboard ? new Color(0.55f, 0.43f, 0.28f) : new Color(0.42f, 0.3f, 0.18f), kind, 0.1f, 0f, false, Tone(0.1f));
-            var go = Prim.CreateBox(name, pos, Vector3.one * side, mat, root, side);
+            var go = Prim.CreateBox(name, pos, Vector3.one * side, mat, root, side, default, true, 0.025f);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             if (cover) go.AddComponent<CoverObject>();
         }
@@ -130,7 +132,7 @@ namespace SevenDays.World
             var size = new Vector3(2.5f, 2.6f, 6f);
             // Chapa corrugada con óxido y chorreras; 2.6 m por repetición = alto real, sin estirar
             var mat = Tex(color, SurfaceLibrary.Container, 0.3f, 0.3f, true, Tone(0.1f));
-            var go = Prim.CreateBox(name, pos, size, mat, root, 2.6f, UvJitter());
+            var go = Prim.CreateBox(name, pos, size, mat, root, 2.6f, UvJitterU(), true, 0.025f);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             go.AddComponent<CoverObject>();
             ContainerDetails(go.transform, size, color);
