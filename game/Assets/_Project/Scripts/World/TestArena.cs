@@ -83,6 +83,7 @@ namespace SevenDays.World
             _zombies.SetPlayer(player.transform);
             BloodFx.Create(transform);
             BossHud.Create(transform);
+            BlastFx.Create(transform);
             CombatMetricsTracker.Create(transform, player, _zombies);
             CombatFeedback.Create(transform, player.GetComponent<SevenDays.Player.PlayerShooting>());
 

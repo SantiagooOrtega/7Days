@@ -72,6 +72,11 @@ namespace SevenDays.Player
             _peakY = transform.position.y;
         }
 
+        private Vector3 _push;
+
+        /// <summary>Empuja al jugador (velocidad inicial en m/s; se disipa en ~0.4 s).</summary>
+        public void Push(Vector3 velocity) => _push += velocity;
+
         private void Update()
         {
             if (_camera == null || _health.IsDead) return;
@@ -142,6 +147,11 @@ namespace SevenDays.Player
 
             Vector3 velocity = _horizontalVelocity;
             velocity.y = _verticalVelocity;
+            if (_push.sqrMagnitude > 0.01f)
+            {
+                velocity += _push;                                            // empujón externo (explosiones): se suma y se disipa
+                _push = Vector3.Lerp(_push, Vector3.zero, 1f - Mathf.Exp(-7f * dt));
+            }
             _cc.Move(velocity * dt);
             if ((_cc.collisionFlags & CollisionFlags.Above) != 0 && _verticalVelocity > 0f) _verticalVelocity = 0f; // golpe con la cabeza
 
