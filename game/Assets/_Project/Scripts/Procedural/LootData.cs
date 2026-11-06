@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SevenDays.Procedural
 {
@@ -45,6 +46,7 @@ namespace SevenDays.Procedural
         public int risk;                   // 0 = segura, 2 = expuesta/peligrosa
         public float searchSeconds = 1.5f; // tiempo de búsqueda (los "ground" se recogen sin buscar)
         public bool once = true;           // true = no reaparece nunca
+        public bool guaranteeWeapon;       // al buscarlo da SIEMPRE un arma que el jugador no tenga (3 por mapa: casa, zona expuesta y una caja)
     }
 
     /// <summary>Probabilidad de que un zombie de cierto tipo suelte algo. Los comunes casi nunca; los especiales más; el jefe siempre y algo raro.</summary>
@@ -75,6 +77,7 @@ namespace SevenDays.Procedural
         public LootTable[] tables = new LootTable[0];
         public DropRule[] drops = new DropRule[0];
         public LootPoint[] points = new LootPoint[0];
+        public WeaponSearchConfig weaponSearch = new WeaponSearchConfig();
 
         public LootTable Table(string id)
         {
@@ -150,6 +153,20 @@ namespace SevenDays.Procedural
                 if (p.risk < 0 || p.risk > 2) v.Errors.Add("punto " + p.id + ": risk fuera de 0..2");
                 if (p.searchSeconds < 0f || p.searchSeconds > 6f) v.Errors.Add("punto " + p.id + ": searchSeconds fuera de 0..6");
             }
+            var ws = l.weaponSearch;
+            if (ws == null) v.Errors.Add("falta weaponSearch");
+            else
+            {
+                foreach (float c in new[] { ws.rubble, ws.bush, ws.car, ws.crate, ws.furniture }) if (c < 0f || c > 0.5f) v.Errors.Add("weaponSearch: probabilidad de contenedor fuera de 0..0.5");
+                if (ws.maxChance < 0f || ws.maxChance > 0.5f || ws.riskBonus < 0f || ws.riskBonus > 0.2f) v.Errors.Add("weaponSearch: maxChance o riskBonus fuera de rango");
+                if (ws.pityStart < 1 || ws.pityGuarantee <= ws.pityStart || ws.pityStep < 0f || ws.pityStep > 0.5f) v.Errors.Add("weaponSearch: pity inválido (1 <= pityStart < pityGuarantee, pityStep 0..0.5)");
+                if (ws.rarityWeights == null || ws.rarityWeights.Length != 4 || ws.riskRarityWeights == null || ws.riskRarityWeights.Length != 4) v.Errors.Add("weaponSearch: las rarezas necesitan 4 pesos");
+                else if (ws.rarityWeights.Any(x => x < 0f) || ws.riskRarityWeights.Any(x => x < 0f) || ws.rarityWeights.Sum() <= 0f || ws.riskRarityWeights.Sum() <= 0f) v.Errors.Add("weaponSearch: pesos de rareza inválidos");
+                if (ws.guaranteedMin < 0 || ws.guaranteedMin > 6 || ws.duplicateAmmo < 0) v.Errors.Add("weaponSearch: guaranteedMin o duplicateAmmo inválidos");
+                int guaranteed = (l.points ?? new LootPoint[0]).Count(x => x.guaranteeWeapon);
+                if (guaranteed < ws.guaranteedMin) v.Errors.Add("hay " + guaranteed + " puntos con arma garantizada y se piden " + ws.guaranteedMin);
+            }
+            foreach (var gp in (l.points ?? new LootPoint[0]).Where(x => x.guaranteeWeapon)) if (gp.container == "ground") v.Errors.Add(gp.id + ": un punto del suelo no puede garantizar un arma (no se busca)");
             if (l.points != null && l.points.Length > l.maxActivePickups * 3) v.Errors.Add("demasiados puntos de loot para el tope de pickups activos");
 
             foreach (var d in l.drops ?? new DropRule[0])

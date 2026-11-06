@@ -483,3 +483,11 @@ Pasos manuales:
 4. Colócate tras la pared de la casa cuando explote al otro lado: el daño debe ser mucho menor (25 %).
 5. Mátalo de un headshot en plena mecha: explota igual. Dispárale desde lejos con otros zombis a su lado: les hace daño y los empuja.
 6. Una caja ligera cerca del estallido desaparece (como con la carga del bruto).
+
+### Corrección: armas por búsqueda
+Pasos manuales:
+1. Play: en la Console debe salir `[7Days] Loot reconstruido: ... puntos omitidos ...`; si "puntos omitidos" es mayor que 0 dime cuáles (aparecen como aviso "no hay mueble/coche cerca").
+2. Busca (mantén E) en el estante del fondo de la casa, en la caja lejana del noreste (26, 25) y en la caja de (-12, 13): cada una debe dar un arma que no tengas ("¡Encontraste un arma!").
+3. Busca en 10–15 contenedores normales: deberías encontrar 1 o 2 armas, y nunca una repetida. Tras ~7 búsquedas sin arma la probabilidad sube; a las 15 es seguro.
+4. Pulsa **N** para pasar de día: si ya buscaste los puntos garantizados y te faltan armas, vuelven a armarse (mensaje "Se oye ruido...").
+5. La munición y los botiquines deben seguir igual de escasos que antes.

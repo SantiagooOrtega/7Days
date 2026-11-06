@@ -59,7 +59,7 @@ namespace SevenDays.World.Loot
             foreach (var p in Layout.points) if (p.container == "ground") ground++;
             foreach (var a in _active) if (a != null && a.Item != null && a.Item.kind == "weapon") weapons++;
             return "[7Days] Loot reconstruido: " + Layout.points.Length + " puntos (" + ground + " en el suelo), " + _containers.Count + " contenedores buscables, "
-                + _active.Count + " pickups activos (" + weapons + " armas). Registro de interacción: " + PlayerInteract.Registry.Count + ".";
+                + SkippedPoints + " puntos omitidos (sin mueble/coche), " + _active.Count + " pickups activos (" + weapons + " armas). Registro de interacción: " + PlayerInteract.Registry.Count + ".";
         }
 
         public void RegisterContainer(SearchableContainer c) { _containers[c.Point.id] = c; _glints.Add(c); }
@@ -87,13 +87,46 @@ namespace SevenDays.World.Loot
         public bool SearchResult(SearchableContainer c)
         {
             if (!State.CanSpawn(_active.Count)) return false;
-            var item = LootRoller.RollPoint(Layout, c.Point, _rng);
+            // armas: probabilidad por contenedor con pity timer y puntos con arma garantizada; nunca una que el jugador ya tiene (WeaponSearch)
+            var item = WeaponSearch.RollSearch(Layout, c.Point, _rng, OwnedWeapons(), State.Search, out bool gaveWeapon);
             State.MarkTaken(c.Point.id);
             if (item == null) { HudMessages.Add("Está vacío", new Color(0.8f, 0.8f, 0.8f)); return true; }
             var pos = c.transform.position + new Vector3((float)(_rng.NextDouble() - 0.5) * 0.8f, 0.5f, (float)(_rng.NextDouble() - 0.5) * 0.8f);
             Spawn(item, pos, c.Point.id);
-            HudMessages.Add("Encontraste algo", new Color(1f, 0.92f, 0.65f));
+            HudMessages.Add(gaveWeapon ? "¡Encontraste un arma!" : "Encontraste algo", gaveWeapon ? new Color(1f, 0.85f, 0.3f) : new Color(1f, 0.92f, 0.65f));
             return true;
+        }
+
+        private HashSet<string> OwnedWeapons()
+        {
+            var set = new HashSet<string>();
+            if (_inventory != null) foreach (var w in _inventory.Weapons) set.Add(w.Data.id);
+            else foreach (var id in Layout.startWeapons) set.Add(id);
+            return set;
+        }
+
+        public int SkippedPoints;   // puntos del layout que no encontraron su mueble/coche (se avisa en la consola)
+
+        /// <summary>Al empezar un día, vuelve a armar puntos de arma garantizada hasta que haya al menos guaranteedMin armas disponibles (sin pasar de las que le faltan al jugador).</summary>
+        private void RearmGuaranteedWeapons()
+        {
+            var owned = OwnedWeapons();
+            int unowned = 0;
+            foreach (var w in WeaponCatalog.Defaults()) if (!owned.Contains(w.id)) unowned++;
+            var guaranteed = new List<SearchableContainer>();
+            foreach (var c in _containers.Values) if (c != null && c.Point.guaranteeWeapon) guaranteed.Add(c);
+            int available = 0, onGround = 0;
+            foreach (var c in guaranteed) if (!c.Searched) available++;
+            foreach (var p in _active) if (p != null && p.Item != null && p.Item.kind == "weapon" && !owned.Contains(p.Item.id)) onGround++;
+            int need = WeaponGuarantee.ToRearm(available, onGround, unowned, Layout.weaponSearch.guaranteedMin);
+            for (int i = 0; i < guaranteed.Count && need > 0; i++)
+            {
+                if (!guaranteed[i].Searched) continue;
+                guaranteed[i].Refill();
+                foreach (var ps in State.Points) if (ps.Point.id == guaranteed[i].Point.id) ps.Active = true;
+                need--;
+            }
+            if (need < 0 || available + onGround < Layout.weaponSearch.guaranteedMin) HudMessages.Add("Se oye ruido: alguien dejó un arma por ahí", new Color(1f, 0.85f, 0.3f), 3f);
         }
 
         public void Collected(LootPickup p)
@@ -138,6 +171,7 @@ namespace SevenDays.World.Loot
                 if (point.container == "ground") SpawnGroundPoint(point);
                 else if (_containers.TryGetValue(point.id, out var c)) c.Refill();
             }
+            RearmGuaranteedWeapons();
             HudMessages.Add("Día " + day + ": reaparece algo de botín", new Color(1f, 0.92f, 0.65f));
         }
 

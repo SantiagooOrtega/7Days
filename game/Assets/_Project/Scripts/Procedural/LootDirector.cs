@@ -8,11 +8,11 @@ namespace SevenDays.Procedural
     public static class LootRoller
     {
         /// <summary>Saca un objeto de la tabla por peso; "minRarity" descarta lo menos raro (el jefe asegura algo raro). Null si no hay candidatos.</summary>
-        public static LootItem Roll(LootLayoutData l, string tableId, Random rng, Rarity minRarity = Rarity.Common)
+        public static LootItem Roll(LootLayoutData l, string tableId, Random rng, Rarity minRarity = Rarity.Common, bool noWeapons = false)
         {
             var table = l.Table(tableId);
             if (table == null || table.entries == null) return null;
-            var candidates = table.entries.Where(e => (int)LootRules.ItemRarity(e.ToItem()) >= (int)minRarity).ToList();
+            var candidates = table.entries.Where(e => (int)LootRules.ItemRarity(e.ToItem()) >= (int)minRarity && !(noWeapons && e.kind == "weapon")).ToList();
             if (candidates.Count == 0) return null;
             double total = candidates.Sum(e => (double)e.weight), pick = rng.NextDouble() * total, acc = 0;
             foreach (var e in candidates) { acc += e.weight; if (pick <= acc) return e.ToItem(); }
@@ -44,6 +44,8 @@ namespace SevenDays.Procedural
         public readonly List<PointState> Points = new List<PointState>();
         public int Day { get; private set; } = 1;
         public int DropsToday { get; private set; }
+        /// <summary>Búsquedas de la partida (pity timer de armas).</summary>
+        public readonly SearchState Search = new SearchState();
         /// <summary>Multiplicador del director sobre el respawn (1 = el de la configuración, 0 = ninguno).</summary>
         public float RespawnScale = 1f;
 

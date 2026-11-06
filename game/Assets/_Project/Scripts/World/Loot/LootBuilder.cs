@@ -31,14 +31,14 @@ namespace SevenDays.World.Loot
                     {
                         var t = Nearest(all, "Furniture furniture:", pos, 1.6f);
                         if (t != null) SearchableContainer.Attach(t.gameObject, p, manager, 2.2f);
-                        else Debug.LogWarning("[7Days] Punto de loot '" + p.id + "': no hay mueble cerca; se omite.");
+                        else { manager.SkippedPoints++; Debug.LogWarning("[7Days] Punto de loot '" + p.id + "': no hay mueble cerca; se omite."); }
                         break;
                     }
                     case "car":
                     {
                         var t = Nearest(all, "Car Wreck", pos, 3.5f);
                         if (t != null) SearchableContainer.Attach(t.gameObject, p, manager, 3.2f);
-                        else Debug.LogWarning("[7Days] Punto de loot '" + p.id + "': no hay coche cerca; se omite.");
+                        else { manager.SkippedPoints++; Debug.LogWarning("[7Days] Punto de loot '" + p.id + "': no hay coche cerca; se omite."); }
                         break;
                     }
                     case "rubble":

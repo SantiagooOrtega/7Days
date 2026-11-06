@@ -42,7 +42,7 @@ namespace SevenDays.Procedural
             float hx = house?.x ?? 11f, hz = house?.z ?? 0.5f;
             P("house_crate_a", hx - 0.9f, hz + 3.2f, "furniture", "mid", 1, 1.5f, true);
             P("house_crate_b", hx + 1.2f, hz - 3.1f, "furniture", "mid", 1, 1.5f, true);
-            P("house_shelf", hx - 3.6f, hz + 3.55f, "furniture", "high", 1, 2.0f, true);
+            P("house_shelf", hx - 3.6f, hz + 3.55f, "furniture", "high", 1, 2.0f, true); pts[pts.Count - 1].guaranteeWeapon = true; // arma garantizada dentro de la casa
             // coches destrozados (los que no están ardiendo)
             if (props != null)
             {
@@ -57,10 +57,10 @@ namespace SevenDays.Procedural
             P("rubble_c", -24f, 10f, "rubble", "low", 0, 1.2f, false);
             // cajas en zonas expuestas y lejanas: más riesgo, mejor botín
             P("far_crate_a", -26f, -26f, "crate", "high", 2, 2.0f, true);
-            P("far_crate_b", 26f, 25f, "crate", "high", 2, 2.0f, true);
+            P("far_crate_b", 26f, 25f, "crate", "high", 2, 2.0f, true); pts[pts.Count - 1].guaranteeWeapon = true; // arma garantizada lejos y expuesta
             P("far_crate_c", -26f, 24f, "crate", "high", 2, 2.0f, true);
             P("mid_crate_a", 22f, -14f, "crate", "mid", 1, 1.5f, false);
-            P("mid_crate_b", -12f, 13f, "crate", "mid", 1, 1.5f, false);
+            P("mid_crate_b", -12f, 13f, "crate", "mid", 1, 1.5f, false); pts[pts.Count - 1].guaranteeWeapon = true; // arma garantizada en un contenedor intermedio
             // objetos sueltos en el suelo (pocos, poca cosa)
             P("ground_a", 3.4f, -17f, "ground", "ground", 0, 0f, true);
             P("ground_b", -8f, 6f, "ground", "ground", 0, 0f, true);
