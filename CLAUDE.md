@@ -35,6 +35,7 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 - Unity/C#: PascalCase para tipos y métodos, `_camelCase` para campos privados, un `MonoBehaviour` por archivo, lógica pura separada de MonoBehaviours para poder testearla.
 - Secretos solo en `backend/.env` (ignorado por git). `.env.example` sin valores reales.
 - Idioma: documentación y mensajes de commit en español; código en inglés.
+- **Mallas generadas por código:** la convención de caras de Unity está en `Scripts/Procedural/Winding.cs` (frente = horario visto desde fuera, normal = `+Cross(b-a, c-a)`, u a la derecha y v arriba, tangente w = -1). No reinventarla: usar `Winding.FacesOutward`, y toda malla cerrada nueva debe entrar en `WindingTests` (volumen con signo > 0). Láminas de una capa: material con Cull Off (`Prim.GetMaterial(color, true)`) y normales válidas para las dos caras, o grosor real.
 
 ## Pendientes
 - Unity 6000.3.28f1 (URP 17.3.0, Input System 1.20.1 solo-nuevo, Cinemachine 3.1.7 -> namespace `Unity.Cinemachine`, AI Navigation 2.0.16). Ver `docs/UNITY_SETUP.md`.

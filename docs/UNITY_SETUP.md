@@ -215,3 +215,43 @@ Todos están en `MovementSettings` (`Scripts/Procedural/Movement.cs`). Para ajus
 6. Acércate a un contenedor y pulsa Espacio: no pasa (2.6 m).
 7. Pulsa **C** junto a una barrera para cubrirte y luego **Espacio**: sales al otro lado. Intenta disparar durante el salto: no dispara.
 8. Pulsa **U**: caes 6 m, recibes daño y la cámara se sacude. Repite varias veces con **Y** para curarte.
+
+---
+
+## Corrección: objetos transparentes (caras al revés)
+**Síntoma:** contenedores, muros, barreras y otras piezas parecían transparentes desde ciertos ángulos.
+
+**Causa (error mío):** todas las mallas generadas por código tenían el orden de vértices (winding) al revés. En Unity el *frente* de un
+triángulo es el lado desde el que sus vértices se ven en sentido horario, y su normal es `+Cross(b - a, c - a)`; yo había usado el signo
+contrario y mis pruebas usaban la misma convención equivocada, así que pasaban. Con el backface culling, desde fuera se descartaban las
+caras de delante y se veía el interior de las del fondo. Dos fallos más con el mismo origen: las UV salían **espejadas** y las tangentes
+tenían `w = +1` en vez de `-1`, con lo que los mapas de normales se iluminaban al revés.
+
+**Qué se arregló**
+- `Winding` (en `Scripts/Procedural/Winding.cs`) guarda la convención de Unity en un solo sitio, con una prueba basada en el ejemplo del
+  manual de Unity (el quad con normal -Z). Cajas, muros, contenedores, barreras, coches, placas de señal, árboles, arbustos, neumáticos y
+  bolsas la usan.
+- Las caras de las cajas llevan `u` hacia la derecha de quien las mira y `v` hacia arriba (veta de la madera y costillas del contenedor
+  en su sitio); la textura de las placas de señal ya no sale espejada.
+- Prueba EditMode (`WindingTests`) en todas las mallas cerradas: volumen con signo positivo, cada triángulo mira hacia afuera del centro de
+  su malla y coincide con su normal, y las tangentes tienen la lateralidad de Unity. Con el código antiguo 13 de esas pruebas fallan.
+
+### Culling de cada material (`_Cull` de URP Lit)
+| Objeto | Malla | Cull | Normales |
+|--------|-------|------|----------|
+| Cajas, muros, contenedores, barreras, coches, techos, skyline, neumáticos, bolsas | sólido cerrado con grosor | **Back** | hacia afuera |
+| Placas de señal | sólido cerrado de 2 cm: frente, dorso y cantos | **Off** (Both) | frente +Z, dorso -Z (volteada) |
+| Postes de señal, árboles, arbustos | sólido | **Off** (Both) | hacia afuera |
+| Hierba y maleza | hoja de **una** capa | **Off** (Both) | **hacia arriba** en las dos caras |
+| Calcomanías (sangre, grietas, charcos, marcas) | quad plano visto desde arriba | Back | hacia arriba |
+| Partículas | billboards | Off | (sin iluminación) |
+
+- **URP Lit no voltea la normal de la cara trasera** cuando el Cull es Off. Por eso las láminas de una capa llevan una normal que vale para las
+  dos caras (hacia arriba en la hierba), y las placas tienen grosor real con un dorso propio de normal volteada.
+- **Sombras:** la propiedad `_Cull` del material se aplica también a ShadowCaster, DepthOnly y DepthNormals, así que la sombra usa las mismas caras
+  que el color (y los materiales Cull Off proyectan sombra por las dos caras). Los materiales se crean con `_Cull` explícito en `Prim`.
+
+### Excepción NullReferenceException en `FlickerLight.Update`
+**Causa:** `FlickerLight` creaba su `MaterialPropertyBlock` en `Awake` solo si `Bulb` ya estaba asignado, pero `Bulb` se asigna **después** de
+`AddComponent` (cuando `Awake` ya corrió). Entonces `_mpb` seguía en `null` y `Update` fallaba en cada frame al usarlo (153 veces en el log; afectaba a las
+farolas defectuosas y a las luces rojas de las señales). **Arreglo:** se crea la primera vez que hace falta.
