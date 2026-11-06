@@ -16,7 +16,18 @@ Rutas protegidas: cabecera `Authorization: Bearer <accessToken>`.
 | POST | `/api/rankings` | sí | `score, daysSurvived (0-7), kills, victory` | 201 `{ranking}` |
 | GET | `/api/rankings?limit=20` | sí | - | `{rankings:[{position, username, score, ...}]}` |
 
-Los endpoints de contenido generado (mapas, zombies, armas, personajes, jefes) llegan en la Fase 5.
+## Planeado (aún no implementado)
+| Método | Ruta | Auth | Fase | Respuesta |
+|--------|------|------|------|-----------|
+| GET | `/api/maps` | sí | 3 | Lista de mapas `{id, name, baseDifficulty, origin}` |
+| GET | `/api/maps/:id` | sí | 3 | Mapa completo (perímetro, spawns, casa central, loot) validado con zod |
+| GET | `/api/content/:type` | sí | 5 | Contenido guardado (`zombie`, `weapon`, `character`, `boss`); solo lectura |
+
+Reglas de diseño:
+- Los mapas viven en la tabla `maps` (nombre, JSON, dificultad base, origen `seed` | `gemini` | `procedural`). Un seed inicial trae 3-5 mapas completos.
+- **No existe ningún endpoint que genere contenido con Gemini en caliente**, y el backend nunca llama a Gemini mientras se juega.
+- Gemini se usa solo con el script manual `npm run content:generate` (lotes pequeños, reintentos con backoff, límite de peticiones por ejecución, key en `backend/.env`). Lo generado se valida con zod y se guarda con origen `gemini`. Si no se ejecuta, el juego usa el contenido del seed.
+- `generated_content.type` queda para `zombie | weapon | character | boss`; los mapas pasan a su propia tabla.
 
 ## Seguridad implementada
 - Contraseñas con argon2; el hash nunca sale en las respuestas.
