@@ -37,6 +37,27 @@ namespace SevenDays.World
             BuildLights(root);
         }
 
+        /// <summary>
+        /// Zonas ocupadas por el mapa de ruinas (contenedores, coberturas, barriles, farolas, blancos y nave). La vegetación y los
+        /// props no se colocan encima. Son datos fijos para que también los use el exportador de JSON del editor.
+        /// </summary>
+        public static System.Collections.Generic.List<SevenDays.Procedural.Zone> Exclusions()
+        {
+            var z = new System.Collections.Generic.List<SevenDays.Procedural.Zone>();
+            void C(float x, float zz, float r) => z.Add(SevenDays.Procedural.Zone.Circle(x, zz, r));
+            C(-19f, 4f, 4.4f); C(19f, -2f, 4.4f); C(-14f, 19f, 4.4f); C(17f, 16f, 4.4f);      // contenedores
+            C(-4f, -8f, 2.4f); C(4f, -6f, 2.4f); C(-9f, 0f, 2.6f); C(0f, 4f, 2.6f); C(12f, -10f, 2.4f); // barreras
+            C(0f, -4f, 1.4f); C(8f, 2f, 1.5f); C(-13f, -4f, 1.4f); C(-15f, -3.4f, 1.1f); C(14.5f, 8f, 1.1f); // cajas
+            C(-7f, -12f, 1.7f); C(10f, 14f, 1.7f);                                               // barriles con fuego
+            C(-6f, 12f, 1.1f); C(-5.2f, 12.4f, 1.1f); C(22f, 8f, 1.1f); C(-22f, -20f, 1.1f);    // barriles
+            C(-25f, -11f, 3f);                                                                    // tuberías
+            C(-5.5f, -18f, 1.3f); C(5.5f, 0f, 1.3f); C(-5.5f, 14f, 1.3f); C(5.5f, -26f, 1.3f);  // farolas
+            C(0f, -14f, 3.5f);                                                                    // aparición del jugador
+            z.Add(SevenDays.Procedural.Zone.Rect(-14f, 8f, 10.5f, 17.5f));                        // blancos de práctica
+            z.Add(SevenDays.Procedural.Zone.Rect(-24f, 19f, 24f, 29f));                           // nave del fondo
+            return z;
+        }
+
         // ---------- utilidades ----------
         private static float Rand() => (float)_rng.NextDouble();
         private static Vector2 UvJitter() => new Vector2(Rand(), Rand());

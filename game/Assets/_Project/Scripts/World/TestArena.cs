@@ -84,6 +84,7 @@ namespace SevenDays.World
             IndustrialRuins.Build(root, _look);
             Skyline.Build(root, _look);
             GroundDetails.Build(root, _look, IndustrialRuins.Anchors);
+            Vegetation.Build(root, _look);
 
             // Blancos de práctica: cuerpo claro, cabeza pálida y ojos brillantes para que se distingan del fondo
             for (int i = 0; i < 6; i++)
