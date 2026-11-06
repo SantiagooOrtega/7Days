@@ -1,0 +1,5 @@
+La IA generativa NO crea mapas en tiempo de juego. Los mapas están en la base de datos.
+1. Backend: tabla maps (nombre, JSON, dificultad base, origen: seed|gemini|procedural). Seed inicial con 3-5 mapas completos (perímetro, spawns, casa central, loot) validados con zod. Endpoints con JWT: GET /api/maps y GET /api/maps/:id. Quita cualquier endpoint que genere mapas en caliente con Gemini. El backend nunca llama a Gemini durante el juego.
+2. Gemini solo opcional y offline: script manual (npm run content:generate) que genera lotes pequeños de variantes de zombies, armas y personajes (y opcionalmente 2-3 mapas extra), los valida con zod y los guarda en la BD con origen "gemini". Con reintentos, backoff, límite de peticiones por ejecución y la key solo en backend/.env. Si no se ejecuta, el juego usa el contenido del seed.
+3. Unity: cachea los mapas al iniciar sesión; si el backend no responde, usa el mapa de pruebas local. El director (C#, local) elige el mapa del día y lo configura: lados de spawn, entradas bloqueadas, cantidad de loot y proporción de zombies.
+4. Pruebas para el seed, el esquema y la selección de mapa por el director.
