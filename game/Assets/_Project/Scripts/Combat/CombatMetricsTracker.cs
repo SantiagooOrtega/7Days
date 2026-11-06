@@ -58,6 +58,7 @@ namespace SevenDays.Combat
         public void NewDay()
         {
             Metrics.Reset();
+            if (_cover != null) _cover.Exposure.ResetStats();
             if (_camera != null && _camera.RunCam != null) _sprintBase = _camera.RunCam.TotalSprintSeconds;
         }
 
@@ -81,6 +82,7 @@ namespace SevenDays.Combat
         private void Update()
         {
             Metrics.Tick(Time.deltaTime, _cover != null && _cover.Active);
+            if (_cover != null) Metrics.RecordCover(_cover.Exposure.CoveredSeconds, _cover.Exposure.PoppedSeconds, _cover.Exposure.BlindSeconds);
             if (_camera != null && _camera.RunCam != null) Metrics.RecordMovement(_camera.RunCam.TotalSprintSeconds - _sprintBase, _camera.RunCam.Fatigue);
             var k = UnityEngine.InputSystem.Keyboard.current;
             if (k != null && k.f4Key.wasPressedThisFrame) _showPanel = !_showPanel;
@@ -98,6 +100,7 @@ namespace SevenDays.Combat
             sb.AppendLine("muertes " + s.kills + "  headshot " + s.headshotKills + "  TTK medio " + s.averageTimeToKill.ToString("0.0") + " s");
             sb.AppendLine("en cobertura " + s.timeInCover.ToString("0") + " s  (" + (s.coverRatio * 100f).ToString("0") + "%)");
             sb.AppendLine("corriendo " + s.sprintSeconds.ToString("0") + " s  fatiga " + (s.fatigue * 100f).ToString("0") + "% (máx. " + (s.maxFatigue * 100f).ToString("0") + "%)");
+            sb.AppendLine("cobertura: cubierto " + s.coverSeconds.ToString("0") + " s  asomado " + s.poppedOutSeconds.ToString("0") + " s  a ciegas " + s.blindFireSeconds.ToString("0") + " s" + (s.coverAbuse ? "  [ABUSO]" : ""));
             sb.AppendLine("daño recibido " + s.damageTaken.ToString("0"));
             for (int i = 0; i < s.damageSources.Length; i++) sb.AppendLine("   " + s.damageSources[i] + ": " + s.damageAmounts[i].ToString("0"));
             var mgr = ZombieManager.Instance;

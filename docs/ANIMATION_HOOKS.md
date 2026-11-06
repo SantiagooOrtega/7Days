@@ -8,6 +8,8 @@
 | `MoveX` | float | -1..1 lateral respecto al cuerpo (1 = correr) | blend tree 2D: strafe izquierda/derecha |
 | `MoveY` | float | -1..1 adelante/atrás (1 = correr) | blend tree 2D: caminar/correr adelante, caminar atrás |
 | `IsAiming` | bool | clic derecho | capa superior: pose de apuntar con rifle/pistola (aim idle) |
+| `IsBlindFiring` | bool | disparo a ciegas desde la cobertura | capa UpperBody: brazo extendido sobre el borde o por el lado, arma apuntando al frente sin mirar |
+| `Exposure` | float | 0 (cubierto) .. 1 (asomado); 1 fuera de cobertura | blend del estado Cover: cover idle (0) ↔ asomado por encima/lado (1); el lado lo da el signo del hombro (Q) |
 | `IsCrouching` | bool | Ctrl o en cobertura sin apuntar | estado Crouch (idle y caminar agachado) |
 | `IsInCover` | bool | pegado a una `CoverObject` | estado Cover (cover idle, deslizarse lateral) |
 | `IsGrounded` | bool | en el suelo | sale del estado Airborne |
