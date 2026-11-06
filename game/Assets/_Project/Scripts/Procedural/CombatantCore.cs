@@ -74,10 +74,10 @@ namespace SevenDays.Procedural
         }
 
         /// <summary>Aturde (la resistencia al aturdimiento recorta o anula la duración). Devuelve true si quedó aturdido.</summary>
-        public bool Stun(float seconds)
+        public bool Stun(float seconds, bool applyResistance = true)
         {
             if (IsDead) return false;
-            float d = StunMath.Duration(seconds, StunResistance);
+            float d = applyResistance ? StunMath.Duration(seconds, StunResistance) : seconds;
             if (d <= 0.02f) return false;
             StunRemaining = Math.Max(StunRemaining, d);
             State = HealthState.Stunned;

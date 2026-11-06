@@ -100,6 +100,15 @@ namespace SevenDays.World.Loot
             return Spawn(item, new Vector3(position.x, 0.35f, position.z), null) != null;
         }
 
+        /// <summary>El jefe siempre suelta algo raro o mejor: no cuenta para el tope diario de drops ni se pierde si hay muchos pickups en el suelo.</summary>
+        public bool DropBoss(Vector3 position)
+        {
+            var item = LootRoller.RollDrop(Layout, "boss", _rng);
+            if (item == null) return false;
+            HudMessages.Add("¡El jefe soltó un botín raro!", new Color(1f, 0.85f, 0.3f), 3.5f);
+            return Spawn(item, new Vector3(position.x, 0.35f, position.z), null) != null;
+        }
+
         /// <summary>Solo para pruebas (tecla L): un drop de la tabla de zombies especiales, sin tirar la probabilidad pero con los mismos topes.</summary>
         public bool DebugDrop(Vector3 position)
         {
@@ -177,6 +186,6 @@ namespace SevenDays.World.Loot
     public static class DropSystem
     {
         /// <summary>zombieKind: common | runner | brute | spitter | boss. Devuelve true si soltó algo.</summary>
-        public static bool OnZombieKilled(string zombieKind, Vector3 position) => LootManager.Instance != null && LootManager.Instance.TryDrop(zombieKind, position);
+        public static bool OnZombieKilled(string zombieKind, Vector3 position) => LootManager.Instance != null && (zombieKind == "boss" ? LootManager.Instance.DropBoss(position) : LootManager.Instance.TryDrop(zombieKind, position));
     }
 }

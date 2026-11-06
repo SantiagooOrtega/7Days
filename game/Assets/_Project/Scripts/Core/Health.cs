@@ -53,6 +53,8 @@ namespace SevenDays.Core
         public event Action<DamageInfo, HitReport> Hit;   // solo impactos por zona
         public event Action Died;
         public event Action<float> Stunned;                // segundos
+        /// <summary>Permite redirigir la zona de impacto (el punto débil de un jefe solo cuenta cuando está expuesto).</summary>
+        public Func<HitZone, HitZone> ZoneFilter;
 
         private void Awake() { _core = new CombatantCore(maxHealth); }
 
@@ -78,6 +80,7 @@ namespace SevenDays.Core
             if (IsDead) return false;
             if (info.UseZone)
             {
+                if (ZoneFilter != null) info.Zone = ZoneFilter(info.Zone);
                 var r = Core.ApplyHit(info.Zone, info.Amount, info.ArmorPenetration, info.HeadshotMultiplier <= 0f ? 1f : info.HeadshotMultiplier);
                 LastReport = r;
                 info.Amount = r.FinalDamage;
@@ -95,9 +98,10 @@ namespace SevenDays.Core
             return true;
         }
 
-        public bool Stun(float seconds)
+        /// <param name="applyResistance">false si los segundos ya vienen reducidos por la resistencia (HitReaction)</param>
+        public bool Stun(float seconds, bool applyResistance = true)
         {
-            if (!Core.Stun(seconds)) return false;
+            if (!Core.Stun(seconds, applyResistance)) return false;
             Stunned?.Invoke(Core.StunRemaining);
             return true;
         }
