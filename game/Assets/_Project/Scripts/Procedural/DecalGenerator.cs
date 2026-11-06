@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SevenDays.Procedural
 {
-    public enum DecalKind { Blood, Crack, Puddle }
+    public enum DecalKind { Blood, Crack, Puddle, DashLine, Zebra, Arrow }
 
     /// <summary>
     /// Texturas RGBA con transparencia para calcomanías sobre el suelo: sangre seca, grietas y charcos oscuros.
@@ -27,7 +27,8 @@ namespace SevenDays.Procedural
                     {
                         case DecalKind.Blood: Blood(u, v, seed, streakAngle, out r, out g, out b, out a); break;
                         case DecalKind.Crack: Crack(u, v, seed, segs, out r, out g, out b, out a); break;
-                        default: Puddle(u, v, seed, out r, out g, out b, out a); break;
+                        case DecalKind.Puddle: Puddle(u, v, seed, out r, out g, out b, out a); break;
+                        default: RoadPaint(kind, u, v, seed, out r, out g, out b, out a); break;
                     }
                     int i = (y * size + x) * 4;
                     px[i] = ToByte(r); px[i + 1] = ToByte(g); px[i + 2] = ToByte(b); px[i + 3] = ToByte(a);
@@ -123,6 +124,43 @@ namespace SevenDays.Procedural
             float t = len2 < 1e-9f ? 0f : Math.Max(0f, Math.Min(1f, (wx * vx + wy * vy) / len2));
             float cx = ax + vx * t - px, cy = ay + vy * t - py;
             return (float)Math.Sqrt(cx * cx + cy * cy);
+        }
+
+        /// <summary>Marcas viales de pintura gastada: línea amarilla discontinua, paso de cebra y flecha casi borrada.</summary>
+        private static void RoadPaint(DecalKind kind, float u, float v, int seed, out float r, out float g, out float b, out float a)
+        {
+            // bordes irregulares: se deforma un poco la posición antes de evaluar la forma
+            float wu = u + 0.012f * TileableNoise.Perlin(u * 40f, v * 40f, 40, seed + 1);
+            float wv = v + 0.012f * TileableNoise.Perlin(u * 40f + 9f, v * 40f, 40, seed + 2);
+            float cover = 0f;
+            bool yellow = false;
+            float wear = 0.38f;
+
+            if (kind == DecalKind.DashLine)
+            {
+                cover = (wu > 0.4f && wu < 0.6f && wv > 0.03f && wv < 0.97f) ? 1f : 0f;
+                yellow = true;
+            }
+            else if (kind == DecalKind.Zebra)
+            {
+                float st = wu * 9f, fr = st - (float)Math.Floor(st);
+                cover = ((int)Math.Floor(st) % 2 == 0 && fr > 0.08f && fr < 0.92f && wv > 0.06f && wv < 0.94f) ? 1f : 0f;
+                wear = 0.42f;
+            }
+            else
+            {
+                bool shaft = wu > 0.41f && wu < 0.59f && wv > 0.04f && wv < 0.56f;
+                bool head = wv >= 0.56f && wv < 0.96f && Math.Abs(wu - 0.5f) < (0.96f - wv) / 0.4f * 0.27f;
+                cover = shaft || head ? 1f : 0f;
+                wear = 0.5f; // las flechas están casi borradas
+            }
+
+            float keep = Smooth(wear - 0.05f, wear + 0.05f, TileableNoise.Fbm(u, v, 7, 4, seed + 3) + 0.08f * TileableNoise.Perlin(u * 70f, v * 70f, 70, seed + 4));
+            float edge = Math.Min(Math.Min(u, 1f - u), Math.Min(v, 1f - v));
+            a = cover * keep * 0.92f * Smooth(0.02f, 0.05f, edge); // el borde siempre transparente
+            float grime = 0.65f + 0.35f * TileableNoise.Fbm(u, v, 12, 3, seed + 5);
+            if (yellow) { r = 0.66f * grime; g = 0.52f * grime; b = 0.12f * grime; }
+            else { r = 0.74f * grime; g = 0.73f * grime; b = 0.68f * grime; }
         }
 
         private static void Puddle(float u, float v, int seed, out float r, out float g, out float b, out float a)
