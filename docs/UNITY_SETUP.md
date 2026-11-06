@@ -107,3 +107,35 @@ El look era demasiado oscuro. Cambios:
 - **UV por cara:** las cajas se construyen con `BoxMesh` (UV en metros por cara), por lo que la textura ya no se estira en muros, barreras y contenedores largos.
 
 Si algo sigue oscuro o lavado, sube o baja `GlobalBrightness` (pasos de 0.1) antes de tocar otros valores.
+
+---
+
+## Bloque 1: texturas en esquinas y ángulos
+- Las cajas se construyen con `BoxGeometry` (C# puro, con 12 pruebas): UV por cara en metros, sin caras espejadas, la "arriba" de la textura apunta a +Y (veta y líneas verticales en su sitio), tangentes definidas para los mapas de normales y **bisel** en las aristas (muros 5 cm, cajas 2.5 cm) que corta las costuras.
+- Las cajas de madera y cartón usan wrap `Clamp` (no se repiten) y todas las texturas generadas piden filtrado anisotrópico 8x (se fuerza con `QualitySettings.anisotropicFiltering`).
+- El desplazamiento aleatorio de textura del contenedor es solo horizontal, para que el óxido del borde superior no se mueva.
+- Si alguna malla aún muestra estiramiento, dime cuál y paso ese material a mapeo triplanar (necesita un shader propio).
+
+## Bloque 2: ambiente apocalíptico
+Todo está en `LookSettings.Atmosphere` (`Scripts/Look/AtmosphereSettings.cs`). Un valor de 0 apaga el efecto y `Density` multiplica todo de golpe.
+
+| Efecto | Parámetros |
+|--------|-----------|
+| Niebla baja pegada al suelo (nubes planas y verticales que se arrastran) | `GroundFogLayers`, `GroundFogDensity`, `GroundFogAlpha` |
+| Bruma lejana entre edificios + niebla exponencial | `HazeBanks`, `LookSettings.FogDensity` |
+| Cielo apagado | `SkyDim` |
+| Ceniza flotando alrededor del jugador | `Ash` |
+| Columnas de humo negro a lo lejos | `SmokeColumns`, `Smoke` |
+| Chispas en barriles con fuego | `Sparks` |
+| Rayos de luz falsos (partículas alargadas alineadas con el sol) | `GodRays`, `GodRayIntensity` |
+| Farolas con parpadeo rojizo y apagones | `RedFlickerLamps` |
+| Grietas, maleza, charcos y sangre seca | `Cracks`, `WeedTufts`, `Puddles`, `BloodStains` |
+| Edificios en ruinas fuera del mapa | `SkylineBuildings` |
+
+### 60 FPS: recorte automático
+- El HUD muestra `FPS ... ambiente N/3`. Si el FPS se mantiene por debajo de **55** durante 2.5 s (tras 6 s de calentamiento), el juego sube un nivel de recorte: 1 = 60% de partículas, 2 = 30% y sin bruma, rayos ni capas extra de niebla, 3 = solo lo esencial. Cada recorte queda en la Console.
+- **F3** cambia el nivel a mano (para comparar). Nunca sube solo.
+- Si en tu Mac baja de 55 con el ambiente completo, baja `Atmosphere.Density` (por ejemplo 0.7) antes de tocar otra cosa.
+
+### Si haces un Build
+Las partículas usan el shader `Universal Render Pipeline/Particles/Unlit`, que se busca por nombre. Para que entre en un Build: Edit > Project Settings > Graphics > Always Included Shaders, aumenta el tamaño de la lista y arrastra ese shader (está en el paquete Universal RP > Shaders > Particles). En el editor (Play) no hace falta.
