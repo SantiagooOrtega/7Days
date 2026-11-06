@@ -15,6 +15,7 @@ namespace SevenDays.UI
         private PlayerCamera _camera;
         private PlayerShooting _shooting;
         private WeaponHandling _handling;
+        private PlayerCover _cover;
         private bool _open;
         private Vector2 _scroll;
         private GUIStyle _label, _head;
@@ -25,6 +26,7 @@ namespace SevenDays.UI
             _camera = player.GetComponent<PlayerCamera>();
             _shooting = player.GetComponent<PlayerShooting>();
             _handling = player.GetComponent<WeaponHandling>();
+            _cover = player.GetComponent<PlayerCover>();
         }
 
         private void Update()
@@ -56,6 +58,8 @@ namespace SevenDays.UI
             GUILayout.Label("Dispersión: " + _shooting.CurrentSpread.ToString("0.00") + "°  (bloom " + _shooting.Spread.Bloom.ToString("0.00") + "°)", _label);
             GUILayout.Label("FOV " + _camera.CurrentFov.ToString("0.0") + "   apuntado " + (_camera.Aim.Eased * 100f).ToString("0") + "%   sensibilidad " + _camera.CurrentSensitivity.ToString("0.000"), _label);
             GUILayout.Label("Hombro " + (_camera.Shoulder.Side > 0 ? "derecho" : "izquierdo") + "  lean " + _camera.LeanOffset.ToString("0.00") + " m  primera persona " + (_camera.FirstPersonBlend * 100f).ToString("0") + "%", _label);
+            var cv = _cover;
+            if (cv != null) GUILayout.Label("Cobertura: " + (cv.Active ? cv.Exposure.State + "  asomada " + cv.PopDir + "  exposición " + (cv.Exposure.Value * 100f).ToString("0") + "%  borde sup. " + cv.CoverTop.ToString("0.00") + " m" : "fuera"), _label);
             if (run != null)
             {
                 GUILayout.Label("Carrera: intensidad " + (o.Weight * 100f).ToString("0") + "%  x " + (o.OffsetX * 100f).ToString("0.0") + " cm  y " + (o.OffsetY * 100f).ToString("0.0") + " cm  roll " + o.Roll.ToString("0.00") + "°", _label);
@@ -89,6 +93,10 @@ namespace SevenDays.UI
             c.hipFov = Slider("FOV sin apuntar", c.hipFov, 45f, 85f);
             c.rotationSmoothing = Slider("suavizado (s)", c.rotationSmoothing, 0f, 0.15f);
             c.shakeScale = Slider("sacudidas (x)", c.shakeScale, 0f, 2f);
+            c.popSeconds = Slider("asomarse (s)", c.popSeconds, 0.15f, 0.25f);
+            c.blindDamageMultiplier = Slider("daño a ciegas (x)", c.blindDamageMultiplier, 0.1f, 1f);
+            c.blindSpreadMultiplier = Slider("dispersión a ciegas (x)", c.blindSpreadMultiplier, 1f, 6f);
+            c.coveredDamageFloor = Slider("daño cubierto (x)", c.coveredDamageFloor, 0f, 1f);
             c.motionScale = Slider("Movimiento de cámara (accesibilidad)", c.motionScale, 0f, 1f);
             c.Validate();
 

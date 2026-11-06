@@ -5,8 +5,8 @@ namespace SevenDays.Player
     /// <summary>
     /// Parámetros del Animator listos para cuando haya modelos (Quaternius/Mixamo, Fase 3). Si asignas un Animator cuyo controlador tenga estos parámetros
     /// (menú 7Days > Crear Animator del jugador genera uno con todos), se actualizan solos; sin modelo no hace nada. Detalle en docs/ANIMATION_HOOKS.md.
-    ///   float: Speed, MoveX, MoveY, VerticalSpeed, Fatigue, MeleeIndex
-    ///   bool:  IsAiming, IsCrouching, IsInCover, IsGrounded, IsJumping, IsVaulting
+    ///   float: Speed, MoveX, MoveY, VerticalSpeed, Fatigue, Exposure, MeleeIndex
+    ///   bool:  IsAiming, IsBlindFiring, IsCrouching, IsInCover, IsGrounded, IsJumping, IsVaulting
     ///   trigger: Fire, Reload, MeleeSwing, MeleeHeavy
     /// </summary>
     public class PlayerAnimatorHooks : MonoBehaviour
@@ -16,6 +16,8 @@ namespace SevenDays.Player
         public static readonly int MoveYHash = Animator.StringToHash("MoveY");
         public static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
         public static readonly int IsCrouchingHash = Animator.StringToHash("IsCrouching");
+        public static readonly int IsBlindFiringHash = Animator.StringToHash("IsBlindFiring");
+        public static readonly int ExposureHash = Animator.StringToHash("Exposure");
         public static readonly int IsInCoverHash = Animator.StringToHash("IsInCover");
         public static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
         public static readonly int IsJumpingHash = Animator.StringToHash("IsJumping");
@@ -32,7 +34,7 @@ namespace SevenDays.Player
         public static readonly (string name, AnimatorControllerParameterType type)[] Parameters =
         {
             ("Speed", AnimatorControllerParameterType.Float), ("MoveX", AnimatorControllerParameterType.Float), ("MoveY", AnimatorControllerParameterType.Float),
-            ("IsAiming", AnimatorControllerParameterType.Bool), ("IsCrouching", AnimatorControllerParameterType.Bool), ("IsInCover", AnimatorControllerParameterType.Bool),
+            ("IsAiming", AnimatorControllerParameterType.Bool), ("IsBlindFiring", AnimatorControllerParameterType.Bool), ("Exposure", AnimatorControllerParameterType.Float), ("IsCrouching", AnimatorControllerParameterType.Bool), ("IsInCover", AnimatorControllerParameterType.Bool),
             ("IsGrounded", AnimatorControllerParameterType.Bool), ("IsJumping", AnimatorControllerParameterType.Bool), ("IsVaulting", AnimatorControllerParameterType.Bool),
             ("VerticalSpeed", AnimatorControllerParameterType.Float), ("Fatigue", AnimatorControllerParameterType.Float),
             ("Fire", AnimatorControllerParameterType.Trigger), ("Reload", AnimatorControllerParameterType.Trigger),
@@ -46,6 +48,8 @@ namespace SevenDays.Player
         public bool IsAiming { get; private set; }
         public bool IsCrouching { get; private set; }
         public bool IsInCover { get; private set; }
+        public bool IsBlindFiring { get; private set; }
+        public float Exposure { get; private set; }
         public bool IsGrounded { get; private set; }
         public bool IsJumping { get; private set; }
         public bool IsVaulting { get; private set; }
@@ -81,6 +85,8 @@ namespace SevenDays.Player
             IsAiming = _camera != null && _camera.Aiming;
             IsCrouching = _motor.IsCrouched;
             IsInCover = _cover != null && _cover.Active;
+            IsBlindFiring = _cover != null && _cover.IsBlindFiring;
+            Exposure = _cover != null ? _cover.ExposureValue : 1f;
             IsGrounded = _motor.IsGrounded;
             IsJumping = _motor.IsJumping;
             IsVaulting = _motor.IsVaulting;
@@ -89,7 +95,7 @@ namespace SevenDays.Player
 
             if (!Ready()) return;
             SetFloat(SpeedHash, Speed); SetFloat(MoveXHash, Move.x); SetFloat(MoveYHash, Move.y);
-            SetBool(IsAimingHash, IsAiming); SetBool(IsCrouchingHash, IsCrouching); SetBool(IsInCoverHash, IsInCover);
+            SetBool(IsAimingHash, IsAiming); SetBool(IsCrouchingHash, IsCrouching); SetBool(IsInCoverHash, IsInCover); SetBool(IsBlindFiringHash, IsBlindFiring); SetFloat(ExposureHash, Exposure);
             SetBool(IsGroundedHash, IsGrounded); SetBool(IsJumpingHash, IsJumping); SetBool(IsVaultingHash, IsVaulting);
             SetFloat(VerticalSpeedHash, VerticalSpeed); SetFloat(FatigueHash, Fatigue);
         }
