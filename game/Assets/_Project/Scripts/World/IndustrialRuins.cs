@@ -73,7 +73,11 @@ namespace SevenDays.World
         // ---------- Suelo ----------
         private static void BuildGround(Transform root)
         {
-            Prim.CreateBox("Ground", new Vector3(0f, -0.25f, 0f), new Vector3(60f, 0.5f, 60f), Tex(Concrete, SurfaceLibrary.Concrete), root, 3f);
+            // Piso fuera de la autopista: mapa de mezcla de 60 m (UV 0..1 sobre la cara superior) si está listo; si no, el concreto genérico
+            if (GroundLibrary.Ready)
+                Prim.CreateBox("Ground", new Vector3(0f, -0.25f, 0f), new Vector3(60f, 0.5f, 60f), GroundLibrary.Material, root, 60f, default, true, 0f);
+            else
+                Prim.CreateBox("Ground", new Vector3(0f, -0.25f, 0f), new Vector3(60f, 0.5f, 60f), Tex(Concrete, SurfaceLibrary.Concrete), root, 3f);
 
             // Franja de asfalto; las marcas viales (línea discontinua, cebras, flechas) son calcomanías: ver RoadMarkings
             Prim.CreateBox("Road", new Vector3(0f, 0.01f, 0f), new Vector3(8f, 0.04f, 58f), Tex(Asphalt, SurfaceLibrary.Floor, 0.25f), root, 3f, default, false);

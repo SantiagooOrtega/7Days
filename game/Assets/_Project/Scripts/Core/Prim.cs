@@ -127,6 +127,29 @@ namespace SevenDays.Core
 
         private static string Side(bool twoSided) => twoSided ? "|2s" : "";
 
+        /// <summary>
+        /// Material del piso con URP Lit (sin shader propio): mapa de mezcla grande (alfa = suavidad, así el barro mojado brilla) y mapas de
+        /// "Detail" repetidos a otra escala (keyword _DETAIL_MULX2: el albedo de detalle multiplica x2, por eso su gris medio es neutro).
+        /// </summary>
+        public static Material GetGround(Texture2D albedo, Texture2D normal, Texture2D detailAlbedo, Texture2D detailNormal, float detailTiles, float detailStrength)
+        {
+            var mat = NewMaterial(Color.white, 1f, 0f); // _Smoothness = 1 x alfa del albedo
+            mat.name = "Ground";
+            mat.SetTexture("_BaseMap", albedo);
+            mat.SetTexture("_BumpMap", normal);
+            mat.EnableKeyword("_NORMALMAP");
+            mat.SetFloat("_SmoothnessTextureChannel", 1f);
+            mat.EnableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
+            mat.SetTexture("_DetailAlbedoMap", detailAlbedo);
+            mat.SetTexture("_DetailNormalMap", detailNormal);
+            mat.SetTextureScale("_DetailAlbedoMap", new Vector2(detailTiles, detailTiles));
+            mat.SetTextureScale("_DetailNormalMap", new Vector2(detailTiles, detailTiles));
+            mat.SetFloat("_DetailAlbedoMapScale", detailStrength);
+            mat.SetFloat("_DetailNormalMapScale", detailStrength);
+            mat.EnableKeyword("_DETAIL_MULX2");
+            return mat;
+        }
+
         /// <summary>Tiling razonable para una pieza grande: una repetición cada ~3 metros.</summary>
         public static Vector2 TilingFor(Vector3 scale, float meters = 3f)
             => new Vector2(Mathf.Max(1f, Mathf.Round(Mathf.Max(scale.x, scale.z) / meters)), Mathf.Max(1f, Mathf.Round(scale.y / meters)));
