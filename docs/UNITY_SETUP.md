@@ -42,3 +42,42 @@ En Unity:
 4. Munición baja en el HUD; recargar con R; cambiar a pistola con 2.
 5. Acércate a una caja o muro bajo y pulsa C: te agachas pegado a él; A/D te desliza y se detiene en los bordes.
 6. En cobertura, clic derecho te asoma para disparar por encima.
+
+---
+
+# Fase 2.5: Look & Feel
+
+## Qué cambió (todo por código, no hay que tocar la escena)
+Al dar Play en `Game` se aplica automáticamente:
+- **Post-procesado URP** (Volume global creado por código): desaturado -38, contraste +28, viñeta, bloom suave (umbral 1.0), grano fino, tonemapping ACES y SMAA.
+- **Niebla** exponencial gris-parda, fondo del color de la niebla, ambiente de tres colores y sol bajo de atardecer con sombras suaves.
+- **Polvo flotante** que sigue al jugador (500 partículas máximo).
+- **Mapa de ruinas industriales** con primitivas: calle de asfalto con líneas, contenedores, barreras, cajas, tuberías, nave semiderruida, escombros, 4 farolas y 2 barriles con fuego (luz parpadeante).
+- **Efectos**: destello de boca de cañón, trazadoras e impactos brillantes (con bloom), contador de FPS en el HUD (verde ≥ 55).
+- Todos los números del look están en `LookSettings` (`Scripts/Look/LookAndFeel.cs`) para ajustarlos mirando una captura.
+
+Sobre la iluminación **baked**: no se puede hornear porque el mapa se construye en tiempo de ejecución (y en la Fase 3 los mapas vendrán de la base de datos, que también se construyen al jugar). En su lugar se usa 1 sola luz con sombras (el sol), luces puntuales sin sombras y ambiente barato, que cuesta poco en GPU.
+
+## Perfil de calidad "Demo" (una sola vez, en el editor)
+1. En la ventana Project abre `Assets/Settings`. Clic derecho sobre `PC_RPAsset` > Duplicate. Renombra la copia a `Demo_RPAsset`.
+2. Selecciónala. En el Inspector:
+   - Quality > **Anti Aliasing (MSAA)**: Disabled (usamos SMAA en la cámara).
+   - Quality > **HDR**: marcado.
+   - Quality > **Render Scale**: 1.
+   - Lighting > **Additional Lights**: Per Pixel, **Cast Shadows** desmarcado, **Per Object Limit** 4.
+   - Shadows > **Max Distance**: 45; **Cascade Count**: 2; **Soft Shadows**: marcado.
+3. Edit > Project Settings > Quality. En la lista de niveles, selecciona **PC** y pulsa el botón de duplicar (o Add Quality Level). Nómbralo exactamente `Demo`.
+4. En el nivel `Demo`, en **Render Pipeline Asset** arrastra `Demo_RPAsset`. Anti Aliasing: Disabled; VSync: Don't Sync.
+5. En la barra de niveles, haz que `Demo` sea el nivel por defecto del Mac (clic en la flecha verde bajo el icono de Mac/Standalone, elige `Demo`).
+6. Al dar Play, el juego busca ese nivel por nombre y lo activa; además limita a 60 FPS.
+
+## Texturas opcionales
+Ver `docs/ASSETS.md` (sección Fase 2.5): 4 archivos de Poly Haven copiados a `Assets/_Project/Resources/Look/`.
+
+## Qué probar y la captura que necesito
+1. Pulsa Play en `Game`. Mira el contador FPS arriba a la derecha: debe estar verde (≥ 55). Si no, dime el número.
+2. Haz **3 capturas** del Game view (Cmd+Shift+4 en Mac, o el botón de captura de Unity) y pásamelas:
+   a. Al inicio, mirando hacia el frente por la calle (para ver niebla, farolas y siluetas).
+   b. Apuntando a un barril con fuego (para ver bloom y luces).
+   c. Disparando (destello y trazadoras).
+3. Dime también: ¿se ve demasiado oscuro, demasiado gris o demasiado borroso? Ajusto `LookSettings`.

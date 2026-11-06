@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SevenDays.Core;
+using SevenDays.Look;
 using SevenDays.Net;
 using SevenDays.Player;
 using SevenDays.UI;
@@ -42,6 +43,9 @@ namespace SevenDays.World
             var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, weapons);
             _playerHealth = player.GetComponent<Health>();
 
+            LookAndFeel.Apply(cam);
+            Particles.CreateDust(player.transform);
+
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
             hud.Initialize(player);
         }
@@ -59,30 +63,7 @@ namespace SevenDays.World
         private void BuildLevel()
         {
             var root = new GameObject("Level").transform;
-            var concrete = new Color(0.42f, 0.42f, 0.4f);
-            var dark = new Color(0.3f, 0.3f, 0.3f);
-            var rust = new Color(0.45f, 0.27f, 0.18f);
-
-            Prim.Create(PrimitiveType.Cube, "Ground", new Vector3(0f, -0.25f, 0f), new Vector3(60f, 0.5f, 60f),
-                new Color(0.28f, 0.29f, 0.27f), root);
-
-            // Muros perimetrales
-            Wall(root, "Wall N", new Vector3(0f, 2f, 30f), new Vector3(60f, 4f, 1f), dark);
-            Wall(root, "Wall S", new Vector3(0f, 2f, -30f), new Vector3(60f, 4f, 1f), dark);
-            Wall(root, "Wall E", new Vector3(30f, 2f, 0f), new Vector3(1f, 4f, 60f), dark);
-            Wall(root, "Wall W", new Vector3(-30f, 2f, 0f), new Vector3(1f, 4f, 60f), dark);
-
-            // Coberturas (altura 1.2 m: agachado quedas oculto, apuntando te asomas)
-            Cover(root, "Barrier 1", new Vector3(-4f, 0.6f, -8f), new Vector3(3.5f, 1.2f, 0.6f), 0f, concrete);
-            Cover(root, "Barrier 2", new Vector3(4f, 0.6f, -6f), new Vector3(3.5f, 1.2f, 0.6f), 15f, concrete);
-            Cover(root, "Crate 1", new Vector3(0f, 0.6f, -4f), new Vector3(1.4f, 1.2f, 1.4f), 20f, rust);
-            Cover(root, "Barrier 3", new Vector3(-9f, 0.6f, 0f), new Vector3(0.6f, 1.2f, 4f), 0f, concrete);
-            Cover(root, "Crate 2", new Vector3(8f, 0.6f, 2f), new Vector3(1.4f, 1.2f, 1.4f), -10f, rust);
-            Cover(root, "Barrier 4", new Vector3(0f, 0.6f, 4f), new Vector3(4f, 1.2f, 0.6f), 0f, concrete);
-
-            // Pilares altos (no son cobertura, solo ambiente)
-            for (int i = -2; i <= 2; i++)
-                Wall(root, "Pillar " + i, new Vector3(i * 9f, 2.5f, 22f), new Vector3(1.2f, 5f, 1.2f), dark);
+            IndustrialRuins.Build(root);
 
             // Blancos de práctica
             for (int i = 0; i < 6; i++)
@@ -95,16 +76,6 @@ namespace SevenDays.World
                 var dummy = d.AddComponent<TargetDummy>();
                 if (i % 3 == 2) { dummy.StrafeAmplitude = 3f; dummy.StrafeSpeed = 1.2f; }
             }
-        }
-
-        private static void Wall(Transform root, string name, Vector3 pos, Vector3 scale, Color color)
-            => Prim.Create(PrimitiveType.Cube, name, pos, scale, color, root);
-
-        private static void Cover(Transform root, string name, Vector3 pos, Vector3 scale, float yaw, Color color)
-        {
-            var go = Prim.Create(PrimitiveType.Cube, name, pos, scale, color, root);
-            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            go.AddComponent<CoverObject>();
         }
     }
 }

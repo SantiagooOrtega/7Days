@@ -3,13 +3,21 @@ using UnityEngine;
 
 namespace SevenDays.Core
 {
-    /// <summary>Crea objetos con primitivas de Unity coloreadas (sin assets externos). Los materiales se comparten por color.</summary>
+    /// <summary>
+    /// Crea objetos con primitivas de Unity (sin assets externos). Los materiales se comparten por
+    /// color/tipo para que el SRP Batcher y el GPU instancing agrupen las llamadas de dibujo.
+    /// Si existen texturas en Resources/Look (ver docs/ASSETS.md) se usan; si no, se usa solo el color.
+    /// </summary>
     public static class Prim
     {
-        private static readonly Dictionary<int, Material> Cache = new Dictionary<int, Material>();
+        private static readonly Dictionary<string, Material> Cache = new Dictionary<string, Material>();
         private static Material _template;
 
         public static GameObject Create(PrimitiveType type, string name, Vector3 position, Vector3 scale, Color color,
+            Transform parent = null, bool collider = true)
+            => Create(type, name, position, scale, GetMaterial(color), parent, collider);
+
+        public static GameObject Create(PrimitiveType type, string name, Vector3 position, Vector3 scale, Material material,
             Transform parent = null, bool collider = true)
         {
             var go = GameObject.CreatePrimitive(type);
@@ -17,17 +25,65 @@ namespace SevenDays.Core
             if (parent != null) go.transform.SetParent(parent, false);
             go.transform.localPosition = position;
             go.transform.localScale = scale;
-            go.GetComponent<Renderer>().sharedMaterial = GetMaterial(color);
+            go.GetComponent<Renderer>().sharedMaterial = material;
             if (!collider) Object.Destroy(go.GetComponent<Collider>());
             return go;
         }
 
-        public static Material GetMaterial(Color color)
-        {
-            Color32 c = color;
-            int key = (c.r << 24) | (c.g << 16) | (c.b << 8) | c.a;
-            if (Cache.TryGetValue(key, out var existing) && existing != null) return existing;
+        /// <summary>Material mate de un color (poco brillo: evita el aspecto de plástico).</summary>
+        public static Material GetMaterial(Color color) => GetOrCreate("c|" + Key(color), color, null, null, Vector2.one, 0.1f, 0f);
 
+        /// <summary>Material que brilla (lámparas, balas trazadoras). Con Bloom da un halo.</summary>
+        public static Material GetEmissive(Color color, float intensity)
+        {
+            string key = "e|" + Key(color) + "|" + intensity.ToString("0.#");
+            if (Cache.TryGetValue(key, out var m) && m != null) return m;
+            var mat = NewMaterial(Color.black, 0f, 0f);
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", color * intensity);
+            Cache[key] = mat;
+            return mat;
+        }
+
+        /// <summary>
+        /// Material con textura de Resources/Look/{name}_diff (y {name}_nor si existe). Si no hay textura,
+        /// devuelve el material de color. "tiling" = repeticiones de la textura sobre la superficie.
+        /// </summary>
+        public static Material GetTextured(Color tint, string name, Vector2 tiling, float smoothness = 0.15f, float metallic = 0f)
+        {
+            var diff = Resources.Load<Texture2D>("Look/" + name + "_diff");
+            if (diff == null) return GetMaterial(tint);
+            var nor = Resources.Load<Texture2D>("Look/" + name + "_nor");
+            string key = "t|" + Key(tint) + "|" + name + "|" + tiling.x.ToString("0") + "x" + tiling.y.ToString("0");
+            return GetOrCreate(key, tint, diff, nor, tiling, smoothness, metallic);
+        }
+
+        /// <summary>Tiling razonable para una pieza grande: una repetición cada ~3 metros.</summary>
+        public static Vector2 TilingFor(Vector3 scale, float meters = 3f)
+            => new Vector2(Mathf.Max(1f, Mathf.Round(Mathf.Max(scale.x, scale.z) / meters)), Mathf.Max(1f, Mathf.Round(scale.y / meters)));
+
+        private static Material GetOrCreate(string key, Color color, Texture2D diff, Texture2D nor, Vector2 tiling,
+            float smoothness, float metallic)
+        {
+            if (Cache.TryGetValue(key, out var existing) && existing != null) return existing;
+            var mat = NewMaterial(color, smoothness, metallic);
+            if (diff != null)
+            {
+                mat.SetTexture("_BaseMap", diff);
+                mat.SetTextureScale("_BaseMap", tiling);
+            }
+            if (nor != null)
+            {
+                mat.SetTexture("_BumpMap", nor);
+                mat.SetTextureScale("_BumpMap", tiling);
+                mat.EnableKeyword("_NORMALMAP");
+            }
+            Cache[key] = mat;
+            return mat;
+        }
+
+        private static Material NewMaterial(Color color, float smoothness, float metallic)
+        {
             if (_template == null)
             {
                 var probe = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -37,8 +93,15 @@ namespace SevenDays.Core
             var mat = new Material(_template) { enableInstancing = true };
             mat.SetColor("_BaseColor", color); // URP Lit
             mat.SetColor("_Color", color);
-            Cache[key] = mat;
+            mat.SetFloat("_Smoothness", smoothness);
+            mat.SetFloat("_Metallic", metallic);
             return mat;
+        }
+
+        private static string Key(Color color)
+        {
+            Color32 c = color;
+            return ((c.r << 24) | (c.g << 16) | (c.b << 8) | c.a).ToString();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
