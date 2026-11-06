@@ -96,6 +96,12 @@ namespace SevenDays.UI
                     "T/Y: probar daño/curación · U: subir 6 m (probar caída) · F3 recortar ambiente · F1 ocultar ayuda", _label);
             }
 
+            if (SevenDays.World.FireManager.PlayerBurning)
+            {
+                Fill(new Rect(0, 0, w, h), new Color(1f, 0.35f, 0.05f, 0.14f));
+                GUI.Label(new Rect(0, h - 250, w, 50), "¡TE QUEMAS! Sal del fuego", _center);
+            }
+
             if (_health.IsDead)
             {
                 Fill(new Rect(0, 0, w, h), new Color(0.4f, 0, 0, 0.5f));

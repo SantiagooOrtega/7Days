@@ -138,6 +138,9 @@ namespace SevenDays.Look
         /// <summary>Casa central (refugio).</summary>
         public HouseSettings House = new HouseSettings();
 
+        /// <summary>Fuegos: barriles, fogatas, coches incendiados y antorchas (luces con tope, humo, chispas, quemadura).</summary>
+        public FireSettings Fire = new FireSettings();
+
         /// <summary>Salto, vault y caída: altura de salto, alturas mín/máx de vault, duración, coyote time, jump buffer, gravedad. Se cargan del ScriptableObject Resources/Config/Movement si existe.</summary>
         public SevenDays.Procedural.MovementSettings Movement = SevenDays.Player.PlayerMovementConfig.LoadSettings();
 

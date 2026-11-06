@@ -28,6 +28,8 @@ namespace SevenDays.Look
         private static readonly List<Group> Groups = new List<Group>();
 
         public static int Level { get; private set; }
+        /// <summary>Se dispara al cambiar el nivel de recorte (el gestor de fuego reasigna sus luces).</summary>
+        public static event System.Action<int> LevelChanged;
 
         /// <summary>Registra un sistema de partículas. disableAtLevel: nivel desde el que se apaga del todo (0-3; 4 = nunca).</summary>
         public static void Register(ParticleSystem ps, int disableAtLevel = 4)
@@ -45,11 +47,15 @@ namespace SevenDays.Look
             go.SetActive(Level < disableAtLevel);
         }
 
+        /// <summary>Quita un sistema registrado (por ejemplo, un fuego que vuelve al pool).</summary>
+        public static void Unregister(ParticleSystem ps) => Emitters.RemoveAll(e => e.Ps == ps);
+
         public static void SetLevel(int level)
         {
             Level = Mathf.Clamp(level, 0, 3);
             foreach (var e in Emitters) Apply(e);
             foreach (var g in Groups) if (g.Go != null) g.Go.SetActive(Level < g.DisableAtLevel);
+            LevelChanged?.Invoke(Level);
         }
 
         private static void Apply(Emitter e)
@@ -70,6 +76,7 @@ namespace SevenDays.Look
             Emitters.Clear();
             Groups.Clear();
             Level = 0;
+            LevelChanged = null;
         }
     }
 

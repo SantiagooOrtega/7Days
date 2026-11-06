@@ -49,7 +49,7 @@ namespace SevenDays.World
             var caps = new Dictionary<string, int>
             {
                 { PropTypes.TreeDead, v.MaxTrees }, { PropTypes.Bush, v.MaxBushes }, { PropTypes.Grass, v.MaxGrass },
-                { PropTypes.CarWreck, 12 }, { PropTypes.PoleFallen, 12 }, { PropTypes.Tire, 40 }, { PropTypes.Bag, 40 }, { PropTypes.SignBroken, 16 },
+                { PropTypes.CarWreck, 12 }, { PropTypes.Campfire, 16 }, { PropTypes.PoleFallen, 12 }, { PropTypes.Tire, 40 }, { PropTypes.Bag, 40 }, { PropTypes.SignBroken, 16 },
             };
             foreach (var st in PropTypes.SignTypes) caps[st] = look.Signs.MaxSigns;
             var result = PropLayoutValidator.Validate(layout, caps);
@@ -71,7 +71,8 @@ namespace SevenDays.World
                 var rot = Quaternion.Euler(0f, e.yaw, 0f);
                 switch (e.type)
                 {
-                    case PropTypes.CarWreck: AbandonedProps.Car(parent, pos, e.yaw, e.variant); continue;
+                    case PropTypes.CarWreck: AbandonedProps.Car(parent, pos, e.yaw, e.variant, e.state == "burning"); continue;
+                    case PropTypes.Campfire: AbandonedProps.Campfire(parent, pos, e.yaw); continue;
                     case PropTypes.PoleFallen: AbandonedProps.FallenPole(parent, pos, e.yaw, e.scale); continue;
                     case PropTypes.SignBroken: AbandonedProps.BrokenSign(parent, pos, e.yaw, e.variant); continue;
                 }

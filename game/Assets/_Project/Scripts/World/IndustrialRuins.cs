@@ -1,6 +1,7 @@
 using UnityEngine;
 using SevenDays.Core;
 using SevenDays.Look;
+using SevenDays.Procedural;
 
 namespace SevenDays.World
 {
@@ -251,18 +252,8 @@ namespace SevenDays.World
             {
                 var b = Prim.Create(PrimitiveType.Cylinder, "Fire Barrel " + i, fires[i] + Vector3.up * 0.5f, new Vector3(0.6f, 0.5f, 0.6f),
                     Tex(new Color(0.22f, 0.15f, 0.12f), SurfaceLibrary.Metal, 0.3f, 0.35f, true), root);
-                var lightGo = new GameObject("FireLight");
-                lightGo.transform.SetParent(b.transform, false);
-                lightGo.transform.position = fires[i] + Vector3.up * 1.4f;
-                var l = lightGo.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.color = new Color(1f, 0.55f, 0.2f);
-                l.range = 12f;
-                l.intensity = 3.2f;
-                l.shadows = LightShadows.None;
-                lightGo.AddComponent<FlickerLight>();
-                Particles.CreateFire(root, fires[i] + Vector3.up * 1.05f);
-                Particles.CreateSparks(root, fires[i] + Vector3.up * 1.2f, _look.Atmosphere.Sparks * _look.Atmosphere.Density);
+                // llama, humo, chispas, luz sin sombras y mancha de quemadura: todo desde el pool de fuegos
+                FireManager.Instance?.Spawn(FireKind.Barrel, fires[i] + Vector3.up * 1.0f);
             }
 
             // Escombros pequeños sin colisión (no estorban al CharacterController)

@@ -1,6 +1,7 @@
 using UnityEngine;
 using SevenDays.Core;
 using SevenDays.Look;
+using SevenDays.Procedural;
 
 namespace SevenDays.World
 {
@@ -16,9 +17,10 @@ namespace SevenDays.World
         /// Coche destrozado (4.2 x 1.8 m): carrocería oxidada, cabina con cristales rotos, capó o maletero abierto y ruedas que
         /// faltan. Es cobertura (y se podrá saltar: ver Vaultable en la Fase 2.5/bloque 5). El NavMesh lo trata como obstáculo.
         /// </summary>
-        public static GameObject Car(Transform parent, Vector3 pos, float yaw, int variant)
+        public static GameObject Car(Transform parent, Vector3 pos, float yaw, int variant, bool burning = false)
         {
             Color color = CarColors[Mathf.Abs(variant) % CarColors.Length];
+            if (burning) color *= 0.4f; // la pintura se ennegreció con el fuego
             var root = new GameObject("Car Wreck " + variant);
             root.transform.SetParent(parent, false);
             // inclinado: le falta una rueda y está hundido
@@ -67,6 +69,32 @@ namespace SevenDays.World
             col.center = new Vector3(0f, 0.75f, 0f);
             root.AddComponent<CoverObject>();
             Vegetation.MarkObstacle(root);
+            if (burning) FireManager.Instance?.Spawn(FireKind.Car, root.transform.TransformPoint(new Vector3(0f, 0.95f, 1.3f))); // el fuego sale del capó
+            return root;
+        }
+
+        /// <summary>Fogata entre escombros: aro de piedras, troncos cruzados, ceniza y un fuego del pool (llama, humo, chispas, luz).</summary>
+        public static GameObject Campfire(Transform parent, Vector3 pos, float yaw)
+        {
+            var root = new GameObject("Campfire");
+            root.transform.SetParent(parent, false);
+            root.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f));
+            var stone = Prim.GetMaterial(new Color(0.38f, 0.37f, 0.35f));
+            var wood = Prim.GetTextured(new Color(0.22f, 0.15f, 0.1f), SurfaceLibrary.Bark, Vector2.one, 0.1f, 0f, true);
+            var ash = Prim.GetMaterial(new Color(0.12f, 0.115f, 0.11f));
+            for (int i = 0; i < 8; i++)
+            {
+                float a = i / 8f * Mathf.PI * 2f;
+                var st = Prim.Create(PrimitiveType.Sphere, "Stone", new Vector3(Mathf.Cos(a) * 0.5f, 0.09f, Mathf.Sin(a) * 0.5f), new Vector3(0.26f, 0.18f, 0.24f), stone, root.transform, false);
+                st.transform.localRotation = Quaternion.Euler(0f, i * 47f, 0f);
+            }
+            Prim.Create(PrimitiveType.Cylinder, "Ash", new Vector3(0f, 0.01f, 0f), new Vector3(0.8f, 0.01f, 0.8f), ash, root.transform, false);
+            for (int i = 0; i < 3; i++)
+            {
+                var log = Prim.Create(PrimitiveType.Cylinder, "Log", new Vector3(0f, 0.12f + i * 0.03f, 0f), new Vector3(0.09f, 0.4f, 0.09f), wood, root.transform, false);
+                log.transform.localRotation = Quaternion.Euler(80f, i * 60f, 0f);
+            }
+            FireManager.Instance?.Spawn(FireKind.Campfire, pos + Vector3.up * 0.3f);
             return root;
         }
 
