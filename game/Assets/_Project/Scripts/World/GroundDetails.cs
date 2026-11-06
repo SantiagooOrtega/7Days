@@ -112,7 +112,7 @@ namespace SevenDays.World
         private static void SpawnWeeds(MeshBatch b, string name, Transform parent, Color color, int disableAtLevel)
         {
             if (b.VertexCount == 0) return;
-            var go = b.Spawn(name, parent, Prim.GetMaterial(color));
+            var go = b.Spawn(name, parent, Prim.GetMaterial(color, true)); // hojas de una capa: doble cara
             MarkNoNavMesh(go);
             AtmosphereBudget.RegisterGroup(go, disableAtLevel);
         }

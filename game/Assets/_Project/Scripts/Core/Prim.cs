@@ -76,7 +76,13 @@ namespace SevenDays.Core
         }
 
         /// <summary>Material mate de un color (poco brillo: evita el aspecto de plástico).</summary>
-        public static Material GetMaterial(Color color) => GetOrCreate("c|" + Key(color), color, null, null, Vector2.one, 0.1f, 0f);
+        /// <param name="twoSided">
+        /// false (por defecto) = Cull Back: para sólidos cerrados. true = Cull Off ("Render Face: Both"): para láminas de una sola
+        /// capa y vegetación. OJO: URP Lit no voltea la normal de la cara trasera; por eso las mallas de doble cara llevan normales
+        /// que valen para las dos caras (hacia arriba en la hierba) o una cara trasera propia con la normal volteada (dorso de la placa).
+        /// </param>
+        public static Material GetMaterial(Color color, bool twoSided = false)
+            => GetOrCreate("c|" + Key(color) + Side(twoSided), color, null, null, Vector2.one, 0.1f, 0f, twoSided);
 
         /// <summary>Material que brilla (lámparas, balas trazadoras). Con Bloom da un halo.</summary>
         public static Material GetEmissive(Color color, float intensity)
@@ -96,37 +102,40 @@ namespace SevenDays.Core
         /// se multiplica por el color (útil para contenedores de distintos colores).
         /// </summary>
         public static Material GetTextured(Color color, string name, Vector2 tiling, float smoothness = 0.15f, float metallic = 0f,
-            bool tintTexture = false, float tone = 1f)
+            bool tintTexture = false, float tone = 1f, bool twoSided = false)
         {
             Texture2D diff = Resources.Load<Texture2D>("Look/" + name + "_diff");
             Texture2D nor = null;
             bool fromFile = diff != null;
             if (fromFile) nor = Resources.Load<Texture2D>("Look/" + name + "_nor");
-            else if (!SurfaceLibrary.TryGet(name, out diff, out nor)) return GetMaterial(color);
+            else if (!SurfaceLibrary.TryGet(name, out diff, out nor)) return GetMaterial(color, twoSided);
 
             Color tint = !tintTexture ? Color.white : (fromFile ? color : color * 1.5f);
             tint = new Color(tint.r * tone, tint.g * tone, tint.b * tone, 1f); // tone: variación de brillo por objeto
             string key = "t|" + Key(tint) + "|" + name + "|" + tiling.x.ToString("0") + "x" + tiling.y.ToString("0")
-                + "|" + smoothness.ToString("0.##") + "|" + metallic.ToString("0.##");
-            return GetOrCreate(key, tint, diff, nor, tiling, smoothness, metallic);
+                + "|" + smoothness.ToString("0.##") + "|" + metallic.ToString("0.##") + Side(twoSided);
+            return GetOrCreate(key, tint, diff, nor, tiling, smoothness, metallic, twoSided);
         }
 
         /// <summary>Material con una textura de color y de normales ya creadas (por ejemplo las de una señal), compartido por clave.</summary>
-        public static Material GetWithTextures(Texture2D diffuse, Texture2D normal, Color tint, float smoothness, float metallic, string key)
+        public static Material GetWithTextures(Texture2D diffuse, Texture2D normal, Color tint, float smoothness, float metallic, string key,
+            bool twoSided = false)
         {
-            string k = "x|" + key + "|" + Key(tint) + "|" + smoothness.ToString("0.##") + "|" + metallic.ToString("0.##");
-            return GetOrCreate(k, tint, diffuse, normal, Vector2.one, smoothness, metallic);
+            string k = "x|" + key + "|" + Key(tint) + "|" + smoothness.ToString("0.##") + "|" + metallic.ToString("0.##") + Side(twoSided);
+            return GetOrCreate(k, tint, diffuse, normal, Vector2.one, smoothness, metallic, twoSided);
         }
+
+        private static string Side(bool twoSided) => twoSided ? "|2s" : "";
 
         /// <summary>Tiling razonable para una pieza grande: una repetición cada ~3 metros.</summary>
         public static Vector2 TilingFor(Vector3 scale, float meters = 3f)
             => new Vector2(Mathf.Max(1f, Mathf.Round(Mathf.Max(scale.x, scale.z) / meters)), Mathf.Max(1f, Mathf.Round(scale.y / meters)));
 
         private static Material GetOrCreate(string key, Color color, Texture2D diff, Texture2D nor, Vector2 tiling,
-            float smoothness, float metallic)
+            float smoothness, float metallic, bool twoSided = false)
         {
             if (Cache.TryGetValue(key, out var existing) && existing != null) return existing;
-            var mat = NewMaterial(color, smoothness, metallic);
+            var mat = NewMaterial(color, smoothness, metallic, twoSided);
             if (diff != null)
             {
                 mat.SetTexture("_BaseMap", diff);
@@ -142,7 +151,7 @@ namespace SevenDays.Core
             return mat;
         }
 
-        private static Material NewMaterial(Color color, float smoothness, float metallic)
+        private static Material NewMaterial(Color color, float smoothness, float metallic, bool twoSided = false)
         {
             if (_template == null)
             {
@@ -155,6 +164,10 @@ namespace SevenDays.Core
             mat.SetColor("_Color", color);
             mat.SetFloat("_Smoothness", smoothness);
             mat.SetFloat("_Metallic", metallic);
+            // Cull explícito (no se hereda de la plantilla): 2 = Back (sólidos cerrados), 0 = Off (láminas de una capa).
+            // En URP Lit esta propiedad gobierna ForwardLit, ShadowCaster, DepthOnly y DepthNormals, así que las sombras
+            // usan la misma cara que el color.
+            mat.SetFloat("_Cull", twoSided ? 0f : 2f);
             return mat;
         }
 
