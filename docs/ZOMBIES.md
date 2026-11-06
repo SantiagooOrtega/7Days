@@ -7,10 +7,10 @@ Para editarlos sin tocar código: menú de Unity **7Days > Exportar zombis por d
 |------|----|-----------|-------|----------------|
 | common | 100 | 2.4 | equilibrado | common |
 | runner | 55 | 5.2 | rápido y frágil, piernas más duras de acertar | runner |
-| tank | 400 | 1.5 | 35 % de resistencia, 70 % a aturdimiento, poca penetración de las armas flojas | brute |
-| armored | 160 | 1.9 | torso x0.35, la cabeza sigue x2.5 | brute |
+| tank | 400 | 1.5 | 35 % de resistencia, 70 % a aturdimiento, poca penetración de las armas flojas | tank |
+| armored | 160 | 1.9 | torso x0.35, la cabeza sigue x2.5 | armored |
 | spitter | 80 | 2.0 | mantiene 12 m, proyectil directo o en arco, flanquea | spitter |
-| explosive | 70 | 3.0 | tipo creeper: al estar a 3 m se detiene y arde una mecha de 1.35 s (siseo, parpadeo blanco-rojo, se infla); explota (radio 3.6 m, 45 de daño) | runner |
+| explosive | 70 | 3.0 | tipo creeper: al estar a 3 m se detiene y arde una mecha de 1.35 s (siseo, parpadeo blanco-rojo, se infla); explota (radio 3.6 m, 45 de daño) | explosive |
 | boss_brute / boss_launcher / boss_final | 1500 / 2400 / 3000 | - | ver `docs/BOSSES.md` | boss (rara garantizada) |
 
 ## Zombi gigante: no entra a edificios
@@ -35,7 +35,7 @@ Persigue como un zombi normal. Al entrar el jugador en `fuseTriggerRadius` (3 m)
 ```ts
 import { z } from 'zod';
 
-const DROP_KINDS = ['common', 'runner', 'brute', 'spitter', 'boss'] as const;
+const DROP_KINDS = ['common', 'runner', 'armored', 'tank', 'explosive', 'brute', 'spitter', 'boss'] as const;   // 'brute' = genérico pesado (compatibilidad)
 const ABILITIES = ['charge', 'slam', 'throw', 'summon', 'shockwave', 'summon_wave'] as const;
 const ZOMBIE_IDS = ['common','runner','tank','armored','spitter','explosive','boss_brute','boss_launcher','boss_final'] as const;
 

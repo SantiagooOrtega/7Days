@@ -82,3 +82,23 @@ const weaponSearch = z.object({
 }).refine(w => w.pityGuarantee > w.pityStart && w.rarityWeights.some(x => x > 0));
 // en cada punto del layout: guaranteeWeapon: z.boolean() (no puede ser container 'ground'); y el layout necesita >= guaranteedMin puntos con guaranteeWeapon
 ```
+
+## Drops de zombis (un solo drop por muerte)
+Cada muerte hace UNA tirada (`LootRoller.RollDrop`): probabilidad del tipo y, si toca, un objeto de su tabla ponderada. Los drops respetan el tope diario (`maxDropsPerDay` = 8) y el de pickups en el suelo (`maxActivePickups` = 24); un drop sin hueco se descarta con aviso en la Console. Nunca sueltan un arma que el jugador ya tiene (se convierte en munición de su tipo). Brillan con una luz suave (los drops tienen prioridad sobre los demás en el reparto de luces).
+
+| Tipo | Probabilidad | Tabla |
+|------|--------------|-------|
+| common | 12 % | `drop_common` |
+| runner | 12 % | `drop_special` |
+| explosive | 8 % | `drop_common` |
+| armored | 20 % | `drop_heavy` |
+| tank | 30 % | `drop_heavy` |
+| spitter | 25 % | `drop_special` |
+| boss | 100 % (rara o mejor, fuera del tope diario) | `drop_boss` |
+| brute (genérico, sin uso por defecto) | 25 % | `drop_heavy` |
+
+Pesos de las tablas (probabilidad relativa dentro del drop; armas solo poco comunes o raras, ≈ 4–8 % de los drops):
+- `drop_common`: vendaje 2, munición de pistola 3, de escopeta 0.6, de rifle 0.6, revólver 0.12, subfusil 0.12.
+- `drop_special`: pistola 4 (x4 balas), escopeta 2, rifle 2, botiquín pequeño 1.3, vendaje 1.5, revólver/subfusil/escopeta 0.2 cada una.
+- `drop_heavy`: rifle 3, pistola 2, escopeta 2, pequeño 1.5, mediano 0.8, escopeta 0.3, revólver 0.3, fusil de asalto 0.2.
+La curación esperada de toda la partida sigue por debajo del límite que vigila `LootTests` (< 520 PV); por eso los pesos de botiquines de los drops bajaron un poco al subir las probabilidades. `ZombieDropTests` simula 20 000 muertes por tipo y falla si alguna tasa se sale ±1.5 puntos de la tabla de arriba o si las armas pasan del 12 % de los drops.

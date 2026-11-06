@@ -21,15 +21,20 @@ namespace SevenDays.Procedural
                 new LootTable { id = "high", entries = new[] {
                     E("ammo", "rifle", 10, 3), E("ammo", "pistol", 8, 2), E("ammo", "shotgun", 4, 2), E("medkit", "medium", 1, 2), E("medkit", "large", 1, 0.7f),
                     E("weapon", "assault_rifle", 1, 1), E("weapon", "smg", 1, 1), E("weapon", "sniper", 1, 0.35f), E("weapon", "revolver", 1, 1) } },
-                new LootTable { id = "drop_common", entries = new[] { E("medkit", "bandage", 1, 3), E("ammo", "pistol", 3, 3) } },
-                new LootTable { id = "drop_special", entries = new[] { E("ammo", "pistol", 4, 3), E("ammo", "shotgun", 2, 2), E("ammo", "rifle", 4, 2), E("medkit", "small", 1, 2), E("medkit", "bandage", 1, 2) } },
+                // Drops de zombis: tablas ponderadas de munición y botiquines con alguna arma poco común o rara (poco peso). El jefe sigue con la suya.
+                new LootTable { id = "drop_common", entries = new[] { E("medkit", "bandage", 1, 2), E("ammo", "pistol", 3, 3), E("ammo", "shotgun", 2, 0.6f), E("ammo", "rifle", 3, 0.6f), E("weapon", "revolver", 1, 0.12f), E("weapon", "smg", 1, 0.12f) } },
+                new LootTable { id = "drop_special", entries = new[] { E("ammo", "pistol", 4, 3), E("ammo", "shotgun", 2, 2), E("ammo", "rifle", 4, 2), E("medkit", "small", 1, 1.3f), E("medkit", "bandage", 1, 1.5f), E("weapon", "revolver", 1, 0.2f), E("weapon", "smg", 1, 0.2f), E("weapon", "shotgun", 1, 0.2f) } },
+                new LootTable { id = "drop_heavy", entries = new[] { E("ammo", "rifle", 6, 3), E("ammo", "pistol", 5, 2), E("ammo", "shotgun", 3, 2), E("medkit", "small", 1, 1.5f), E("medkit", "medium", 1, 0.8f), E("weapon", "shotgun", 1, 0.3f), E("weapon", "revolver", 1, 0.3f), E("weapon", "assault_rifle", 1, 0.2f) } },
                 new LootTable { id = "drop_boss", entries = new[] { E("medkit", "medium", 1, 2), E("medkit", "large", 1, 1), E("weapon", "assault_rifle", 1, 1), E("weapon", "sniper", 1, 0.5f), E("ammo", "rifle", 15, 2) } },
             };
             l.drops = new[]
             {
-                new DropRule { zombie = "common", chance = 0.06f, table = "drop_common" },
+                new DropRule { zombie = "common", chance = 0.12f, table = "drop_common" },
                 new DropRule { zombie = "runner", chance = 0.12f, table = "drop_special" },
-                new DropRule { zombie = "brute", chance = 0.22f, table = "drop_special" },
+                new DropRule { zombie = "explosive", chance = 0.08f, table = "drop_common" },
+                new DropRule { zombie = "armored", chance = 0.20f, table = "drop_heavy" },
+                new DropRule { zombie = "tank", chance = 0.30f, table = "drop_heavy" },
+                new DropRule { zombie = "brute", chance = 0.25f, table = "drop_heavy" },
                 new DropRule { zombie = "spitter", chance = 0.25f, table = "drop_special" },
                 new DropRule { zombie = "boss", chance = 1f, table = "drop_boss", guaranteed = true, minRarity = (int)Rarity.Rare },
             };
