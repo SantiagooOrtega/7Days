@@ -18,6 +18,17 @@ namespace SevenDays.Procedural
         public float damageShake = 0.25f;        // por cada 20 de daño recibido
         public float runStepShake = 0.012f;      // pequeño golpe en cada paso corriendo
         public float landShakeScale = 1f;
+        // --- cobertura: asomarse (pop-out) y disparo a ciegas
+        public float popSeconds = 0.2f;            // 0.15..0.25 s para asomarse y volver a cubrirse
+        public float lowCoverMax = 1.45f;          // altura (sobre los pies) hasta la que una cobertura es "baja": se asoma por encima
+        public float popSideMeters = 0.5f;         // cuánto se inclina hacia el lado al asomarse por el borde
+        public float blindDamageMultiplier = 0.6f; // daño a ciegas
+        public float blindSpreadMultiplier = 3f;   // dispersión a ciegas = dispersión de cadera x esto
+        public float blindMinSpread = 8f;          // grados, mínimo
+        public float blindMaxSpread = 20f;         // grados, máximo
+        public float blindExposure = 0.35f;        // exposición parcial mientras se dispara a ciegas
+        public float blindHold = 0.45f;            // segundos que dura esa exposición tras cada disparo
+        public float coveredDamageFloor = 0.35f;   // fracción del daño cuerpo a cuerpo que pasa estando completamente cubierto
         public float motionScale = 1f;           // accesibilidad "Movimiento de cámara" (0..1); se guarda en PlayerPrefs
 
         public void Validate()
@@ -29,7 +40,12 @@ namespace SevenDays.Procedural
             shoulderSwapTime = CameraMath.Clamp(shoulderSwapTime, 0.05f, 1f);
             shakeScale = CameraMath.Clamp(shakeScale, 0f, 3f); fireShakeScale = CameraMath.Clamp(fireShakeScale, 0f, 3f);
             damageShake = CameraMath.Clamp(damageShake, 0f, 2f); runStepShake = CameraMath.Clamp(runStepShake, 0f, 0.2f);
-            landShakeScale = CameraMath.Clamp(landShakeScale, 0f, 3f); motionScale = CameraMath.Clamp(motionScale, 0f, 1f);
+            landShakeScale = CameraMath.Clamp(landShakeScale, 0f, 3f);
+            popSeconds = CameraMath.Clamp(popSeconds, 0.15f, 0.25f); lowCoverMax = CameraMath.Clamp(lowCoverMax, 0.8f, 2f); popSideMeters = CameraMath.Clamp(popSideMeters, 0.2f, 0.8f);
+            blindDamageMultiplier = CameraMath.Clamp(blindDamageMultiplier, 0.1f, 1f); blindSpreadMultiplier = CameraMath.Clamp(blindSpreadMultiplier, 1f, 6f);
+            blindMinSpread = CameraMath.Clamp(blindMinSpread, 2f, 20f); blindMaxSpread = CameraMath.Clamp(blindMaxSpread, blindMinSpread, 30f);
+            blindExposure = CameraMath.Clamp(blindExposure, 0.1f, 0.8f); blindHold = CameraMath.Clamp(blindHold, 0.1f, 2f); coveredDamageFloor = CameraMath.Clamp(coveredDamageFloor, 0f, 1f);
+            motionScale = CameraMath.Clamp(motionScale, 0f, 1f);
         }
     }
 

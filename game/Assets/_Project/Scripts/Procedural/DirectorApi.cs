@@ -17,6 +17,8 @@ namespace SevenDays.Procedural
         public float[] damageAmounts;     // ... y cuánto daño vino de cada uno
         public float sprintSeconds;       // tiempo total corriendo
         public float fatigue, maxFatigue; // cansancio de la cámara de carrera (0..1): ahora y el máximo del día
+        public float coverSeconds, poppedOutSeconds, blindFireSeconds; // tiempo cubierto, asomado y disparando a ciegas
+        public bool coverAbuse;           // regla de abuso de cobertura (>85 % escondido durante 20 s o más)
     }
 
     /// <summary>Recoge las métricas de combate. Pura: Unity solo le avisa de los eventos; el director lee Snapshot().</summary>
@@ -25,7 +27,10 @@ namespace SevenDays.Procedural
         private int _shots, _hits, _heads, _kills, _headKills, _ttkCount;
         private float _ttkSum, _coverTime, _time, _damage;
         private readonly Dictionary<string, float> _bySource = new Dictionary<string, float>();
-        private float _sprint, _fatigue, _maxFatigue;
+        private float _sprint, _fatigue, _maxFatigue, _covered, _popped, _blind;
+
+        /// <summary>Totales de cobertura (los da la exposición del jugador).</summary>
+        public void RecordCover(float covered, float popped, float blind) { _covered = covered; _popped = popped; _blind = blind; }
 
         /// <summary>Datos de carrera y fatiga (los da la cámara de carrera).</summary>
         public void RecordMovement(float sprintSeconds, float fatigue) { _sprint = sprintSeconds; _fatigue = fatigue; if (fatigue > _maxFatigue) _maxFatigue = fatigue; }
@@ -46,7 +51,7 @@ namespace SevenDays.Procedural
             _bySource[source] = (_bySource.TryGetValue(source, out float v) ? v : 0f) + amount;
         }
         public void Tick(float dt, bool inCover) { _time += dt; if (inCover) _coverTime += dt; }
-        public void Reset() { _shots = _hits = _heads = _kills = _headKills = _ttkCount = 0; _ttkSum = _coverTime = _time = _damage = 0f; _sprint = _fatigue = _maxFatigue = 0f; _bySource.Clear(); }
+        public void Reset() { _shots = _hits = _heads = _kills = _headKills = _ttkCount = 0; _ttkSum = _coverTime = _time = _damage = 0f; _sprint = _fatigue = _maxFatigue = _covered = _popped = _blind = 0f; _bySource.Clear(); }
 
         public CombatSnapshot Snapshot()
         {
@@ -59,6 +64,7 @@ namespace SevenDays.Procedural
                 timeInCover = _coverTime, timePlayed = _time, coverRatio = _time <= 0f ? 0f : _coverTime / _time,
                 damageTaken = _damage,
                 sprintSeconds = _sprint, fatigue = _fatigue, maxFatigue = _maxFatigue,
+                coverSeconds = _covered, poppedOutSeconds = _popped, blindFireSeconds = _blind, coverAbuse = CoverAbuse.IsAbusing(_covered, _popped, _blind),
             };
             var keys = new List<string>(_bySource.Keys); keys.Sort(StringComparer.Ordinal);
             s.damageSources = keys.ToArray();
