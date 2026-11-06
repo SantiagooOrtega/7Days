@@ -27,21 +27,30 @@ namespace SevenDays.World
                 Debug.Log("[7Days] Usando distribución de props de Resources/" + v.LayoutResource + ".json (" + fromFile.items.Length + " piezas)");
                 return fromFile;
             }
-            return VegetationLayout.Generate(new VegetationParams
+            var zones = IndustrialRuins.Exclusions();
+            var veg = VegetationLayout.Generate(new VegetationParams
             {
                 Seed = v.Seed, Density = v.Density, MaxTrees = v.MaxTrees, MaxBushes = v.MaxBushes, MaxGrass = v.MaxGrass, MaxProps = v.MaxProps,
-            }, IndustrialRuins.Exclusions());
+            }, zones);
+            var signs = SignLayout.Generate(new SignLayoutParams { Seed = look.Signs.Seed, Density = look.Signs.Density, MaxSigns = look.Signs.MaxSigns }, zones);
+
+            // los carteles genéricos rotos de la vegetación se reemplazan por las señales nuevas; sus extras (hierba, bolsas) van primero
+            var merged = new System.Collections.Generic.List<PropEntry>();
+            foreach (var e in signs.items) if (!PropTypes.IsSign(e.type)) merged.Add(e);
+            foreach (var e in veg.items) if (e.type != PropTypes.SignBroken) merged.Add(e);
+            foreach (var e in signs.items) if (PropTypes.IsSign(e.type)) merged.Add(e);
+            return new PropLayoutData { items = merged.ToArray() };
         }
 
-        public static void Build(Transform root, LookSettings look)
+        public static void Build(Transform root, LookSettings look, PropLayoutData layout)
         {
             var v = look.Vegetation;
-            var layout = BuildLayout(look);
             var caps = new Dictionary<string, int>
             {
                 { PropTypes.TreeDead, v.MaxTrees }, { PropTypes.Bush, v.MaxBushes }, { PropTypes.Grass, v.MaxGrass },
                 { PropTypes.CarWreck, 12 }, { PropTypes.PoleFallen, 12 }, { PropTypes.Tire, 40 }, { PropTypes.Bag, 40 }, { PropTypes.SignBroken, 16 },
             };
+            foreach (var st in PropTypes.SignTypes) caps[st] = look.Signs.MaxSigns;
             var result = PropLayoutValidator.Validate(layout, caps);
             foreach (var err in result.Errors) Debug.LogWarning("[7Days] Prop descartado: " + err);
 
@@ -53,8 +62,10 @@ namespace SevenDays.World
             var obstacles = new GameObject("Obstacles").transform;
             obstacles.SetParent(parent, false);
 
+            var signEntries = new System.Collections.Generic.List<PropEntry>();
             foreach (var e in result.Valid)
             {
+                if (PropTypes.IsSign(e.type)) { signEntries.Add(e); continue; }
                 var pos = new Vector3(e.x, 0f, e.z);
                 var rot = Quaternion.Euler(0f, e.yaw, 0f);
                 switch (e.type)
@@ -71,6 +82,8 @@ namespace SevenDays.World
                 if (e.type == PropTypes.TreeDead) AddTreeCollider(obstacles, pos, e);
                 else if (e.type == PropTypes.Bush && e.variant == 0 && e.scale >= 1.1f) AddBushCollider(obstacles, pos, e);
             }
+
+            TrafficSigns.Build(root, look, signEntries);
 
             foreach (var kv in groups)
             {

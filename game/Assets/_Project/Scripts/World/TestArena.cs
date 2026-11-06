@@ -18,6 +18,7 @@ namespace SevenDays.World
     {
         private Health _playerHealth;
         private LookSettings _look;
+        private SevenDays.Procedural.PropLayoutData _layout;
         private bool _loading;
 
         private IEnumerator Start()
@@ -45,7 +46,9 @@ namespace SevenDays.World
             _look = new LookSettings();
             LookAndFeel.Apply(cam, _look);
             _loading = true;
+            _layout = Vegetation.BuildLayout(_look);
             yield return SurfaceLibrary.Build(_look.EffectiveSurface());
+            yield return SignLibrary.Build(TrafficSigns.Needed(_layout.items), _look.Signs.TextureSize, _look.Signs.Seed);
             _loading = false;
 
             BuildLevel();
@@ -84,7 +87,8 @@ namespace SevenDays.World
             IndustrialRuins.Build(root, _look);
             Skyline.Build(root, _look);
             GroundDetails.Build(root, _look, IndustrialRuins.Anchors);
-            Vegetation.Build(root, _look);
+            Vegetation.Build(root, _look, _layout);
+            RoadMarkings.Build(root, _look);
 
             // Blancos de práctica: cuerpo claro, cabeza pálida y ojos brillantes para que se distingan del fondo
             for (int i = 0; i < 6; i++)
