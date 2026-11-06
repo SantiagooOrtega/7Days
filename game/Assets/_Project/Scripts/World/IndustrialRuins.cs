@@ -34,10 +34,11 @@ namespace SevenDays.World
         {
             var size = new Vector3(60f, 0.5f, 60f);
             Prim.Create(PrimitiveType.Cube, "Ground", new Vector3(0f, -0.25f, 0f), size,
-                Prim.GetTextured(Concrete, "concrete", new Vector2(20f, 20f)), root);
+                Prim.GetTextured(Concrete, SurfaceLibrary.Concrete, new Vector2(20f, 20f)), root);
 
             // Franja de asfalto con líneas amarillas (visualmente guía al jugador hacia el frente)
-            Prim.Create(PrimitiveType.Cube, "Road", new Vector3(0f, 0.01f, 0f), new Vector3(8f, 0.04f, 58f), Asphalt, root, false);
+            Prim.Create(PrimitiveType.Cube, "Road", new Vector3(0f, 0.01f, 0f), new Vector3(8f, 0.04f, 58f),
+                Prim.GetTextured(Asphalt, SurfaceLibrary.Floor, new Vector2(3f, 19f), 0.25f), root, false);
             for (int i = -6; i <= 6; i++)
                 Prim.Create(PrimitiveType.Cube, "Line " + i, new Vector3(0f, 0.04f, i * 4.4f), new Vector3(0.18f, 0.02f, 2.2f),
                     new Color(0.75f, 0.62f, 0.15f), root, false);
@@ -46,7 +47,7 @@ namespace SevenDays.World
         // ---------- Muros perimetrales rotos ----------
         private static void BuildPerimeter(Transform root, System.Random rng)
         {
-            var wall = Prim.GetTextured(ConcreteDark, "concrete", new Vector2(10f, 2f));
+            var wall = Prim.GetTextured(ConcreteDark, SurfaceLibrary.Concrete, new Vector2(10f, 2f), 0.12f, 0f, true);
             Prim.Create(PrimitiveType.Cube, "Wall N", new Vector3(0f, 2f, 30.5f), new Vector3(61f, 4f, 1f), wall, root);
             Prim.Create(PrimitiveType.Cube, "Wall S", new Vector3(0f, 2f, -30.5f), new Vector3(61f, 4f, 1f), wall, root);
             Prim.Create(PrimitiveType.Cube, "Wall E", new Vector3(30.5f, 2f, 0f), new Vector3(1f, 4f, 61f), wall, root);
@@ -74,7 +75,7 @@ namespace SevenDays.World
         // ---------- Coberturas bajas (concreto y cajas) ----------
         private static void BuildCovers(Transform root)
         {
-            var low = Prim.GetTextured(Concrete, "concrete", new Vector2(2f, 1f));
+            var low = Prim.GetTextured(Concrete, SurfaceLibrary.Concrete, new Vector2(2f, 1f));
             Cover(root, "Barrier 1", new Vector3(-4f, 0.6f, -8f), new Vector3(3.5f, 1.2f, 0.6f), 0f, low);
             Cover(root, "Barrier 2", new Vector3(4f, 0.6f, -6f), new Vector3(3.5f, 1.2f, 0.6f), 15f, low);
             Cover(root, "Barrier 3", new Vector3(-9f, 0.6f, 0f), new Vector3(0.6f, 1.2f, 4f), 0f, low);
@@ -104,7 +105,7 @@ namespace SevenDays.World
         private static GameObject ContainerAt(Transform root, string name, Vector3 pos, float yaw, Color color)
         {
             var size = new Vector3(2.5f, 2.6f, 6f);
-            var mat = Prim.GetTextured(color, "metal", new Vector2(2f, 1f), 0.3f, 0.3f);
+            var mat = Prim.GetTextured(color, SurfaceLibrary.Metal, new Vector2(2f, 1f), 0.3f, 0.3f, true);
             var go = Prim.Create(PrimitiveType.Cube, name, pos, size, mat, root);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             go.AddComponent<CoverObject>();
@@ -122,11 +123,13 @@ namespace SevenDays.World
         // ---------- Nave semiderruida al fondo ----------
         private static void BuildWarehouse(Transform root)
         {
-            var wall = Prim.GetTextured(ConcreteDark, "concrete", new Vector2(4f, 2f));
-            var steel = Prim.GetMaterial(Pipe);
-            // Pilares
+            var steel = Prim.GetTextured(Pipe, SurfaceLibrary.Metal, new Vector2(4f, 1f), 0.3f, 0.3f, true);
+            // Pilares de ladrillo y revoque
             for (int i = -2; i <= 2; i++)
-                Prim.Create(PrimitiveType.Cube, "Pillar " + i, new Vector3(i * 9f, 2.75f, 23f), new Vector3(1.2f, 5.5f, 1.2f), wall, root);
+            {
+                var scale = new Vector3(1.2f, 5.5f, 1.2f);
+                Prim.Create(PrimitiveType.Cube, "Pillar " + i, new Vector3(i * 9f, 2.75f, 23f), scale, BrickWall(scale), root);
+            }
             // Vigas del techo (parcialmente caído)
             for (int i = -2; i < 2; i++)
             {
@@ -136,14 +139,20 @@ namespace SevenDays.World
             for (int i = -1; i <= 1; i++)
                 Prim.Create(PrimitiveType.Cube, "Roof " + i, new Vector3(i * 9f, 5.85f, 26.5f), new Vector3(8f, 0.15f, 6.5f), steel, root, false);
             // Muro de fondo con huecos
-            Prim.Create(PrimitiveType.Cube, "Back Wall A", new Vector3(-13f, 2f, 28f), new Vector3(11f, 4f, 0.8f), wall, root);
-            Prim.Create(PrimitiveType.Cube, "Back Wall B", new Vector3(9f, 1.2f, 28f), new Vector3(8f, 2.4f, 0.8f), wall, root);
+            var a = new Vector3(11f, 4f, 0.8f);
+            Prim.Create(PrimitiveType.Cube, "Back Wall A", new Vector3(-13f, 2f, 28f), a, BrickWall(a), root);
+            var b = new Vector3(8f, 2.4f, 0.8f);
+            Prim.Create(PrimitiveType.Cube, "Back Wall B", new Vector3(9f, 1.2f, 28f), b, BrickWall(b), root);
         }
+
+        /// <summary>Ladrillo y revoque gastado; un ladrillo mide ~0.55 m (la textura se repite cada 2.2 m).</summary>
+        private static Material BrickWall(Vector3 scale)
+            => Prim.GetTextured(new Color(0.4f, 0.22f, 0.18f), SurfaceLibrary.Wall, Prim.TilingFor(scale, 2.2f), 0.1f);
 
         // ---------- Props: tuberías, barriles, escombros ----------
         private static void BuildProps(Transform root, System.Random rng)
         {
-            var pipe = Prim.GetTextured(Pipe, "metal", new Vector2(4f, 1f), 0.35f, 0.4f);
+            var pipe = Prim.GetTextured(Pipe, SurfaceLibrary.Metal, new Vector2(4f, 1f), 0.35f, 0.4f, true);
             for (int i = 0; i < 3; i++)
             {
                 var p = Prim.Create(PrimitiveType.Cylinder, "Pipe " + i, new Vector3(-25f, 0.4f + i * 0.5f, -12f + i * 1.3f),
@@ -151,7 +160,7 @@ namespace SevenDays.World
                 p.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             }
 
-            var barrel = Prim.GetMaterial(new Color(0.35f, 0.18f, 0.12f));
+            var barrel = Prim.GetTextured(new Color(0.35f, 0.18f, 0.12f), SurfaceLibrary.Metal, new Vector2(2f, 1f), 0.3f, 0.35f, true);
             Vector3[] barrels = { new Vector3(-6f, 0.5f, 12f), new Vector3(-5.2f, 0.5f, 12.4f), new Vector3(22f, 0.5f, 8f), new Vector3(-22f, 0.5f, -20f) };
             for (int i = 0; i < barrels.Length; i++)
                 Prim.Create(PrimitiveType.Cylinder, "Barrel " + i, barrels[i], new Vector3(0.6f, 0.5f, 0.6f), barrel, root);
@@ -161,7 +170,7 @@ namespace SevenDays.World
             for (int i = 0; i < fires.Length; i++)
             {
                 var b = Prim.Create(PrimitiveType.Cylinder, "Fire Barrel " + i, fires[i] + Vector3.up * 0.5f, new Vector3(0.6f, 0.5f, 0.6f),
-                    Prim.GetMaterial(new Color(0.18f, 0.12f, 0.1f)), root);
+                    Prim.GetTextured(new Color(0.18f, 0.12f, 0.1f), SurfaceLibrary.Metal, new Vector2(2f, 1f), 0.3f, 0.35f, true), root);
                 var lightGo = new GameObject("FireLight");
                 lightGo.transform.SetParent(b.transform, false);
                 lightGo.transform.position = fires[i] + Vector3.up * 1.4f;
@@ -192,7 +201,7 @@ namespace SevenDays.World
         private static void BuildLights(Transform root)
         {
             Vector3[] posts = { new Vector3(-5.5f, 0f, -18f), new Vector3(5.5f, 0f, 0f), new Vector3(-5.5f, 0f, 14f), new Vector3(5.5f, 0f, -26f) };
-            var metal = Prim.GetMaterial(Pipe);
+            var metal = Prim.GetTextured(Pipe, SurfaceLibrary.Metal, new Vector2(1f, 4f), 0.3f, 0.4f, true);
             var bulb = Prim.GetEmissive(new Color(1f, 0.82f, 0.5f), 5f);
             for (int i = 0; i < posts.Length; i++)
             {

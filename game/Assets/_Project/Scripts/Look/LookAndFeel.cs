@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using SevenDays.Procedural;
 
 namespace SevenDays.Look
 {
@@ -110,6 +111,9 @@ namespace SevenDays.Look
     public class LookSettings
     {
         public int TargetFps = 60;
+
+        /// <summary>Texturas procedurales: tamaño (512 o 1024), colores, óxido, grietas y suciedad. Ver SurfaceParams.</summary>
+        public SurfaceParams Surface = new SurfaceParams { Size = 512 };
 
         // Niebla y ambiente
         public Color FogColor = new Color(0.36f, 0.35f, 0.33f);

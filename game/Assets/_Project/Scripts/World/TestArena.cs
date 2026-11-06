@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using SevenDays.Core;
@@ -16,8 +17,10 @@ namespace SevenDays.World
     public class TestArena : MonoBehaviour
     {
         private Health _playerHealth;
+        private LookSettings _look;
+        private bool _loading;
 
-        private void Start()
+        private IEnumerator Start()
         {
             if (!Session.IsLoggedIn)
                 Debug.LogWarning("[7Days] Jugando sin sesión (modo prueba). Para el flujo completo empieza desde la escena Login.");
@@ -29,8 +32,6 @@ namespace SevenDays.World
                 sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
             }
 
-            BuildLevel();
-
             Camera cam = Camera.main;
             if (cam == null)
             {
@@ -39,15 +40,31 @@ namespace SevenDays.World
                 go.AddComponent<AudioListener>();
             }
 
+            // Primero el look (niebla, post-procesado) y luego las texturas procedurales, que se generan
+            // en hilos de fondo mientras se muestra "Generando texturas...".
+            _look = new LookSettings();
+            LookAndFeel.Apply(cam, _look);
+            _loading = true;
+            yield return SurfaceLibrary.Build(_look.Surface);
+            _loading = false;
+
+            BuildLevel();
+
             var weapons = new List<WeaponDefinition> { DefaultWeapons.Rifle(), DefaultWeapons.Pistol() };
             var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, weapons);
             _playerHealth = player.GetComponent<Health>();
 
-            LookAndFeel.Apply(cam);
             Particles.CreateDust(player.transform);
 
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
             hud.Initialize(player);
+        }
+
+        private void OnGUI()
+        {
+            if (!_loading) return;
+            var style = new GUIStyle(GUI.skin.label) { fontSize = 32, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
+            GUI.Label(new Rect(0, Screen.height / 2f - 30, Screen.width, 60), "Generando texturas...", style);
         }
 
         private void Update()
