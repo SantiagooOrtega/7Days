@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using SevenDays.Look;
 
 namespace SevenDays.Core
 {
@@ -46,15 +47,23 @@ namespace SevenDays.Core
         }
 
         /// <summary>
-        /// Material con textura de Resources/Look/{name}_diff (y {name}_nor si existe). Si no hay textura,
-        /// devuelve el material de color. "tiling" = repeticiones de la textura sobre la superficie.
+        /// Material con textura. Prioridad: 1) archivos Resources/Look/{name}_diff (y _nor), 2) textura procedural
+        /// de SurfaceLibrary, 3) solo el color. "tiling" = repeticiones sobre la superficie. Con tintTexture la textura
+        /// se multiplica por el color (útil para contenedores de distintos colores).
         /// </summary>
-        public static Material GetTextured(Color tint, string name, Vector2 tiling, float smoothness = 0.15f, float metallic = 0f)
+        public static Material GetTextured(Color color, string name, Vector2 tiling, float smoothness = 0.15f, float metallic = 0f,
+            bool tintTexture = false)
         {
-            var diff = Resources.Load<Texture2D>("Look/" + name + "_diff");
-            if (diff == null) return GetMaterial(tint);
-            var nor = Resources.Load<Texture2D>("Look/" + name + "_nor");
-            string key = "t|" + Key(tint) + "|" + name + "|" + tiling.x.ToString("0") + "x" + tiling.y.ToString("0");
+            Texture2D diff = Resources.Load<Texture2D>("Look/" + name + "_diff");
+            Texture2D nor = null;
+            bool fromFile = diff != null;
+            if (fromFile) nor = Resources.Load<Texture2D>("Look/" + name + "_nor");
+            else if (!SurfaceLibrary.TryGet(name, out diff, out nor)) return GetMaterial(color);
+
+            Color tint = !tintTexture ? Color.white : (fromFile ? color : color * 1.5f);
+            tint.a = 1f;
+            string key = "t|" + Key(tint) + "|" + name + "|" + tiling.x.ToString("0") + "x" + tiling.y.ToString("0")
+                + "|" + smoothness.ToString("0.##") + "|" + metallic.ToString("0.##");
             return GetOrCreate(key, tint, diff, nor, tiling, smoothness, metallic);
         }
 
