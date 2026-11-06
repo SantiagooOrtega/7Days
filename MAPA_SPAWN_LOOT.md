@@ -1,0 +1,6 @@
+Cambios al mapa y las oleadas (Fase 3).
+1. Spawn por los bordes: mínimo 8 puntos repartidos por el perímetro (configurable), nunca en el centro. Cada spawn valida distancia mínima al jugador, sin línea de visión directa y punto válido sobre el NavMesh. El WaveSpawner reparte cada oleada entre varios lados, con retraso aleatorio entre spawns. Parámetros expuestos al director (Fase 4): lados activos, ritmo y proporción por tipo.
+2. Construcción central: casa o refugio en el centro con primitivas (muros, techo, puertas y ventanas como huecos), mínimo 3 entradas, ventanas con línea de tiro, interior con CoverObject y NavMesh que permita a los zombies entrar y rodearla. El director puede bloquear entradas según el día.
+3. Loot por el mapa: puntos repartidos, algunos dentro de la casa y otros lejos en zonas expuestas. Pickups de munición por tipo de arma, armas nuevas y botiquines, con pooling. Recogida al acercarse o con tecla, con aviso en el HUD. Munición inicial escasa (hoy 6/0) para que el jugador salga de la cobertura. Respawn de loot entre días, cantidad ajustable por el director.
+4. Datos en JSON/ScriptableObject (posiciones, tipos, probabilidades) validables con zod. Mantén el mapa de pruebas actual como respaldo.
+5. Pruebas EditMode para validación de spawns y reparto entre lados. Pasos numerados para lo manual.
