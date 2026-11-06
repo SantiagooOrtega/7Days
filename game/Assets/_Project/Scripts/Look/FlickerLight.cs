@@ -36,6 +36,15 @@ namespace SevenDays.Look
             _nextBlackout = Time.time + Random.Range(4f, 12f);
         }
 
+        /// <summary>Vuelve a leer la intensidad, el rango y el color actuales como base del parpadeo (cuando un fuego del pool se reconfigura).</summary>
+        public void Refresh()
+        {
+            _light = GetComponent<Light>();
+            _baseIntensity = _light.intensity;
+            _baseRange = _light.range;
+            _baseColor = _light.color;
+        }
+
         private void Update()
         {
             float n = Mathf.PerlinNoise(_seed, Time.time * Speed);

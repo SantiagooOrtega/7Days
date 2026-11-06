@@ -45,7 +45,16 @@ namespace SevenDays.World
             }
 
             foreach (var info in plan.Openings) AddNavigation(houseGo.transform, info, look, controller);
-            foreach (var t in plan.TorchPositions) controller.TorchPoints.Add(houseGo.transform.TransformPoint(new Vector3(t.X, t.Y, t.Z)));
+            foreach (var t in plan.TorchPositions)
+            {
+                var local = new Vector3(t.X, t.Y, t.Z);
+                var world = houseGo.transform.TransformPoint(local);
+                controller.TorchPoints.Add(world);
+                // soporte de la antorcha (palo oscuro inclinado) y su fuego, que sale del pool
+                var stick = Prim.Create(PrimitiveType.Cylinder, "Torch", local + Vector3.down * 0.15f, new Vector3(0.05f, 0.22f, 0.05f), Prim.GetMaterial(new Color(0.2f, 0.14f, 0.1f)), houseGo.transform, false);
+                stick.transform.localRotation = Quaternion.Euler(12f, 0f, 0f);
+                FireManager.Instance?.Spawn(FireKind.Torch, world + Vector3.up * 0.18f);
+            }
             controller.Initialize(layout, plan);
             controller.SetDay(1);
             return controller;

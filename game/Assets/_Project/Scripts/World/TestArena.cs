@@ -19,6 +19,7 @@ namespace SevenDays.World
         private Health _playerHealth;
         private GameObject _player;
         private HouseController _house;
+        private FireManager _fire;
         private LookSettings _look;
         private SevenDays.Procedural.PropLayoutData _layout;
         private bool _loading;
@@ -54,12 +55,14 @@ namespace SevenDays.World
             yield return SignLibrary.Build(TrafficSigns.Needed(_layout.items), _look.Signs.TextureSize, _look.Signs.Seed);
             _loading = false;
 
+            _fire = FireManager.Create(transform, _look.Fire); // antes del mapa: los barriles, fogatas, coches y antorchas lo usan
             BuildLevel();
 
             var weapons = new List<WeaponDefinition> { DefaultWeapons.Rifle(), DefaultWeapons.Pistol() };
             var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, weapons, _look.Movement);
             _playerHealth = player.GetComponent<Health>();
             _player = player;
+            _fire.SetPlayer(player);
 
             Particles.CreateDust(player.transform);
             Atmosphere.Build(transform, player.transform, _look);
