@@ -24,6 +24,8 @@ namespace SevenDays.World
             var crackBatch = new MeshBatch();
             var puddleBatch = new MeshBatch();
             var bloodBatch = new MeshBatch();
+            var stainBatch = new MeshBatch();
+            var burnBatch = new MeshBatch();
             var weedGreen = new MeshBatch();
             var weedDry = new MeshBatch();
 
@@ -56,6 +58,18 @@ namespace SevenDays.World
                 bloodBatch.AddFlatQuad(Surface(p, 0.05f), R() * 360f, s, s);
             }
 
+            // Manchas oscuras (aceite, hollín) y quemaduras sobre el piso
+            for (int i = 0; i < Mathf.RoundToInt(look.Ground.StainDecals * a.Density); i++)
+            {
+                float s = 1.2f + R() * 2.2f;
+                stainBatch.AddFlatQuad(Surface(RandomGroundPoint(R), 0.042f), R() * 360f, s * (0.8f + R() * 0.4f), s);
+            }
+            for (int i = 0; i < Mathf.RoundToInt(look.Ground.BurnDecals * a.Density); i++)
+            {
+                float s = 1.6f + R() * 2f;
+                burnBatch.AddFlatQuad(Surface(RandomGroundPoint(R), 0.046f), R() * 360f, s, s);
+            }
+
             // Maleza: 60% saliendo de las grietas, el resto en los bordes de la calle y junto a coberturas/escombros
             int tufts = a.Scaled(a.WeedTufts);
             for (int i = 0; i < tufts; i++)
@@ -81,6 +95,8 @@ namespace SevenDays.World
             Spawn(crackBatch, "Cracks", parent, DecalKind.Crack, 0.1f, 4);
             Spawn(puddleBatch, "Puddles", parent, DecalKind.Puddle, 0.95f, 3);
             Spawn(bloodBatch, "Blood", parent, DecalKind.Blood, 0.2f, 3);
+            Spawn(stainBatch, "Stains", parent, DecalKind.Stain, 0.1f, 3);
+            Spawn(burnBatch, "Burns", parent, DecalKind.Burn, 0.05f, 3);
             SpawnWeeds(weedGreen, "Weeds Green", parent, new Color(0.30f, 0.36f, 0.16f), 3);
             SpawnWeeds(weedDry, "Weeds Dry", parent, new Color(0.45f, 0.38f, 0.2f), 3);
         }

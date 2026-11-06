@@ -48,7 +48,8 @@ namespace SevenDays.World
             LookAndFeel.Apply(cam, _look);
             _loading = true;
             _layout = Vegetation.BuildLayout(_look);
-            yield return SurfaceLibrary.Build(_look.EffectiveSurface());
+            // texturas del mapa y piso se generan a la vez, en hilos de fondo
+            yield return Coroutines.All(SurfaceLibrary.Build(_look.EffectiveSurface()), GroundLibrary.Build(_look.Ground, Mathf.Pow(_look.GlobalBrightness, 0.6f)));
             yield return SignLibrary.Build(TrafficSigns.Needed(_layout.items), _look.Signs.TextureSize, _look.Signs.Seed);
             _loading = false;
 
