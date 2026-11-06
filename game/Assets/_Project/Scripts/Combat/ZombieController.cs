@@ -1,0 +1,255 @@
+using System;
+using UnityEngine;
+using UnityEngine.AI;
+using SevenDays.Core;
+using SevenDays.Procedural;
+using SevenDays.World;
+using SevenDays.World.Loot;
+
+namespace SevenDays.Combat
+{
+    /// <summary>
+    /// Zombie: NavMeshAgent + máquina de estados (patrulla / persigue / ataca / aturdido / muerto). Si el NavMesh no está disponible camina en línea recta
+    /// pegado al suelo. Vive en un pool (ZombieManager): Activate() lo configura para un tipo y Deactivate() lo devuelve.
+    /// </summary>
+    [RequireComponent(typeof(Health))]
+    public class ZombieController : MonoBehaviour
+    {
+        public ZombieTypeData Type { get; private set; }
+        public Health Health { get; private set; }
+        public ZombieRig Rig { get; private set; }
+        public ZombieState State => _sm.State;
+        public bool InUse { get; private set; }
+        public bool DiedByHeadshot => Health.KilledByHeadshot;
+        public float SpeedMultiplier { get; set; } = 1f;
+        public float DamageMultiplier { get; set; } = 1f;
+
+        public event Action<ZombieController> Killed;
+
+        private readonly ZombieStateMachine _sm = new ZombieStateMachine();
+        private NavMeshAgent _agent;
+        private CapsuleCollider _body;
+        private Rigidbody _rb;
+        private Transform _player;
+        private Health _playerHealth;
+        private Vector3 _home;
+        private float _nextPath, _nextSight, _nextPatrol, _nextAttack, _attackStart = -10f, _deadAt, _flashUntil, _walkPhase, _stagger;
+        private bool _canSee, _damageDone, _useAgent;
+        private Material _flashMat;
+
+        public void Build()
+        {
+            Health = GetComponent<Health>();
+            _flashMat = Prim.GetMaterial(Color.white);
+            _agent = gameObject.AddComponent<NavMeshAgent>();
+            _agent.acceleration = 14f; _agent.angularSpeed = 360f; _agent.stoppingDistance = 0.1f; _agent.autoBraking = true;
+            _agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance; // evita que se amontonen sin costar mucho
+            _agent.avoidancePriority = UnityEngine.Random.Range(30, 70);
+            _agent.enabled = false;
+            _rb = gameObject.AddComponent<Rigidbody>();
+            _rb.isKinematic = true; _rb.useGravity = false;
+            _body = gameObject.AddComponent<CapsuleCollider>();
+            _body.center = new Vector3(0f, 0.9f, 0f); _body.radius = 0.32f; _body.height = 1.8f;
+            gameObject.layer = 2; // "Ignore Raycast": las balas ignoran el cuerpo de movimiento; solo cuentan los hitboxes
+            HitboxLayer.ConfigureCollisions();
+            Rig = ZombieRig.Build(transform, Health);
+            Health.Damaged += OnDamaged;
+            Health.Died += OnDied;
+            gameObject.SetActive(false);
+        }
+
+        public void SetPlayer(Transform player, Health health) { _player = player; _playerHealth = health; }
+
+        public void Activate(ZombieTypeData type, Vector3 position, float healthMultiplier = 1f, float speedMultiplier = 1f, float damageMultiplier = 1f)
+        {
+            Type = type;
+            SpeedMultiplier = speedMultiplier; DamageMultiplier = damageMultiplier;
+            transform.SetPositionAndRotation(position, Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f));
+            _home = position;
+            Rig.Visual.localScale = Vector3.one * type.scale;
+            Rig.Visual.localPosition = Vector3.zero; Rig.Visual.localRotation = Quaternion.identity;
+            Rig.SetColor(new Color(type.color[0], type.color[1], type.color[2]));
+            _body.radius = 0.32f * type.scale; _body.height = 1.8f * type.scale; _body.center = new Vector3(0f, 0.9f * type.scale, 0f);
+            Health.Configure(type.maxHealth * healthMultiplier, type.resistance, type.stunResistance, type.zones.Clone());
+            Rig.SetHitboxesEnabled(true);
+            _sm.Reset(); _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
+            _stagger = 0f; _flashUntil = 0f; _damageDone = true; _attackStart = -10f;
+            _nextAttack = Time.time + 0.5f; _nextSight = 0f; _nextPath = 0f; _nextPatrol = Time.time + UnityEngine.Random.Range(0.5f, 2.5f);
+            _walkPhase = UnityEngine.Random.value * 6f;
+            InUse = true;
+            gameObject.SetActive(true);
+
+            _agent.enabled = false;
+            _agent.radius = 0.35f * type.scale; _agent.height = 1.8f * type.scale;
+            _useAgent = false;
+            if (NavMesh.SamplePosition(position, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+            {
+                transform.position = hit.position;
+                _agent.enabled = true;
+                _useAgent = _agent.isOnNavMesh;
+            }
+            if (_useAgent) { _agent.speed = type.patrolSpeed * speedMultiplier; _agent.isStopped = false; }
+        }
+
+        public void Deactivate()
+        {
+            InUse = false;
+            if (_agent != null) _agent.enabled = false;
+            gameObject.SetActive(false);
+        }
+
+        private void OnDamaged(DamageInfo info)
+        {
+            _flashUntil = Time.time + 0.07f;
+            Rig.SetFlash(true, _flashMat);
+            // Un disparo avisa al zombie: empieza a perseguir aunque no vea al jugador.
+            if (!Health.IsDead && _sm.State == ZombieState.Patrol) _canSee = true;
+        }
+
+        private void OnDied()
+        {
+            _deadAt = Time.time;
+            Rig.SetHitboxesEnabled(false);
+            _body.enabled = false;
+            if (_useAgent && _agent.enabled) _agent.isStopped = true;
+            DropSystem.OnZombieKilled(Type.dropKind, transform.position + Vector3.up * 0.3f);
+            Killed?.Invoke(this);
+        }
+
+        private void Update()
+        {
+            if (!InUse) return;
+            float dt = Time.deltaTime;
+            if (_flashUntil > 0f && Time.time >= _flashUntil)
+            {
+                _flashUntil = 0f;
+                Rig.SetColor(new Color(Type.color[0], Type.color[1], Type.color[2]));
+            }
+
+            if (Health.IsDead) { UpdateDead(); return; }
+            if (_player == null) return;
+
+            Vector3 toPlayer = _player.position - transform.position;
+            toPlayer.y = 0f;
+            float dist = toPlayer.magnitude;
+            bool playerDead = _playerHealth != null && _playerHealth.IsDead;
+
+            if (Time.time >= _nextSight)
+            {
+                _nextSight = Time.time + 0.25f + UnityEngine.Random.value * 0.1f; // escalonado: no todos los zombis lanzan rayos el mismo frame
+                _canSee = dist < 3f || HasLineOfSight();
+            }
+            _sm.Tick(dt, dist, _canSee, Health.IsStunned, false, playerDead);
+            if (_sm.State == ZombieState.Chase) _canSee = _canSee || dist < _sm.AggroRange;
+
+            float moveAmount = 0f;
+            switch (_sm.State)
+            {
+                case ZombieState.Patrol: moveAmount = Patrol(dt); break;
+                case ZombieState.Chase: moveAmount = Chase(dt, toPlayer, dist); break;
+                case ZombieState.Attack: Attack(dt, toPlayer, dist); break;
+                case ZombieState.Stunned: Stop(); break;
+            }
+
+            _walkPhase += dt * (3f + moveAmount * 4f);
+            _stagger = Mathf.MoveTowards(_stagger, Health.IsStunned ? 1f : 0f, dt * 6f);
+            float attackT = _attackStart > 0f ? Mathf.Clamp01((Time.time - _attackStart) / 0.7f) : 0f;
+            float amount = Mathf.Clamp01(moveAmount);
+            // lejos del jugador la animación se salta: nadie la ve y son 24 zombis
+            if (dist < 70f) Rig.Pose(_walkPhase, amount, attackT, _stagger, Time.time + GetInstanceID() * 0.01f, _sm.State == ZombieState.Chase ? 1f : 0f);
+        }
+
+        // ------------------------------------------------------------------ comportamientos
+        private float Patrol(float dt)
+        {
+            if (Time.time >= _nextPatrol)
+            {
+                _nextPatrol = Time.time + UnityEngine.Random.Range(3f, 7f);
+                Vector2 r = UnityEngine.Random.insideUnitCircle * 8f;
+                MoveTo(_home + new Vector3(r.x, 0f, r.y), Type.patrolSpeed * SpeedMultiplier);
+            }
+            return MoveAmount(Type.patrolSpeed * SpeedMultiplier);
+        }
+
+        private float Chase(float dt, Vector3 toPlayer, float dist)
+        {
+            float speed = Type.speed * SpeedMultiplier;
+            if (Time.time >= _nextPath)
+            {
+                _nextPath = Time.time + 0.2f;
+                MoveTo(_player.position, speed);
+            }
+            if (!_useAgent) DirectMove(toPlayer, speed, dt);
+            return MoveAmount(speed);
+        }
+
+        private void Attack(float dt, Vector3 toPlayer, float dist)
+        {
+            Stop();
+            if (toPlayer.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(toPlayer), 540f * dt);
+            if (Time.time >= _nextAttack)
+            {
+                _nextAttack = Time.time + Type.attackCooldown;
+                _attackStart = Time.time;
+                _damageDone = false;
+            }
+            // el golpe cae a mitad de la animación; si el jugador se alejó, falla
+            if (!_damageDone && _attackStart > 0f && Time.time - _attackStart >= 0.35f)
+            {
+                _damageDone = true;
+                if (_playerHealth != null && !_playerHealth.IsDead && dist <= _sm.AttackRange * 1.3f)
+                    _playerHealth.TakeDamage(new DamageInfo { Amount = Type.attackDamage * DamageMultiplier, Point = _player.position + Vector3.up, Direction = toPlayer.normalized, Source = gameObject });
+            }
+            if (Time.time - _attackStart > 0.8f) _attackStart = -10f;
+        }
+
+        private void MoveTo(Vector3 target, float speed)
+        {
+            if (_useAgent && _agent.isOnNavMesh)
+            {
+                _agent.isStopped = false;
+                _agent.speed = speed;
+                _agent.SetDestination(target);
+            }
+        }
+
+        private void Stop() { if (_useAgent && _agent.isOnNavMesh) { _agent.isStopped = true; _agent.velocity = Vector3.zero; } }
+
+        private float MoveAmount(float speed)
+        {
+            if (_useAgent) return _agent.velocity.magnitude / Mathf.Max(0.1f, Type.speed);
+            return 1f;
+        }
+
+        /// <summary>Respaldo sin NavMesh: camina hacia el jugador y se pega al suelo con un rayo.</summary>
+        private void DirectMove(Vector3 toPlayer, float speed, float dt)
+        {
+            if (toPlayer.sqrMagnitude < 0.01f) return;
+            Vector3 dir = toPlayer.normalized;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), 360f * dt);
+            Vector3 next = transform.position + dir * speed * dt;
+            if (Physics.Raycast(next + Vector3.up * 1.5f, Vector3.down, out RaycastHit hit, 4f, ~(1 << 2 | HitboxLayer.Mask), QueryTriggerInteraction.Ignore)) next.y = hit.point.y;
+            transform.position = next;
+        }
+
+        private bool HasLineOfSight()
+        {
+            Vector3 eye = transform.position + Vector3.up * (1.6f * Type.scale);
+            Vector3 target = _player.position + Vector3.up * 1.2f;
+            Vector3 d = target - eye;
+            // las capas 2 (jugador/zombis) y Hitbox no tapan la vista
+            return !Physics.Raycast(eye, d.normalized, d.magnitude, ~(1 << 2 | HitboxLayer.Mask), QueryTriggerInteraction.Ignore);
+        }
+
+        private void UpdateDead()
+        {
+            float t = Time.time - _deadAt;
+            // cae hacia atrás en 0.45 s, se queda en el suelo y se hunde antes de volver al pool
+            float fall = Mathf.SmoothStep(0f, 1f, t / 0.45f);
+            Rig.Visual.localRotation = Quaternion.Euler(-88f * fall, 0f, 0f);
+            Rig.Visual.localPosition = new Vector3(0f, 0.12f * fall - Mathf.Max(0f, t - 4f) * 0.25f, 0f);
+            if (t > 8f) Deactivate();
+        }
+    }
+}
