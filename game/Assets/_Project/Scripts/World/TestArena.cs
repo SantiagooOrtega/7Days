@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using SevenDays.Core;
+using SevenDays.Combat;
 using SevenDays.Look;
 using SevenDays.Net;
 using SevenDays.Player;
@@ -27,6 +28,8 @@ namespace SevenDays.World
         private SevenDays.Procedural.LootLayoutData _lootLayout;
         private LootManager _lootManager;
         private int _day = 1;
+        private SevenDays.Combat.ZombieManager _zombies;
+        private int _zombieKind;
 
         private IEnumerator Start()
         {
@@ -73,6 +76,10 @@ namespace SevenDays.World
             Physics.SyncTransforms();
             ColliderAudit.Run(_levelRoot);
 
+            _zombies = ZombieManager.Create(transform);
+            _zombies.BakeNavMesh(); // después de construir el nivel y de la auditoría: usa los colliders ya definitivos
+            _zombies.SetPlayer(player.transform);
+
             Particles.CreateDust(player.transform);
             Atmosphere.Build(transform, player.transform, _look);
 
@@ -106,6 +113,14 @@ namespace SevenDays.World
                 _day = _day % 7 + 1;
                 _lootManager.NewDay(_day);
                 if (_house != null) _house.SetDay(_day);
+            }
+            if (k.zKey.wasPressedThisFrame && _player != null && _zombies != null)
+            {
+                // Z = zombi de prueba 12 m delante (cicla por los tipos)
+                string id = SevenDays.Procedural.ZombieIds.All[_zombieKind % 6]; _zombieKind++;
+                var spawn = _player.transform.position + _player.transform.forward * 12f;
+                var z = _zombies.Spawn(id, spawn);
+                if (z != null) HudMessages.Add("Zombi: " + z.Type.displayName, Color.white);
             }
             if (k.uKey.wasPressedThisFrame && _player != null)
             {

@@ -398,3 +398,17 @@ Detalle completo (tablas de armas, botiquines, escasez, JSON y esquema zod) en `
 
 ## Arreglo de la auditoría de colisiones
 `Vegetation/Campfire/Stone` (y `Log`, `Ash` y las antorchas de la casa) aparecían como "no deberían ser sólidos y tienen collider". Causa: `Prim.Create(..., collider: false)` quitaba el collider con `Destroy`, que Unity ejecuta **al final del frame**, y la auditoría corre en el mismo frame que construye el mapa. Ahora usa `DestroyImmediate`, así que esos objetos decorativos salen sin collider (ya estaban bien en `SolidCatalog`: son no sólidos).
+
+### Bloque 1: zombi base (vida, hitboxes, estados)
+Qué hay: `Combat/ZombieRig` (cuerpo de primitivas articuladas), `ZombieController` (NavMeshAgent + patrulla/persigue/ataca), `ZombieManager` (pool, tope de 24, NavMesh generado al iniciar), `Hitbox` (zona de impacto).
+Cada zona es un collider simple en la capa **Hitbox** (cabeza esfera; torso, brazos y piernas cápsulas) hijo del pivote de su parte, así que sigue a la animación. El cuerpo de movimiento va en la capa 2 (Ignore Raycast): las balas lo atraviesan y solo cuentan los hitboxes.
+Multiplicadores por defecto: cabeza x2.5, torso x1.0, brazos x0.6, piernas x0.7 (configurables por tipo en `ZombieCatalog`).
+
+Pasos manuales en Unity (no los puedo verificar sin el editor):
+1. Abre el proyecto y espera a que compile. Mira la Consola: debe salir `[7Days] Capa 'Hitbox' creada en el índice 31` (o usa el menú `7Days > Crear capa Hitbox`). Comprueba en `Edit > Project Settings > Tags and Layers` que la capa 31 se llama Hitbox y guarda `ProjectSettings/TagManager.asset` en git.
+2. Abre `Window > General > Test Runner > EditMode > Run All`: deben pasar todas, incluidas `CombatTests` y `ZombieStateMachineTests`.
+3. Da Play en la escena de pruebas. Espera a que cargue (el NavMesh se genera al final de la carga; puede tardar 1 s).
+4. Pulsa **Z**: aparece un zombi 12 m delante (cada pulsación cicla común, corredor, tanque, blindado, lanzador, explosivo). Debe caminar hacia ti sin atravesar paredes ni cajas, y atacar cuando llega.
+5. Dispara a la cabeza y al cuerpo: la cabeza debe quitar mucha más vida. Abre `Window > Analysis > Physics Debugger` o selecciona un zombi en la Jerarquía y mira que sus hijos `Hitbox_Head/Torso/Arms/Legs` tienen la capa Hitbox.
+6. Si el zombi no se mueve y solo "resbala" en línea recta, el NavMesh no se generó: busca en la Consola avisos de `NavMeshSurface`.
+7. Para cambiar el cuerpo por un modelo de Quaternius: ver "Cambiar el cuerpo del zombi" más abajo (cuando se importe el modelo, solo hay que crear otra clase con las mismas partes que `ZombieRig`).
