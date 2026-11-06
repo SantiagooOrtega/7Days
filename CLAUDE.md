@@ -33,6 +33,6 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 - Idioma: documentación y mensajes de commit en español; código en inglés.
 
 ## Pendientes
-- Versión de Unity del usuario: sin confirmar (define la versión de Cinemachine: 2.x en 2022.3, 3.x en Unity 6, y el template URP).
+- Unity 6000.3.28f1 (URP 17.3.0, Input System 1.20.1 solo-nuevo, Cinemachine 3.1.7 -> namespace `Unity.Cinemachine`, AI Navigation 2.0.16). Ver `docs/UNITY_SETUP.md`.
 - Versión de Node: la máquina tiene v25 (no LTS); si Prisma/argon2 fallan, usar Node 22 LTS.
 - Puerto 3000 ocupado en la Mac del usuario por otro programa: el backend usa 3001.
