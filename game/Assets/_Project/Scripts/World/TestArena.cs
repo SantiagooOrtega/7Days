@@ -82,6 +82,7 @@ namespace SevenDays.World
             _zombies.SetPlayer(player.transform);
             BloodFx.Create(transform);
             BossHud.Create(transform);
+            CombatMetricsTracker.Create(transform, player, _zombies);
             CombatFeedback.Create(transform, player.GetComponent<SevenDays.Player.PlayerShooting>());
 
             Particles.CreateDust(player.transform);
@@ -116,6 +117,7 @@ namespace SevenDays.World
                 // Siguiente día: el director hace reaparecer un poco de botín y tapa las entradas de la casa según el día
                 _day = _day % 7 + 1;
                 _lootManager.NewDay(_day);
+                if (_zombies != null) _zombies.SetTuning(SevenDays.Procedural.DirectorTuning.ForDay(_day));
                 if (_house != null) _house.SetDay(_day);
             }
             if (k.zKey.wasPressedThisFrame && _player != null && _zombies != null)
@@ -125,6 +127,16 @@ namespace SevenDays.World
                 var spawn = _player.transform.position + _player.transform.forward * 12f;
                 var z = _zombies.Spawn(id, spawn);
                 if (z != null) HudMessages.Add("Zombi: " + z.Type.displayName, Color.white);
+            }
+            if (k.vKey.wasPressedThisFrame && _player != null && _zombies != null)
+            {
+                // V = mini oleada de 8 zombis con las proporciones del día (prueba de rendimiento y de reparto de tipos)
+                for (int i = 0; i < 8; i++)
+                {
+                    float ang = i / 8f * Mathf.PI * 2f;
+                    _zombies.SpawnByTuning(_player.transform.position + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * 18f);
+                }
+                HudMessages.Add("Oleada de prueba (día " + _day + ")", Color.white);
             }
             if (k.bKey.wasPressedThisFrame && _player != null && _zombies != null)
             {
