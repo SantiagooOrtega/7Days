@@ -48,6 +48,33 @@ namespace SevenDays.Core
             return go;
         }
 
+        /// <summary>
+        /// Material transparente (con la luz de la escena) para calcomanías: sangre, grietas, charcos, marcas viales.
+        /// La transparencia viene del canal alfa de la textura. Usa el Lit de URP, el mismo de las primitivas.
+        /// </summary>
+        public static Material GetDecal(Texture2D texture, Color tint, float smoothness, string key)
+        {
+            string k = "d|" + key + "|" + Key(tint) + "|" + smoothness.ToString("0.##");
+            if (Cache.TryGetValue(k, out var m) && m != null) return m;
+            var mat = NewMaterial(tint, smoothness, 0f);
+            mat.SetTexture("_BaseMap", texture);
+            mat.SetFloat("_Surface", 1f); // transparente
+            mat.SetFloat("_Blend", 0f);
+            mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetFloat("_SrcBlendAlpha", 1f);
+            mat.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetFloat("_ZWrite", 0f);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON"); // alfa normal, no premultiplicado
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.SetShaderPassEnabled("ShadowCaster", false);
+            Cache[k] = mat;
+            return mat;
+        }
+
         /// <summary>Material mate de un color (poco brillo: evita el aspecto de plástico).</summary>
         public static Material GetMaterial(Color color) => GetOrCreate("c|" + Key(color), color, null, null, Vector2.one, 0.1f, 0f);
 

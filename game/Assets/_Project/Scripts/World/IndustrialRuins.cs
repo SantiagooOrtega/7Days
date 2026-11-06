@@ -20,10 +20,14 @@ namespace SevenDays.World
         private static System.Random _rng;
         private static LookSettings _look;
 
+        /// <summary>Posiciones de coberturas y cajas: la sangre y la maleza se colocan cerca de ellas.</summary>
+        public static readonly System.Collections.Generic.List<Vector3> Anchors = new System.Collections.Generic.List<Vector3>();
+
         public static void Build(Transform root, LookSettings look)
         {
             _rng = new System.Random(42);
             _look = look;
+            Anchors.Clear();
             BuildGround(root);
             BuildPerimeter(root);
             BuildCovers(root);
@@ -105,6 +109,7 @@ namespace SevenDays.World
 
         private static void Barrier(Transform root, string name, Vector3 pos, Vector3 size, float yaw)
         {
+            Anchors.Add(new Vector3(pos.x, 0f, pos.z));
             var go = Prim.CreateBox(name, pos, size, Tex(Concrete, SurfaceLibrary.Concrete, 0.12f, 0f, false, Tone()), root, 2f, UvJitter(), true, 0.05f);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             go.AddComponent<CoverObject>();
@@ -114,6 +119,7 @@ namespace SevenDays.World
         {
             // tile = lado de la caja: cada cara recibe exactamente una copia de la textura, sin estirarla
             var mat = Tex(kind == SurfaceLibrary.Cardboard ? new Color(0.55f, 0.43f, 0.28f) : new Color(0.42f, 0.3f, 0.18f), kind, 0.1f, 0f, false, Tone(0.1f));
+            if (cover) Anchors.Add(new Vector3(pos.x, 0f, pos.z));
             var go = Prim.CreateBox(name, pos, Vector3.one * side, mat, root, side, default, true, 0.025f);
             go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             if (cover) go.AddComponent<CoverObject>();
