@@ -33,15 +33,16 @@ namespace SevenDays.Core
 
         /// <summary>
         /// Caja con UV por cara a escala real (la textura no se estira). "tileMeters" = metros por repetición;
-        /// "uvOffset" desplaza la textura para que objetos iguales no se vean idénticos. Escala 1: el tamaño va en la malla.
+        /// "uvOffset" desplaza la textura para que objetos iguales no se vean idénticos. "bevel" (m) bisela las aristas para
+        /// disimular las uniones entre caras. Escala 1: el tamaño va en la malla; el collider es la caja completa.
         /// </summary>
         public static GameObject CreateBox(string name, Vector3 position, Vector3 size, Material material, Transform parent = null,
-            float tileMeters = 3f, Vector2 uvOffset = default, bool collider = true)
+            float tileMeters = 3f, Vector2 uvOffset = default, bool collider = true, float bevel = 0.03f)
         {
             var go = new GameObject(name);
             if (parent != null) go.transform.SetParent(parent, false);
             go.transform.localPosition = position;
-            go.AddComponent<MeshFilter>().sharedMesh = BoxMesh.Get(size, tileMeters, uvOffset);
+            go.AddComponent<MeshFilter>().sharedMesh = BoxMesh.Get(size, tileMeters, uvOffset, bevel);
             go.AddComponent<MeshRenderer>().sharedMaterial = material;
             if (collider) go.AddComponent<BoxCollider>().size = size;
             return go;
