@@ -18,6 +18,9 @@ namespace SevenDays.Combat
 
         private PlayerShooting _shooting;
         private PlayerCover _cover;
+        private int _day = 1;
+        /// <summary>Motivos de los últimos ajustes del director por estadísticas (se muestran en F4).</summary>
+        public readonly System.Collections.Generic.List<string> DirectorReasons = new System.Collections.Generic.List<string>();
         private PlayerCamera _camera;
         private float _sprintBase;
         private Health _playerHealth;
@@ -45,6 +48,8 @@ namespace SevenDays.Combat
             _shooting.HitConfirmed += OnHitConfirmed;
             _playerHealth.Damaged += OnPlayerDamaged;
             zombies.ZombieKilled += OnKilled;
+            _playerHealth.Died += Metrics.RecordDeath;
+            _ = LoadStoredAsync();
         }
 
         private void OnDestroy()
@@ -54,7 +59,29 @@ namespace SevenDays.Combat
             if (_playerHealth != null) _playerHealth.Damaged -= OnPlayerDamaged;
         }
 
-        /// <summary>Empieza un día: métricas a cero (el tiempo corriendo se cuenta desde ahora).</summary>
+        private async System.Threading.Tasks.Task LoadStoredAsync()
+        {
+            var stored = await SevenDays.Net.ProgressService.LoadStats();   // null sin sesión
+            if (stored != null && this != null) { Metrics.Stored = stored; Debug.Log("[7Days] Estadísticas guardadas cargadas: " + stored.kills + " muertes, " + stored.coverSeconds.ToString("0") + " s cubierto, fatiga máx. " + stored.maxFatigue.ToString("0.00") + "."); }
+        }
+
+        /// <summary>
+        /// Termina el día: lo de hoy se suma a lo guardado, se envía al backend (si hay sesión) y empiezan las métricas del día siguiente. Devuelve lo acumulado para
+        /// que las reglas del director (DirectorRules) lo usen.
+        /// </summary>
+        public CombatStatsRecord EndDay(int nextDay)
+        {
+            var totals = Metrics.Totals();
+            Metrics.Stored = totals;
+            _ = SevenDays.Net.ProgressService.SaveStats(nextDay, totals);
+            Metrics.Reset();
+            if (_cover != null) _cover.Exposure.ResetStats();
+            if (_camera != null && _camera.RunCam != null) _sprintBase = _camera.RunCam.TotalSprintSeconds;
+            _day = nextDay;
+            return totals;
+        }
+
+        /// <summary>Compatibilidad: empieza un día sin guardar.</summary>
         public void NewDay()
         {
             Metrics.Reset();
@@ -101,6 +128,7 @@ namespace SevenDays.Combat
             sb.AppendLine("en cobertura " + s.timeInCover.ToString("0") + " s  (" + (s.coverRatio * 100f).ToString("0") + "%)");
             sb.AppendLine("corriendo " + s.sprintSeconds.ToString("0") + " s  fatiga " + (s.fatigue * 100f).ToString("0") + "% (máx. " + (s.maxFatigue * 100f).ToString("0") + "%)");
             sb.AppendLine("cobertura: cubierto " + s.coverSeconds.ToString("0") + " s  asomado " + s.poppedOutSeconds.ToString("0") + " s  a ciegas " + s.blindFireSeconds.ToString("0") + " s" + (s.coverAbuse ? "  [ABUSO]" : ""));
+            if (DirectorReasons.Count > 0) foreach (var r in DirectorReasons) sb.AppendLine("director: " + r);
             sb.AppendLine("daño recibido " + s.damageTaken.ToString("0"));
             for (int i = 0; i < s.damageSources.Length; i++) sb.AppendLine("   " + s.damageSources[i] + ": " + s.damageAmounts[i].ToString("0"));
             var mgr = ZombieManager.Instance;
@@ -111,8 +139,8 @@ namespace SevenDays.Combat
                     + "  jefe x" + t.bossAggressiveness.ToString("0.00") + "  especiales x" + t.specialFrequency.ToString("0.00"));
                 sb.AppendLine("zombis activos " + mgr.ActiveCount + "/" + mgr.MaxZombies);
             }
-            GUI.Box(new Rect(10, 120, 470, 22f * (6 + s.damageSources.Length + 3)), GUIContent.none);
-            GUI.Label(new Rect(18, 124, 460, 22f * (6 + s.damageSources.Length + 3)), sb.ToString(), _style);
+            GUI.Box(new Rect(10, 120, 470, 22f * (7 + s.damageSources.Length + 3 + DirectorReasons.Count)), GUIContent.none);
+            GUI.Label(new Rect(18, 124, 460, 22f * (7 + s.damageSources.Length + 3 + DirectorReasons.Count)), sb.ToString(), _style);
         }
     }
 }
