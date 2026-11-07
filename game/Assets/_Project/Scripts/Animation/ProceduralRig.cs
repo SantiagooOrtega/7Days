@@ -21,6 +21,9 @@ namespace SevenDays.Animation
         public float VaultProgress;
         public Vector3 VaultTop, VaultDir;
         public float Hunch;                 // 0..1 encorvado extra (zombis)
+        public float Kneel;                 // 0..1: arrodillado (cobertura baja, quieto)
+        public int KneelSide;               // +1: rodilla derecha al suelo; -1: izquierda
+        public Collider CoverCollider;      // los pies no pueden entrar en la cobertura
     }
 
     /// <summary>Suavizados de cada capa (segundos). Se pueden tocar en vivo desde el panel F6.</summary>
@@ -68,6 +71,13 @@ namespace SevenDays.Animation
         /// <summary>Rigs activos (para medir el coste total con muchos personajes).</summary>
         public static readonly System.Collections.Generic.List<ProceduralRig> Active = new System.Collections.Generic.List<ProceduralRig>();
         public bool DrawGizmos;
+        /// <summary>Suelo bajo cada pie, flexión de cada rodilla y si la pelvis se limitó (para el panel F6).</summary>
+        public float[] FootGround { get; } = new float[2];
+        public float[] KneeFlexion { get; } = new float[2];
+        public bool PelvisLimited { get; private set; }
+        public float KneelWeight => _kneel.Value;
+        /// <summary>Desplazamiento del pecho respecto a su reposo (espacio del cuerpo): el arma lo sigue con retraso elástico.</summary>
+        public Vector3 ChestOffsetLocal { get; private set; }
         /// <summary>Un pie se apoyó desde la última vez que se preguntó (la cámara de carrera y los pasos lo consumen).</summary>
         public bool ConsumeStep() { bool s = _stepPending; _stepPending = false; return s; }
 
@@ -77,7 +87,10 @@ namespace SevenDays.Animation
         private Vector3 _lastPos;
         private CriticalSpring3 _vel;
         private CriticalSpring _pelvisHeight, _landing, _sway, _hipYaw, _lean, _sideLean, _twist, _aimPitch, _crouch, _breath;
-        private CriticalSpring _headYaw, _headPitch, _death, _rightW, _leftW, _air;
+        private CriticalSpring _headYaw, _headPitch, _death, _rightW, _leftW, _air, _kneel;
+        private float _hipJointDrop, _toeLength;
+        private Vector3 _chestRestLocal;
+        private readonly float[] _swingFrom = new float[2];
         private CriticalSpring3 _hit;
         private readonly CriticalSpring3[] _foot = new CriticalSpring3[2];
         private readonly CriticalSpring3[] _hand = new CriticalSpring3[2];
@@ -119,6 +132,10 @@ namespace SevenDays.Animation
             _hipHeight = Spec[(int)BoneId.Hips].LocalPosition.Y;
             _hipHalf = Mathf.Abs(Spec[(int)BoneId.LeftUpperLeg].LocalPosition.X);
             _footHeight = Spec[(int)BoneId.LeftFoot].Length;
+            _hipJointDrop = -Spec[(int)BoneId.LeftUpperLeg].LocalPosition.Y;
+            _toeLength = Spec[(int)BoneId.LeftToes].LocalPosition.Z;
+            var chest = HumanoidRigSpec.RestPosition(Spec, BoneId.UpperChest);
+            _chestRestLocal = new Vector3(chest.X, chest.Y - CrouchPose.StandBend, chest.Z);
             ResetPose();
             _built = true;
         }
@@ -131,7 +148,7 @@ namespace SevenDays.Animation
             _pelvisHeight = new CriticalSpring(CrouchPose.PelvisHeight(_hipHeight, 0f));
             _death = new CriticalSpring(0f); _deathTime = -1f;
             _rightW = new CriticalSpring(0f); _leftW = new CriticalSpring(0f);
-            _crouch = new CriticalSpring(0f); _air = new CriticalSpring(0f);
+            _crouch = new CriticalSpring(0f); _air = new CriticalSpring(0f); _kneel = new CriticalSpring(0f);
             _hit.Reset(new V3(0, 0, 0));
             for (int f = 0; f < 2; f++)
             {
@@ -141,6 +158,20 @@ namespace SevenDays.Animation
                 _hand[f].Reset(ToV3(transform.position + Vector3.up * _hipHeight));
             }
             _gait.Reset();
+        }
+
+        /// <summary>
+        /// Recoloca los pies bajo el cuerpo al instante. Al entrar en cobertura el jugador se teletransporta junto al muro: si los pies se quedaban clavados en el sitio
+        /// anterior, la IK estiraba las piernas en diagonal hacia el suelo de atrás (se veían bajo el asfalto).
+        /// </summary>
+        public void SnapFeet()
+        {
+            for (int f = 0; f < 2; f++)
+            {
+                _plant[f] = Ground(RestFoot(f, _crouch.Value, _kneel.Value), out _);
+                _foot[f].Reset(ToV3(_plant[f]));
+                _wasStance[f] = true; _idleStep[f] = -1f; _landingRayAt[f] = -1f;
+            }
         }
 
         /// <summary>Impacto: el torso retrocede en la dirección del golpe (mundo).</summary>
@@ -182,7 +213,8 @@ namespace SevenDays.Animation
             Vector3 pos = transform.position;
             Vector3 delta = pos - _lastPos; delta.y = 0f;
             _lastPos = pos;
-            if (delta.magnitude > 2f) { ResetPose(); delta = Vector3.zero; }   // teletransporte (pool, cobertura): sin zancadas fantasma
+            if (delta.magnitude > 3f) { ResetPose(); delta = Vector3.zero; }                        // teletransporte largo (pool): pose nueva
+            else if (delta.magnitude > 0.4f && delta.magnitude / dt > 12f) { SnapFeet(); delta = Vector3.zero; }   // salto corto (entrar en cobertura): pies bajo el cuerpo ya
             Vector3 rawVel = delta / dt;
             V3 v3 = _vel.Step(ToV3(rawVel), s.velocity, dt);
             Vector3 vel = new Vector3(v3.X, 0f, v3.Z);
@@ -217,6 +249,7 @@ namespace SevenDays.Animation
             UpdateArms(I, run, jog, walk, moving, dead, dt);
             UpdateDeathFall(dead);
 
+            ChestOffsetLocal = transform.InverseTransformPoint(Bone(BoneId.UpperChest).position) - _chestRestLocal;
             Watch.Stop();
             LastCostMs = (float)Watch.Elapsed.TotalMilliseconds;
             AverageCostMs = Mathf.Lerp(AverageCostMs, LastCostMs, 0.05f);
@@ -224,10 +257,30 @@ namespace SevenDays.Animation
         }
 
         // ------------------------------------------------------------------ capa 1: locomoción
-        private Vector3 RestFoot(int f, float crouch = 0f)
+        private Vector3 RestFoot(int f, float crouch = 0f, float kneel = 0f)
         {
             float side = f == 0 ? -1f : 1f;
-            return transform.position + transform.rotation * new Vector3(side * CrouchPose.FootSide(_hipHalf, crouch), 0f, (f == 0 ? 0.02f : -0.02f) + CrouchPose.FootAhead(crouch));
+            Vector3 local = new Vector3(side * CrouchPose.FootSide(_hipHalf, crouch), 0f, (f == 0 ? 0.02f : -0.02f) + CrouchPose.FootAhead(crouch));
+            if (kneel > 0.001f)
+            {
+                // arrodillado: el pie de la rodilla apoyada queda detrás (pantorrilla plana) y el otro delante, bajo la rodilla doblada
+                bool kneeling = (side > 0f) == (Inputs.KneelSide >= 0);
+                V3 k = kneeling ? KneelPose.KneelingAnkle(side * _hipHalf, _thigh, _shin, _footHeight) : KneelPose.FrontAnkle(side * _hipHalf, _thigh, _footHeight);
+                local = Vector3.Lerp(local, new Vector3(k.X * 1.1f, 0f, k.Z), kneel);
+            }
+            return transform.position + transform.rotation * local;
+        }
+
+        /// <summary>Un pie nunca entra en el collider de la cobertura: si cae dentro, sale por el lado libre más cercano (en horizontal).</summary>
+        private static Vector3 OutOfCover(Vector3 p, Collider c)
+        {
+            if (!(c is BoxCollider box)) return p;
+            Vector3 local = box.transform.InverseTransformPoint(p) - box.center;
+            Vector3 half = box.size * 0.5f;
+            float m = 0.12f / Mathf.Max(0.01f, box.transform.lossyScale.x);
+            if (!ShotOrigin.PushOut(local.x, local.y, local.z, -half.x, -half.y, -half.z, half.x, half.y, half.z, m, PopDirection.Left, out float ox, out float oy, out float oz)) return p;
+            Vector3 world = box.transform.TransformPoint(new Vector3(ox, oy, oz) + box.center);
+            return new Vector3(world.x, p.y, world.z);
         }
 
         private Vector3 Ground(Vector3 p, out Vector3 normal)
@@ -243,8 +296,11 @@ namespace SevenDays.Animation
             return new Vector3(p.x, transform.position.y, p.z);
         }
 
+        private static bool walkingNow(RigInputs I, float speed) => I.Grounded && !I.Vaulting && !I.Dead && speed > 0.15f;
+
         private void UpdateFeet(RigInputs I, Vector3 vel, float speed, float moving, float crouch, float air, float dt)
         {
+            float kneel = _kneel.Step(walkingNow(I, speed) ? 0f : I.Kneel, 0.18f, dt);
             float lift = GaitCycle.LiftHeight(speed) * Mathf.Lerp(1f, 0.6f, crouch);
             float cycleTime = speed > 0.05f ? CycleLength / speed : 1f;
             bool walking = I.Grounded && !I.Vaulting && !I.Dead && speed > 0.15f;
@@ -261,7 +317,7 @@ namespace SevenDays.Animation
                     if (stance && !_wasStance[f]) { Vector3 p = _foot[f].Value.ToUnity(); _plant[f] = new Vector3(p.x, _landingY[f], p.z); }   // aterriza: queda clavado (altura ya medida en el vuelo)
                     if (!stance && _wasStance[f]) _liftFrom[f] = _plant[f];                             // despega
                     _wasStance[f] = stance;
-                    if (stance) { target = _plant[f]; planted = true; _landingRayAt[f] = -1f; }
+                    if (stance) { target = _plant[f]; planted = true; _landingRayAt[f] = -1f; FootGround[f] = _plant[f].y; }
                     else
                     {
                         float swing = GaitCycle.SwingProgress(fp, StanceFraction);
@@ -275,6 +331,7 @@ namespace SevenDays.Animation
                         float crossing = Mathf.Abs(Vector3.Dot(vel.normalized, transform.right)) * 0.08f;
                         landing += transform.forward * crossing * Mathf.Sin(Mathf.PI * swing);
                         target = FootPlacement.Swing(ToV3(_liftFrom[f]), ToV3(landing), swing, lift).ToUnity();
+                        FootGround[f] = Mathf.Lerp(_liftFrom[f].y, landing.y, swing);
                         planted = false;
                     }
                     _idleStep[f] = -1f;
@@ -286,25 +343,28 @@ namespace SevenDays.Animation
                     _landingY[f] = transform.position.y; _landingRayAt[f] = -1f;
                     target = transform.position + transform.rotation * new Vector3(side * _hipHalf, _hipHeight * tuck, (f == 0 ? 0.12f : -0.05f) + (I.Vaulting ? 0.25f : 0f));
                     _plant[f] = target; _wasStance[f] = true;
+                    FootGround[f] = transform.position.y - 10f;   // en el aire no hay suelo que limite
                     planted = false;
                 }
                 else
                 {
                     // quieto: los pies se quedan; si el cuerpo gira o se aleja, un paso corto los recoloca (uno cada vez)
                     // quieto no se lanza ningún rayo: solo al empezar un paso correctivo se mide el suelo de destino
-                    Vector3 rest = RestFoot(f, crouch);
+                    Vector3 rest = RestFoot(f, crouch, kneel);
                     if (_idleStep[f] < 0f && _idleStep[1 - f] < 0f && (Flat(_plant[f] - rest).magnitude > 0.18f))
                     { _idleStep[f] = 0f; _idleFrom[f] = _plant[f]; _idleTo[f] = Ground(rest, out _); }
                     if (_idleStep[f] >= 0f)
                     {
                         _idleStep[f] += dt / 0.22f;
                         target = FootPlacement.Swing(ToV3(_idleFrom[f]), ToV3(_idleTo[f]), Mathf.Clamp01(_idleStep[f]), 0.07f).ToUnity();
+                        FootGround[f] = Mathf.Lerp(_idleFrom[f].y, _idleTo[f].y, Mathf.Clamp01(_idleStep[f]));
                         if (_idleStep[f] >= 1f) { _plant[f] = _idleTo[f]; _idleStep[f] = -1f; _stepPending = true; }
                         planted = false;
                     }
-                    else { target = _plant[f]; planted = true; }
+                    else { target = _plant[f]; planted = true; FootGround[f] = _plant[f].y; }
                     _wasStance[f] = true;
                 }
+                if (I.CoverCollider != null) target = OutOfCover(target, I.CoverCollider);
                 FootPlanted[f] = planted;
                 V3 smoothed = _foot[f].Step(ToV3(target), planted ? Smoothing.footPlanted : Smoothing.footSwing, dt);
                 FootTargets[f] = smoothed.ToUnity();
@@ -324,42 +384,76 @@ namespace SevenDays.Animation
             float idle = SpeedWeights[LocomotionBlend.Idle];
             float breath = Mathf.Sin(_time * Mathf.PI * 2f * (0.25f + 0.35f * I.Fatigue)) * (0.006f + 0.01f * I.Fatigue);
             float weightShift = Mathf.Sin(_time * 0.4f) * 0.025f * idle;
-            float targetHeight = CrouchPose.PelvisHeight(_hipHeight, crouch) + bob + terrain + breath * idle - air * 0.04f;
+            float kneel = _kneel.Value;
+            float baseHeight = Mathf.Lerp(CrouchPose.PelvisHeight(_hipHeight, crouch), KneelPose.HipHeight(_thigh) + _hipJointDrop, kneel);
+            float targetHeight = baseHeight + bob + terrain + breath * idle - air * 0.04f;
             float h = _pelvisHeight.Step(targetHeight, Smoothing.pelvis, dt);
             float landing = _landing.Step(0f, 0.12f, dt);
             h += Mathf.Max(-0.35f, landing * 0.1f);
+            // regla dura: la pelvis no baja más de lo que las piernas permiten (rodilla <= 150°) con los pies en el suelo; en vez de hundir el pie, se queda
+            PelvisLimited = false;
+            if (dead < 0.01f && I.Grounded)
+            {
+                float minH = float.MinValue;
+                for (int f = 0; f < 2; f++)
+                {
+                    float side = f == 0 ? -1f : 1f;
+                    Vector3 hipW = transform.position + transform.right * side * _hipHalf;
+                    float horiz = Flat(FootTargets[f] - hipW).magnitude;
+                    minH = Mathf.Max(minH, LegSolver.MinHipHeight(FootGround[f], _footHeight, horiz, _thigh, _shin) - transform.position.y + _hipJointDrop);
+                }
+                if (h < minH) { h = minH; _pelvisHeight.Value = Mathf.Max(_pelvisHeight.Value, minH); PelvisLimited = true; }
+            }
             h = Mathf.Lerp(h, 0.32f, Mathf.SmoothStep(0f, 1f, dead));
 
-            float sway = _sway.Step(Mathf.Sin(phase) * 0.03f * (walk + jog * 0.7f + run * 0.4f) + weightShift + I.Lean * 0.12f, Smoothing.pelvis, dt);
+            // quieto, la pelvis se centra sobre la base de apoyo (entre los dos pies); al asomarse por el lado la pelvis NO se mueve: se inclina el torso
+            Vector3 feetCenter = transform.InverseTransformPoint((FootTargets[0] + FootTargets[1]) * 0.5f);
+            float centerX = Mathf.Clamp(feetCenter.x, -0.12f, 0.12f) * 0.6f * idle;
+            float sway = _sway.Step(Mathf.Sin(phase) * 0.03f * (walk + jog * 0.7f + run * 0.4f) + weightShift + centerX, Smoothing.pelvis, dt);
             float hipYaw = _hipYaw.Step(Mathf.Sin(phase) * (6f * walk + 9f * jog + 12f * run), Smoothing.pelvis, dt);
-            float tilt = 4f * run + 2f * jog + crouch * CrouchPose.PelvisTilt;
+            float tilt = 4f * run + 2f * jog + crouch * CrouchPose.PelvisTilt * (1f - kneel);
 
             var hips = Bone(BoneId.Hips);
-            hips.localPosition = new Vector3(sway, h, CrouchPose.PelvisBack(crouch));
+            float centerZ = Mathf.Clamp(feetCenter.z, -0.15f, 0.15f) * 0.5f * idle * (1f - kneel);
+            hips.localPosition = new Vector3(sway, h, Mathf.Lerp(CrouchPose.PelvisBack(crouch), 0.02f, kneel) + centerZ);
             hips.localRotation = Quaternion.Euler(tilt, hipYaw, -Mathf.Sin(phase) * 2f * moving);
         }
 
         private void SolveLegs()
         {
+            float kneel = _kneel.Value;
             for (int f = 0; f < 2; f++)
             {
+                float side = f == 0 ? -1f : 1f;
                 var upper = Bone(f == 0 ? BoneId.LeftUpperLeg : BoneId.RightUpperLeg);
                 var lower = Bone(f == 0 ? BoneId.LeftLowerLeg : BoneId.RightLowerLeg);
                 var foot = Bone(f == 0 ? BoneId.LeftFoot : BoneId.RightFoot);
                 Vector3 hip = upper.position;
-                Vector3 ankle = FootTargets[f] + Vector3.up * _footHeight;
                 Vector3 fwd = transform.forward;
-                Vector3 pole = CrouchPose.KneePole(ToV3(hip), ToV3(fwd), ToV3(transform.right), f == 0 ? -1f : 1f).ToUnity();   // rodillas hacia delante y algo hacia fuera: nunca se cruzan
-                TwoBoneIK.Solve(ToV3(hip), ToV3(ankle), ToV3(pole), _thigh, _shin, out V3 mid, out V3 end);
-                Vector3 knee = mid.ToUnity(), ank = end.ToUnity();
+                bool kneelingLeg = kneel > 0.5f && (side > 0f) == (Inputs.KneelSide >= 0);
+                Vector3 pole = kneelingLeg
+                    ? transform.TransformPoint(KneelPose.KneelingKnee(side * _hipHalf).ToUnity()) + fwd * 0.4f
+                    : CrouchPose.KneePole(ToV3(hip), ToV3(fwd), ToV3(transform.right), side).ToUnity();   // rodillas hacia delante y algo hacia fuera: nunca se cruzan
+                Vector3 ankleTarget = FootTargets[f] + Vector3.up * _footHeight;
+
+                // reglas duras: tobillo y rodilla nunca bajo el suelo, rodilla 0-150° sin hiperextensión
+                var r = LegSolver.Solve(ToV3(hip), ToV3(ankleTarget), FootGround[f], _footHeight, ToV3(pole), _thigh, _shin);
+                // sentadilla muy profunda: se levanta el talón (la punta sigue en el suelo) para no forzar la rodilla
+                float heel = FootPlanted[f] && !kneelingLeg ? Mathf.Clamp01((r.KneeFlexion - 120f) / 30f) * 25f : 0f;
+                if (heel > 0.5f)
+                    r = LegSolver.Solve(ToV3(hip), ToV3(ankleTarget + Vector3.up * _toeLength * Mathf.Sin(heel * Mathf.Deg2Rad)), FootGround[f], _footHeight, ToV3(pole), _thigh, _shin);
+                KneeFlexion[f] = r.KneeFlexion;
+
+                Vector3 knee = r.Knee.ToUnity(), ank = r.Ankle.ToUnity();
                 Vector3 bendDir = Vector3.ProjectOnPlane(knee - (hip + ank) * 0.5f, (ank - hip).normalized);
                 if (bendDir.sqrMagnitude < 1e-6f) bendDir = fwd;
                 upper.rotation = Quaternion.LookRotation(bendDir.normalized, hip - knee);
                 lower.rotation = Quaternion.LookRotation(bendDir.normalized, knee - ank);
-                // pie plano sobre el suelo mirando hacia delante; punta levantada al despegar
+                // pie plano; punta arriba al despegar; talón arriba en sentadilla profunda; arrodillado, el pie de atrás apoya la punta
                 Vector3 footFwd = Vector3.ProjectOnPlane(fwd, Vector3.up).normalized;
-                float toe = FootPlanted[f] ? 0f : -18f;
-                foot.rotation = Quaternion.LookRotation(Quaternion.AngleAxis(toe, Vector3.Cross(Vector3.up, footFwd)) * footFwd, Vector3.up);
+                float pitch = FootPlanted[f] ? heel : -18f;
+                if (kneelingLeg) pitch = Mathf.Lerp(pitch, 55f, (kneel - 0.5f) * 2f);
+                foot.rotation = Quaternion.LookRotation(Quaternion.AngleAxis(pitch, Vector3.Cross(Vector3.up, footFwd)) * footFwd, Vector3.up);
             }
         }
 
@@ -367,7 +461,8 @@ namespace SevenDays.Animation
         private void UpdateTorso(RigInputs I, float run, float jog, float moving, float crouch, float dead, float dt)
         {
             float phase = _gait.Phase * Mathf.PI * 2f;
-            float lean = _lean.Step(14f * run + 6f * jog + crouch * CrouchPose.TorsoLean + I.Hunch * 35f + (Proportions.hunch * 30f) - (I.Aiming ? 6f * run : 0f), Smoothing.torso, dt);
+            float kneelW = _kneel.Value;
+            float lean = _lean.Step(14f * run + 6f * jog + crouch * CrouchPose.TorsoLean * (1f - kneelW) + kneelW * 6f + I.Hunch * 35f + (Proportions.hunch * 30f) - (I.Aiming ? 6f * run : 0f), Smoothing.torso, dt);
             float side = _sideLean.Step(-I.Lean * 14f, Smoothing.torso * 0.8f, dt);
             // anticipación: el torso empieza a girar hacia donde quiere ir antes que las piernas
             float desiredYaw = I.DesiredForward.sqrMagnitude > 0.01f ? CameraMath.DeltaAngle(transform.eulerAngles.y, Quaternion.LookRotation(I.DesiredForward).eulerAngles.y) : 0f;
@@ -418,8 +513,9 @@ namespace SevenDays.Animation
 
                 // brazo libre: cuelga y se balancea contrario a su pierna; corriendo, codo doblado y más amplitud
                 float armLen = _upperArm + _lowerArm;
-                float bend = Mathf.Lerp(0.95f, 0.72f, run + jog * 0.4f);
-                float swing = Mathf.Sin(phase + (left ? 0f : Mathf.PI)) * (0.12f * walk + 0.2f * jog + 0.32f * run) * I.ArmSwing;
+                // brazo libre en oposición a su pierna; corriendo, codo a ~90°
+                float bend = Mathf.Lerp(0.95f, ArmSwingMath.RunningReach, run + jog * 0.4f);
+                float swing = ArmSwingMath.Offset(_gait.Phase, left) * (0.12f * walk + 0.2f * jog + 0.3f * run) * I.ArmSwing;
                 float idleSway = Mathf.Sin(_time * 0.9f + side) * 0.015f;
                 Vector3 free = shoulder - up * armLen * bend + chestFwd * (swing + 0.04f + run * 0.12f) + chestRight * side * (0.05f + idleSway) + up * run * 0.12f;
                 if (dead > 0.01f) free = Vector3.Lerp(free, shoulder - up * armLen * 0.98f + chestRight * side * 0.15f, dead);
