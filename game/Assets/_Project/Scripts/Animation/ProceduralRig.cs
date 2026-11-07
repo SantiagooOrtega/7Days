@@ -153,6 +153,9 @@ namespace SevenDays.Animation
             _hit.Y.Kick(local.x * k * 0.5f);
         }
 
+        /// <summary>Retroceso del disparo: el pecho se echa un poco atrás y vuelve (los brazos lo siguen por la jerarquía).</summary>
+        public void Recoil(float strength) => _hit.X.Kick(-Mathf.Clamp(strength, 0f, 2f) * 45f);
+
         /// <summary>Aterrizaje: la pelvis baja según la altura de la caída y vuelve con suavidad.</summary>
         public void Land(float fall) => _landing.Kick(-Mathf.Clamp(1.2f + fall * 0.9f, 1.2f, 6f));
 
