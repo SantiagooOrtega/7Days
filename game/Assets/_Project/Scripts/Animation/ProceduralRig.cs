@@ -53,6 +53,8 @@ namespace SevenDays.Animation
     public class ProceduralRig : MonoBehaviour
     {
         public RigProportions Proportions { get; private set; }
+        /// <summary>Variante con la que está vestido (la pone RigVisuals).</summary>
+        public CharacterVariantData Variant { get; set; }
         public BoneDef[] Spec { get; private set; }
         public Transform[] Bones { get; private set; }
         public RigInputs Inputs;
