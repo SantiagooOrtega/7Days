@@ -19,6 +19,8 @@ namespace SevenDays.Look
         /// <summary>Chispas: aditivo con color HDR (>1) para que el Bloom las haga brillar.</summary>
         public static Material Spark => _sparkAdd != null ? _sparkAdd : _sparkAdd = Create(SoftTexture(), true, new Color(3.2f, 1.6f, 0.5f, 1f));
 
+        public const float CameraFadeNear = 1f, CameraFadeFar = 4f;
+
         private static Material Create(Texture2D tex, bool additive, Color color)
         {
             var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
@@ -38,6 +40,13 @@ namespace SevenDays.Look
             m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             m.renderQueue = (int)RenderQueue.Transparent;
             m.SetOverrideTag("RenderType", "Transparent");
+            if (!additive)
+            {
+                // niebla y humo: se desvanecen al acercarse a la cámara (de 4 m a 1 m), así un banco de niebla que pasa por delante no tapa la vista
+                m.EnableKeyword("_FADING_ON");
+                m.SetFloat("_CameraFadingEnabled", 1f);
+                m.SetVector("_CameraFadeParams", new Vector4(CameraFadeNear, 1f / (CameraFadeFar - CameraFadeNear), 0f, 0f));
+            }
             return m;
         }
 
