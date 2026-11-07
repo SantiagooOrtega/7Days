@@ -42,6 +42,8 @@ namespace SevenDays.Player
         public event System.Action<float> Landed;
         /// <summary>false cuando hay un rig procedural: agacharse ya no aplasta el modelo, lo hace la pose.</summary>
         public bool ScaleVisualOnCrouch { get; set; } = true;
+        /// <summary>Altura del soporte del arma agachado (con el rig procedural queda a la altura del pecho agachado, no de la cápsula aplastada).</summary>
+        public float HolderCrouchHeight { get; set; } = 0.72f;
 
         private CharacterController _cc;
         private PlayerCamera _camera;
@@ -212,7 +214,7 @@ namespace SevenDays.Player
             _cc.center = new Vector3(0f, h * 0.5f, 0f);
             if (ScaleVisualOnCrouch) _visual.localScale = new Vector3(1f, h / StandHeight, 1f);
             var wp = _weaponHolder.localPosition;
-            wp.y = Mathf.Lerp(1.2f, 0.72f, _crouch);
+            wp.y = Mathf.Lerp(1.2f, HolderCrouchHeight, _crouch);
             _weaponHolder.localPosition = wp;
             _camera.PivotHeight = Mathf.Lerp(1.55f, 1.0f, _crouch);
         }
