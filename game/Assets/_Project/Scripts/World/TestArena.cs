@@ -123,8 +123,16 @@ namespace SevenDays.World
                 // Siguiente día: el director hace reaparecer un poco de botín y tapa las entradas de la casa según el día
                 _day = _day % 7 + 1;
                 _lootManager.NewDay(_day);
-                CombatMetricsTracker.Instance?.NewDay();
-                if (_zombies != null) _zombies.SetTuning(SevenDays.Procedural.DirectorTuning.ForDay(_day));
+                // fin del día: las estadísticas de hoy se suman a las guardadas, se envían al backend y las reglas del director las leen para ajustar el día siguiente
+                var tracker = CombatMetricsTracker.Instance;
+                var totals = tracker != null ? tracker.EndDay(_day) : null;
+                if (_zombies != null)
+                {
+                    var reasons = tracker != null ? tracker.DirectorReasons : new List<string>();
+                    reasons.Clear();
+                    _zombies.SetTuning(SevenDays.Procedural.DirectorRules.Adjust(SevenDays.Procedural.DirectorTuning.ForDay(_day), totals, reasons));
+                    foreach (var r in reasons) Debug.Log("[7Days] Director: " + r);
+                }
                 if (_house != null) _house.SetDay(_day);
             }
             if (k.zKey.wasPressedThisFrame && _player != null && _zombies != null)
