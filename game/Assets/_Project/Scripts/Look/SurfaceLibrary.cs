@@ -91,6 +91,18 @@ namespace SevenDays.Look
             Debug.Log("[7Days] Texturas procedurales listas (" + jobs.Count + " materiales, " + p.Size + " px) en " + sw.ElapsedMilliseconds + " ms");
         }
 
+        /// <summary>
+        /// Genera mipmaps, comprime el COLOR a BC/DXT si la GPU lo soporta (4-8 veces menos memoria y ancho de banda a pantalla grande) y libera la copia en CPU.
+        /// Los mapas de normales (lineales) no se comprimen: perderían relieve.
+        /// </summary>
+        public static Texture2D Finish(Texture2D tex, bool linear)
+        {
+            tex.Apply(true, false);
+            if (!linear && SystemInfo.SupportsTextureFormat(TextureFormat.DXT5)) tex.Compress(false);
+            tex.Apply(false, true);
+            return tex;
+        }
+
         private static bool IsWholeFace(string name) => name == CrateWood || name == Cardboard;
 
         private static Texture2D ToTexture(byte[] rgba, int size, bool linear, TextureWrapMode wrap)
@@ -99,11 +111,10 @@ namespace SevenDays.Look
             {
                 wrapMode = wrap,
                 filterMode = FilterMode.Trilinear,
-                anisoLevel = 8, // ángulos rasantes (suelo, muros largos) sin borroneo
+                anisoLevel = 4, // ángulos rasantes (suelo, muros largos) sin borroneo; 4x basta y cuesta la mitad que 8x a pantalla grande
             };
             tex.SetPixelData(rgba, 0);
-            tex.Apply(true, true); // genera mipmaps y libera la copia en CPU
-            return tex;
+            return Finish(tex, linear);
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

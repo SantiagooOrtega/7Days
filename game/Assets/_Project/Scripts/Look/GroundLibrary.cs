@@ -56,10 +56,9 @@ namespace SevenDays.Look
 
         private static Texture2D MakeTexture(byte[] rgba, int size, bool linear, TextureWrapMode wrap)
         {
-            var t = new Texture2D(size, size, TextureFormat.RGBA32, true, linear) { wrapMode = wrap, filterMode = FilterMode.Trilinear, anisoLevel = 8 };
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, true, linear) { wrapMode = wrap, filterMode = FilterMode.Trilinear, anisoLevel = 4 };
             t.SetPixelData(rgba, 0);
-            t.Apply(true, true);
-            return t;
+            return SurfaceLibrary.Finish(t, linear);
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
