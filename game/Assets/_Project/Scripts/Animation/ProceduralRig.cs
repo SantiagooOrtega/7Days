@@ -60,6 +60,13 @@ namespace SevenDays.Animation
         public Vector3[] FootTargets { get; } = new Vector3[2];
         public Vector3[] HandTargets { get; } = new Vector3[2];
         public float LastCostMs { get; private set; }
+        /// <summary>Media móvil del coste (ms) y rayos al suelo lanzados en el último frame actualizado (panel F6).</summary>
+        public float AverageCostMs { get; private set; }
+        public int RaycastsLastUpdate { get; private set; }
+        /// <summary>Cada cuántos frames se actualiza (LOD por distancia a la cámara; 1 = todos).</summary>
+        public int UpdateInterval { get; private set; } = 1;
+        /// <summary>Rigs activos (para medir el coste total con muchos personajes).</summary>
+        public static readonly System.Collections.Generic.List<ProceduralRig> Active = new System.Collections.Generic.List<ProceduralRig>();
         public bool DrawGizmos;
         /// <summary>Un pie se apoyó desde la última vez que se preguntó (la cámara de carrera y los pasos lo consumen).</summary>
         public bool ConsumeStep() { bool s = _stepPending; _stepPending = false; return s; }
@@ -78,11 +85,19 @@ namespace SevenDays.Animation
         private readonly bool[] _wasStance = { true, true };
         private readonly float[] _idleStep = { -1f, -1f };
         private readonly Vector3[] _idleFrom = new Vector3[2], _idleTo = new Vector3[2];
-        private float _time, _deathTime;
+        private float _time, _deathTime, _pendingDt, _distance;
+        private int _frameOffset, _rays;
+        private bool _footRays = true;
+        private readonly float[] _landingY = new float[2], _landingRayAt = { -1f, -1f };
+        private static Camera _cam;
+        private static int _camFrame = -1;
         private bool _built;
         private static readonly System.Diagnostics.Stopwatch Watch = new System.Diagnostics.Stopwatch();
 
         public Transform Bone(BoneId id) => Bones[(int)id];
+
+        private void OnEnable() { if (!Active.Contains(this)) Active.Add(this); _frameOffset = Random.Range(0, 6); }
+        private void OnDisable() => Active.Remove(this);
 
         /// <summary>Crea los huesos (GameObjects vacíos) en la pose de reposo. Las mallas se cuelgan después de cada hueso (RigVisuals).</summary>
         public void Build(RigProportions p)
@@ -113,7 +128,7 @@ namespace SevenDays.Animation
         {
             _lastPos = transform.position;
             _vel.Reset(new V3(0, 0, 0));
-            _pelvisHeight = new CriticalSpring(_hipHeight);
+            _pelvisHeight = new CriticalSpring(CrouchPose.PelvisHeight(_hipHeight, 0f));
             _death = new CriticalSpring(0f); _deathTime = -1f;
             _rightW = new CriticalSpring(0f); _leftW = new CriticalSpring(0f);
             _crouch = new CriticalSpring(0f); _air = new CriticalSpring(0f);
@@ -144,8 +159,17 @@ namespace SevenDays.Animation
         private void LateUpdate()
         {
             if (!_built) return;
+            // LOD: lejos de la cámara se actualiza cada 2, 3 o 6 frames (con el tiempo acumulado, así la animación no se ralentiza) y sin rayos al suelo
+            if (_camFrame != Time.frameCount) { _camFrame = Time.frameCount; _cam = Camera.main; }
+            _distance = _cam != null ? Vector3.Distance(_cam.transform.position, transform.position) : 0f;
+            UpdateInterval = RigLod.Interval(_distance);
+            _footRays = RigLod.FootRaycasts(_distance);
+            _pendingDt += Time.deltaTime;
+            if (UpdateInterval > 1 && (Time.frameCount + _frameOffset) % UpdateInterval != 0) return;
             Watch.Restart();
-            float dt = Mathf.Min(Time.deltaTime, 0.05f);
+            _rays = 0;
+            float dt = Mathf.Min(_pendingDt, 0.1f);
+            _pendingDt = 0f;
             if (dt <= 0f) return;
             _time += dt;
             var I = Inputs;
@@ -192,18 +216,22 @@ namespace SevenDays.Animation
 
             Watch.Stop();
             LastCostMs = (float)Watch.Elapsed.TotalMilliseconds;
+            AverageCostMs = Mathf.Lerp(AverageCostMs, LastCostMs, 0.05f);
+            RaycastsLastUpdate = _rays;
         }
 
         // ------------------------------------------------------------------ capa 1: locomoción
-        private Vector3 RestFoot(int f)
+        private Vector3 RestFoot(int f, float crouch = 0f)
         {
             float side = f == 0 ? -1f : 1f;
-            return transform.position + transform.rotation * new Vector3(side * _hipHalf * 1.05f, 0f, f == 0 ? 0.02f : -0.02f);
+            return transform.position + transform.rotation * new Vector3(side * CrouchPose.FootSide(_hipHalf, crouch), 0f, (f == 0 ? 0.02f : -0.02f) + CrouchPose.FootAhead(crouch));
         }
 
         private Vector3 Ground(Vector3 p, out Vector3 normal)
         {
             normal = Vector3.up;
+            if (!_footRays) return new Vector3(p.x, transform.position.y, p.z);
+            _rays++;
             if (Physics.Raycast(p + Vector3.up * 0.9f, Vector3.down, out RaycastHit hit, 2.2f, GroundMask, QueryTriggerInteraction.Ignore))
             {
                 normal = hit.normal;
@@ -220,24 +248,27 @@ namespace SevenDays.Animation
             for (int f = 0; f < 2; f++)
             {
                 float side = f == 0 ? -1f : 1f;
-                Vector3 hipW = transform.position + transform.rotation * new Vector3(side * _hipHalf * Mathf.Lerp(1.05f, 1.35f, crouch), 0f, 0f);
+                Vector3 hipW = transform.position + transform.rotation * new Vector3(side * CrouchPose.FootSide(_hipHalf, crouch), 0f, CrouchPose.FootAhead(crouch));
                 Vector3 target;
                 bool planted;
                 if (walking)
                 {
                     float fp = _gait.FootPhase(f);
                     bool stance = GaitCycle.InStance(fp, StanceFraction);
-                    if (stance && !_wasStance[f]) _plant[f] = Ground(_foot[f].Value.ToUnity(), out _);   // aterriza: queda clavado
+                    if (stance && !_wasStance[f]) { Vector3 p = _foot[f].Value.ToUnity(); _plant[f] = new Vector3(p.x, _landingY[f], p.z); }   // aterriza: queda clavado (altura ya medida en el vuelo)
                     if (!stance && _wasStance[f]) _liftFrom[f] = _plant[f];                             // despega
                     _wasStance[f] = stance;
-                    if (stance) { target = _plant[f]; planted = true; }
+                    if (stance) { target = _plant[f]; planted = true; _landingRayAt[f] = -1f; }
                     else
                     {
                         float swing = GaitCycle.SwingProgress(fp, StanceFraction);
                         float timeToPlant = (1f - swing) * (1f - StanceFraction) * cycleTime;
                         // dónde aterrizará: bajo la cadera a mitad del próximo apoyo; de lado, el pie que cruza pasa un poco por delante
                         V3 plant = FootPlacement.PredictPlant(ToV3(hipW), ToV3(vel), timeToPlant, StanceFraction * cycleTime, new V3(0, 0, 0));
-                        Vector3 landing = Ground(plant.ToUnity(), out _);
+                        // la altura del suelo donde aterrizará se mide como mucho 10 veces por segundo (no en cada frame)
+                        Vector3 landing = plant.ToUnity();
+                        if (_landingRayAt[f] < 0f || _time - _landingRayAt[f] > 0.1f) { _landingY[f] = Ground(landing, out _).y; _landingRayAt[f] = _time; }
+                        landing.y = _landingY[f];
                         float crossing = Mathf.Abs(Vector3.Dot(vel.normalized, transform.right)) * 0.08f;
                         landing += transform.forward * crossing * Mathf.Sin(Mathf.PI * swing);
                         target = FootPlacement.Swing(ToV3(_liftFrom[f]), ToV3(landing), swing, lift).ToUnity();
@@ -249,6 +280,7 @@ namespace SevenDays.Animation
                 {
                     // en el aire (salto, caída, vault): piernas recogidas bajo la cadera
                     float tuck = I.Vaulting ? Mathf.Sin(Mathf.PI * Mathf.Clamp01(I.VaultProgress)) * 0.5f : 0.35f;
+                    _landingY[f] = transform.position.y; _landingRayAt[f] = -1f;
                     target = transform.position + transform.rotation * new Vector3(side * _hipHalf, _hipHeight * tuck, (f == 0 ? 0.12f : -0.05f) + (I.Vaulting ? 0.25f : 0f));
                     _plant[f] = target; _wasStance[f] = true;
                     planted = false;
@@ -256,9 +288,10 @@ namespace SevenDays.Animation
                 else
                 {
                     // quieto: los pies se quedan; si el cuerpo gira o se aleja, un paso corto los recoloca (uno cada vez)
-                    Vector3 rest = Ground(RestFoot(f) + transform.forward * (crouch * 0.12f), out _);
+                    // quieto no se lanza ningún rayo: solo al empezar un paso correctivo se mide el suelo de destino
+                    Vector3 rest = RestFoot(f, crouch);
                     if (_idleStep[f] < 0f && _idleStep[1 - f] < 0f && (Flat(_plant[f] - rest).magnitude > 0.18f))
-                    { _idleStep[f] = 0f; _idleFrom[f] = _plant[f]; _idleTo[f] = rest; }
+                    { _idleStep[f] = 0f; _idleFrom[f] = _plant[f]; _idleTo[f] = Ground(rest, out _); }
                     if (_idleStep[f] >= 0f)
                     {
                         _idleStep[f] += dt / 0.22f;
@@ -288,7 +321,7 @@ namespace SevenDays.Animation
             float idle = SpeedWeights[LocomotionBlend.Idle];
             float breath = Mathf.Sin(_time * Mathf.PI * 2f * (0.25f + 0.35f * I.Fatigue)) * (0.006f + 0.01f * I.Fatigue);
             float weightShift = Mathf.Sin(_time * 0.4f) * 0.025f * idle;
-            float targetHeight = _hipHeight - crouch * _hipHeight * 0.36f + bob + terrain + breath * idle - air * 0.04f;
+            float targetHeight = CrouchPose.PelvisHeight(_hipHeight, crouch) + bob + terrain + breath * idle - air * 0.04f;
             float h = _pelvisHeight.Step(targetHeight, Smoothing.pelvis, dt);
             float landing = _landing.Step(0f, 0.12f, dt);
             h += Mathf.Max(-0.35f, landing * 0.1f);
@@ -296,10 +329,10 @@ namespace SevenDays.Animation
 
             float sway = _sway.Step(Mathf.Sin(phase) * 0.03f * (walk + jog * 0.7f + run * 0.4f) + weightShift + I.Lean * 0.12f, Smoothing.pelvis, dt);
             float hipYaw = _hipYaw.Step(Mathf.Sin(phase) * (6f * walk + 9f * jog + 12f * run), Smoothing.pelvis, dt);
-            float tilt = 4f * run + 2f * jog + crouch * 10f;
+            float tilt = 4f * run + 2f * jog + crouch * CrouchPose.PelvisTilt;
 
             var hips = Bone(BoneId.Hips);
-            hips.localPosition = new Vector3(sway, h, -crouch * 0.05f);
+            hips.localPosition = new Vector3(sway, h, CrouchPose.PelvisBack(crouch));
             hips.localRotation = Quaternion.Euler(tilt, hipYaw, -Mathf.Sin(phase) * 2f * moving);
         }
 
@@ -313,7 +346,7 @@ namespace SevenDays.Animation
                 Vector3 hip = upper.position;
                 Vector3 ankle = FootTargets[f] + Vector3.up * _footHeight;
                 Vector3 fwd = transform.forward;
-                Vector3 pole = hip + fwd * 1.2f - Vector3.up * 0.4f;   // rodillas hacia delante
+                Vector3 pole = CrouchPose.KneePole(ToV3(hip), ToV3(fwd), ToV3(transform.right), f == 0 ? -1f : 1f).ToUnity();   // rodillas hacia delante y algo hacia fuera: nunca se cruzan
                 TwoBoneIK.Solve(ToV3(hip), ToV3(ankle), ToV3(pole), _thigh, _shin, out V3 mid, out V3 end);
                 Vector3 knee = mid.ToUnity(), ank = end.ToUnity();
                 Vector3 bendDir = Vector3.ProjectOnPlane(knee - (hip + ank) * 0.5f, (ank - hip).normalized);
@@ -331,7 +364,7 @@ namespace SevenDays.Animation
         private void UpdateTorso(RigInputs I, float run, float jog, float moving, float crouch, float dead, float dt)
         {
             float phase = _gait.Phase * Mathf.PI * 2f;
-            float lean = _lean.Step(14f * run + 6f * jog + crouch * 14f + I.Hunch * 35f + (Proportions.hunch * 30f) - (I.Aiming ? 6f * run : 0f), Smoothing.torso, dt);
+            float lean = _lean.Step(14f * run + 6f * jog + crouch * CrouchPose.TorsoLean + I.Hunch * 35f + (Proportions.hunch * 30f) - (I.Aiming ? 6f * run : 0f), Smoothing.torso, dt);
             float side = _sideLean.Step(-I.Lean * 14f, Smoothing.torso * 0.8f, dt);
             // anticipación: el torso empieza a girar hacia donde quiere ir antes que las piernas
             float desiredYaw = I.DesiredForward.sqrMagnitude > 0.01f ? CameraMath.DeltaAngle(transform.eulerAngles.y, Quaternion.LookRotation(I.DesiredForward).eulerAngles.y) : 0f;
