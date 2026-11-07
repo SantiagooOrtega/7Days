@@ -33,6 +33,7 @@ namespace SevenDays.Animation
         {
             var sc = new WeaponScenario();
             sc.Rig = RigScenario.CreateSoldier(position, parent);
+            sc.Rig.ManualTick = true;   // lo avanza Tick (en Play, el LateUpdate del rig no lo avanza otra vez)
             // soporte del arma como en PlayerFactory (hijo de la raíz del jugador a la altura del pecho)
             sc.Holder = new GameObject("WeaponHolder").transform;
             sc.Holder.SetParent(sc.Rig.transform, false);
