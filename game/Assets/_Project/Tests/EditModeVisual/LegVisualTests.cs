@@ -134,7 +134,7 @@ namespace SevenDays.Tests.Visual
         {
             var rig = Create();
             Assert.IsTrue(ToPhase(rig, "Run", 0, 0.01f));
-            Assert.That(MeshKnee(rig, 0), Is.InRange(5f, 25f), "rodilla al contactar corriendo");
+            Assert.That(MeshKnee(rig, 0), Is.InRange(8f, 22f), "rodilla al contactar corriendo (~15°)");
         }
 
         [Test]
@@ -200,6 +200,51 @@ namespace SevenDays.Tests.Visual
             Simulate(rig, "Squat", 2f);
             AssertLegVisible(rig, "sentadilla");
             for (int f = 0; f < 2; f++) Assert.That(MeshKnee(rig, f), Is.InRange(90f, 120f), "rodilla " + f + " en sentadilla");
+        }
+
+        [Test]
+        public void F7Cycle_WithTransitions_EveryFrameVisible()
+        {
+            var rig = Create();
+            foreach (var mode in new[] { "Walk", "Run", "RunWeapon", "HalfKneel", "Squat", "Walk" })
+                for (int i = 0; i < 180; i++)
+                {
+                    Step(rig, mode);
+                    if (i % 3 == 0) AssertLegVisible(rig, mode + " frame " + i);
+                }
+        }
+
+        /// <summary>No comprueba nada nuevo: escribe en el log los ángulos finales medidos en las mallas (para el informe y para comparar con el clip F7).</summary>
+        [Test]
+        public void Report_FinalAngles()
+        {
+            var sb = new System.Text.StringBuilder("[Informe piernas]\n");
+            foreach (var mode in new[] { "Walk", "Jog", "Run", "RunWeapon" })
+            {
+                var rig = Create();
+                Simulate(rig, "Idle", 2f);
+                float stand = Bone(rig, BoneId.Hips).position.y;
+                Simulate(rig, mode, 2.5f);
+                float peak = 0f, low = 999f, lean = 0f, lo = 99f, hi = -99f, clear = 99f; int n = 120;
+                for (int i = 0; i < n; i++)
+                {
+                    Step(rig, mode);
+                    float k = MeshKnee(rig, 0); peak = Mathf.Max(peak, k); low = Mathf.Min(low, k);
+                    lean += TorsoLean(rig);
+                    float y = Bone(rig, BoneId.Hips).position.y; lo = Mathf.Min(lo, y); hi = Mathf.Max(hi, y);
+                    for (int f = 0; f < 2; f++) { Lowest(rig, f, out float vy, out _); clear = Mathf.Min(clear, vy); }
+                }
+                var c = Create(); ToPhase(c, mode, 0, 0.01f);
+                sb.AppendFormat("{0}: rodilla {1:0}-{2:0}° (contacto {3:0}°), torso {4:0.0}°, pelvis alta {5:+0.0;-0.0} cm vs de pie, rebote {6:0.0} cm, apoyo {7:0}%, bota-suelo mín {8:+0.0;-0.0} cm\n",
+                    mode, low, peak, MeshKnee(c, 0), lean / n, (hi - stand) * 100f, (hi - lo) * 100f, Stance(rig) * 100f, clear * 100f);
+            }
+            var k1 = Create(); Simulate(k1, "HalfKneel", 3f);
+            sb.AppendFormat("Media rodilla: delantera {0:0}°, espinilla delantera {1:0}° de la vertical, rodilla trasera a {2:0.0} cm, espinilla trasera {3:0}° de la horizontal, torso {4:0.0}°\n",
+                MeshKnee(k1, 0), SegmentFromVertical(Bone(k1, LowerLeg(0)).position, Bone(k1, FootBone(0)).position), Bone(k1, LowerLeg(1)).position.y * 100f,
+                90f - SegmentFromVertical(Bone(k1, LowerLeg(1)).position, Bone(k1, FootBone(1)).position), TorsoLean(k1));
+            var sq = Create(); Simulate(sq, "Squat", 2f);
+            sb.AppendFormat("Sentadilla: rodillas {0:0}° y {1:0}°", MeshKnee(sq, 0), MeshKnee(sq, 1));
+            Debug.Log(sb.ToString());
         }
 
         [Test]
