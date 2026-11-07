@@ -28,6 +28,14 @@ namespace SevenDays.Procedural
         private float _ttkSum, _coverTime, _time, _damage;
         private readonly Dictionary<string, float> _bySource = new Dictionary<string, float>();
         private float _sprint, _fatigue, _maxFatigue, _covered, _popped, _blind;
+        private int _deaths;
+
+        /// <summary>Estadísticas guardadas de días anteriores (del backend): la regla de abuso de cobertura las suma a las del día.</summary>
+        public CombatStatsRecord Stored { get; set; } = new CombatStatsRecord();
+        public void RecordDeath() => _deaths++;
+
+        /// <summary>Lo guardado más lo del día en curso: lo que se envía al backend y lo que leen las reglas del director.</summary>
+        public CombatStatsRecord Totals() => CombatStatsRecord.Merge(Stored, CombatStatsRecord.FromSnapshot(SnapshotDay(), _deaths));
 
         /// <summary>Totales de cobertura (los da la exposición del jugador).</summary>
         public void RecordCover(float covered, float popped, float blind) { _covered = covered; _popped = popped; _blind = blind; }
@@ -51,9 +59,16 @@ namespace SevenDays.Procedural
             _bySource[source] = (_bySource.TryGetValue(source, out float v) ? v : 0f) + amount;
         }
         public void Tick(float dt, bool inCover) { _time += dt; if (inCover) _coverTime += dt; }
-        public void Reset() { _shots = _hits = _heads = _kills = _headKills = _ttkCount = 0; _ttkSum = _coverTime = _time = _damage = 0f; _sprint = _fatigue = _maxFatigue = _covered = _popped = _blind = 0f; _bySource.Clear(); }
+        public void Reset() { _shots = _hits = _heads = _kills = _headKills = _ttkCount = 0; _ttkSum = _coverTime = _time = _damage = 0f; _sprint = _fatigue = _maxFatigue = _covered = _popped = _blind = 0f; _deaths = 0; _bySource.Clear(); }
 
         public CombatSnapshot Snapshot()
+        {
+            var s = SnapshotDay();
+            s.coverAbuse = CoverAbuse.IsAbusing(Totals());   // la regla usa las estadísticas guardadas + las de hoy
+            return s;
+        }
+
+        private CombatSnapshot SnapshotDay()
         {
             var s = new CombatSnapshot
             {
@@ -84,6 +99,7 @@ namespace SevenDays.Procedural
         public float healthMultiplier = 1f, speedMultiplier = 1f, damageMultiplier = 1f;
         public float bossAggressiveness = 1f;   // multiplica la frecuencia de ataques del jefe y acorta su pausa entre ataques
         public float specialFrequency = 1f;     // multiplica el peso de spitter y explosive
+        public float coverPressure;             // 0..1: los lanzadores flanquean antes (hasta la mitad del tiempo) si abusas de la cobertura
         public string[] typeIds = { ZombieIds.Common, ZombieIds.Runner, ZombieIds.Tank, ZombieIds.Armored, ZombieIds.Spitter, ZombieIds.Explosive };
         public float[] typeWeights = { 60f, 15f, 6f, 6f, 8f, 5f };
 
@@ -92,7 +108,7 @@ namespace SevenDays.Procedural
         public DirectorTuning Clone() => new DirectorTuning
         {
             healthMultiplier = healthMultiplier, speedMultiplier = speedMultiplier, damageMultiplier = damageMultiplier,
-            bossAggressiveness = bossAggressiveness, specialFrequency = specialFrequency, typeIds = (string[])typeIds.Clone(), typeWeights = (float[])typeWeights.Clone(),
+            bossAggressiveness = bossAggressiveness, specialFrequency = specialFrequency, coverPressure = coverPressure, typeIds = (string[])typeIds.Clone(), typeWeights = (float[])typeWeights.Clone(),
         };
 
         /// <summary>Dificultad base creciente por día (el director parte de aquí y la ajusta según el rendimiento).</summary>
@@ -144,6 +160,7 @@ namespace SevenDays.Procedural
             if (damageMultiplier < 0.25f || damageMultiplier > 4f) e.Add("damageMultiplier fuera de 0.25..4");
             if (bossAggressiveness < 0.5f || bossAggressiveness > 3f) e.Add("bossAggressiveness fuera de 0.5..3");
             if (specialFrequency < 0f || specialFrequency > 4f) e.Add("specialFrequency fuera de 0..4");
+            if (coverPressure < 0f || coverPressure > 1f) e.Add("coverPressure fuera de 0..1");
             if (typeIds == null || typeWeights == null || typeIds.Length == 0 || typeIds.Length != typeWeights.Length) { e.Add("typeIds y typeWeights deben tener la misma longitud (> 0)"); return e; }
             float sum = 0f;
             for (int i = 0; i < typeIds.Length; i++)
