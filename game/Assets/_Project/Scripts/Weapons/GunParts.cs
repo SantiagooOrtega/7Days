@@ -50,7 +50,7 @@ namespace SevenDays.Weapons
                         P(root.transform, PrimitiveType.Cylinder, "Barrel", new Vector3(0f, 0.025f, len * 0.75f), new Vector3(0.03f, len * 0.25f, 0.03f), main).localRotation = Quaternion.Euler(90f, 0f, 0f);
                         break;
                     case WeaponKind.Shotgun:
-                        g.Pump = P(root.transform, PrimitiveType.Cube, "Pump", new Vector3(0f, -0.065f, len * 0.62f), new Vector3(th * 1.15f, 0.055f, len * 0.24f), new Color(0.32f, 0.22f, 0.14f));
+                        g.Pump = P(root.transform, PrimitiveType.Cube, "Pump", new Vector3(0f, -0.065f, len * 0.42f), new Vector3(th * 1.15f, 0.055f, len * 0.24f), new Color(0.32f, 0.22f, 0.14f));
                         P(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.1f), new Vector3(th * 0.9f, 0.11f, 0.22f), new Color(0.32f, 0.22f, 0.14f));
                         break;
                     case WeaponKind.SniperRifle:
