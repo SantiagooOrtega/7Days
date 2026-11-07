@@ -53,12 +53,14 @@ namespace SevenDays.UI
             var run = _camera.RunCam;
             var o = _camera.RunOutput;
             GUILayout.Label("AJUSTE EN VIVO (F5 cierra)", _head);
+            PlayerCover.DebugLogs = GUILayout.Toggle(PlayerCover.DebugLogs, " Logs de cada disparo en cobertura (Console)");
             GUILayout.Label("Arma: " + w.displayName + "   modo " + FireModes.Label(_shooting.FireControl.Mode), _label);
             GUILayout.Label("Retroceso: pitch " + _camera.Recoil.Pitch.ToString("0.00") + "°  yaw " + _camera.Recoil.Yaw.ToString("0.00") + "°   kick " + (_handling != null ? _handling.Kick.ToString("0.00") : "-"), _label);
             GUILayout.Label("Dispersión: " + _shooting.CurrentSpread.ToString("0.00") + "°  (bloom " + _shooting.Spread.Bloom.ToString("0.00") + "°)", _label);
             GUILayout.Label("FOV " + _camera.CurrentFov.ToString("0.0") + "   apuntado " + (_camera.Aim.Eased * 100f).ToString("0") + "%   sensibilidad " + _camera.CurrentSensitivity.ToString("0.000"), _label);
             GUILayout.Label("Hombro " + (_camera.Shoulder.Side > 0 ? "derecho" : "izquierdo") + "  lean " + _camera.LeanOffset.ToString("0.00") + " m  primera persona " + (_camera.FirstPersonBlend * 100f).ToString("0") + "%", _label);
             var cv = _cover;
+            if (cv != null && cv.Active) GUILayout.Label("  " + cv.WhyNoPop(), _label);
             if (cv != null) GUILayout.Label("Cobertura: " + (cv.Active ? cv.Exposure.State + "  asomada " + cv.PopDir + "  exposición " + (cv.Exposure.Value * 100f).ToString("0") + "%  borde sup. " + cv.CoverTop.ToString("0.00") + " m" : "fuera"), _label);
             if (run != null)
             {

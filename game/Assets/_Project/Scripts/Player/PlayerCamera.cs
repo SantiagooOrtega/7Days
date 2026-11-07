@@ -15,6 +15,7 @@ namespace SevenDays.Player
     /// - La cámara de carrera (RunCamModel + RunCamExtension) y las sacudidas (PlayerImpulse) se suman sin pelear entre sí.
     /// - El retroceso (RecoilState) se suma a la rotación de la mira y se recupera al soltar el gatillo.
     /// </summary>
+    [DefaultExecutionOrder(-60)]   // primero: decide si se apunta este frame (lo leen la cobertura y el disparo)
     public class PlayerCamera : MonoBehaviour
     {
         public CameraSettingsData Settings { get; private set; } = new CameraSettingsData();
