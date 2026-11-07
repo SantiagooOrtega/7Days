@@ -130,6 +130,18 @@ namespace SevenDays.Procedural
         public float StepsPerSecond { get; private set; }
 
         /// <returns>true si en este tick se dio un paso</returns>
+        /// <summary>
+        /// Usa la fase de los pies REALES (rig procedural): el balanceo de la cámara y los pasos van con cada apoyo de verdad, sin un segundo ciclo que se
+        /// desincronice. phase01: 0..1 por ciclo de dos pasos. Devuelve "stepped" tal cual.
+        /// </summary>
+        public bool SetExternal(float phase01, bool stepped, float stepsPerSecond)
+        {
+            Phase = (phase01 - (float)Math.Floor(phase01)) * 2f * (float)Math.PI;
+            StepsPerSecond = stepsPerSecond;
+            if (stepped) Foot = 1 - Foot;
+            return stepped;
+        }
+
         public bool Tick(float dt, float speed, float stride, float cadenceBoost = 0f)
         {
             StepsPerSecond = speed <= 0.05f ? 0f : speed / Math.Max(0.2f, stride) * (1f + cadenceBoost);
@@ -202,6 +214,10 @@ namespace SevenDays.Procedural
         public float MoveX, MoveY;      // entrada local (-1..1): y > 0 hacia delante
         public float Speed;             // m/s horizontales
         public float MotionScale;       // accesibilidad 0..1
+        // pasos reales del rig procedural (si hay): fase 0..1 del ciclo y si un pie se apoyó este frame
+        public bool HasExternalStep;
+        public float ExternalPhase;
+        public bool ExternalStepped;
     }
 
     /// <summary>Resultado: offsets locales de la cámara (metros), roll y cabeceo (grados), cambios de FOV, distancia y altura.</summary>
@@ -271,7 +287,9 @@ namespace SevenDays.Procedural
 
             // --- pasos (la cadencia sube con la fatiga: zancada más corta)
             float stride = CameraMath.Lerp(s.walkStride, s.runStride, Weight);
-            o.Stepped = Steps.Tick(dt, input.Airborne ? 0f : input.Speed, stride, s.fatigueCadenceBoost * fatigue);
+            o.Stepped = input.HasExternalStep
+                ? Steps.SetExternal(input.ExternalPhase, input.ExternalStepped, input.Speed / Math.Max(0.3f, stride))
+                : Steps.Tick(dt, input.Airborne ? 0f : input.Speed, stride, s.fatigueCadenceBoost * fatigue);
 
             float motion = CameraMath.Clamp01(input.MotionScale);
             float w = CameraMath.EaseInOut(Weight) * CameraMath.EaseInOut(ContextFactor) * AimFactor;
