@@ -12,13 +12,21 @@ namespace SevenDays.UI
     public class RigDebugPanel : MonoBehaviour
     {
         private ProceduralRig _rig;
-        private bool _open, _bones, _ground;
+        private bool _open, _bones, _ground, _angles;
+        private readonly float[] _kneeHistL = new float[150], _kneeHistR = new float[150];
+        private int _histIndex;
+        private SevenDays.Player.PlayerShooting _shooting;
+        private SevenDays.Animation.PlayerRigDriver _driver;
         private GUIStyle _label, _head;
         private Vector2 _scroll;
         private RigStressTest _stress;
         private float _totalMs, _frameMs;
 
-        public void Initialize(ProceduralRig rig) => _rig = rig;
+        public void Initialize(ProceduralRig rig)
+        {
+            _rig = rig;
+            if (rig != null) { _shooting = rig.GetComponentInParent<SevenDays.Player.PlayerShooting>(); _driver = rig.GetComponentInParent<SevenDays.Animation.PlayerRigDriver>(); }
+        }
 
         private void Update()
         {
@@ -32,6 +40,7 @@ namespace SevenDays.UI
             float total = 0f;
             foreach (var r in ProceduralRig.Active) total += r.AverageCostMs / Mathf.Max(1, r.UpdateInterval);
             _totalMs = total;
+            if (_rig != null) { _kneeHistL[_histIndex] = _rig.KneeFlexion[0]; _kneeHistR[_histIndex] = _rig.KneeFlexion[1]; _histIndex = (_histIndex + 1) % _kneeHistL.Length; }
             _frameMs = Mathf.Lerp(_frameMs, Time.unscaledDeltaTime * 1000f, 0.05f);
         }
 
@@ -40,6 +49,7 @@ namespace SevenDays.UI
             if (_rig == null) return;
             if (_bones && Event.current.type == EventType.Repaint) DrawBones();
             if (_ground && Event.current.type == EventType.Repaint) DrawGround();
+            if (_angles && Event.current.type == EventType.Repaint) DrawAngles();
             if (!_open) return;
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 13, normal = { textColor = Color.white } };
             _head ??= new GUIStyle(_label) { fontSize = 15, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.5f, 1f, 0.8f) } };
@@ -61,6 +71,11 @@ namespace SevenDays.UI
 
             _bones = GUILayout.Toggle(_bones, " Dibujar huesos y objetivos IK");
             _ground = GUILayout.Toggle(_ground, " Mostrar altura de suelo y mínimo de pies");
+            _angles = GUILayout.Toggle(_angles, " Mostrar ángulos y objetivos de agarre");
+            GUILayout.Label("Codos: izq " + _rig.ElbowFlexion[0].ToString("0") + "°  der " + _rig.ElbowFlexion[1].ToString("0") + "°", _label);
+            GUILayout.Label("Flexión de rodilla (últimos 2.5 s; azul izq, naranja der, línea gris = 150°)", _label);
+            Rect graph = GUILayoutUtility.GetRect(400f, 90f);
+            if (Event.current.type == EventType.Repaint) DrawKneeGraph(graph);
             GUILayout.Label("Rodillas: izq " + _rig.KneeFlexion[0].ToString("0") + "°  der " + _rig.KneeFlexion[1].ToString("0") + "° (límite 0-" + LegSolver.MaxKneeFlexion.ToString("0") + "°)  arrodillado " + P(_rig.KneelWeight) + (_rig.PelvisLimited ? "  PELVIS LIMITADA" : ""), _label);
             _rig.DrawGizmos = _bones;
 
@@ -86,8 +101,81 @@ namespace SevenDays.UI
             s.head = Slider("cabeza", s.head, 0f, 0.3f);
             s.hands = Slider("manos", s.hands, 0f, 0.2f);
             s.weights = Slider("pesos de agarre", s.weights, 0f, 0.5f);
+            GUILayout.Space(6);
+            GUILayout.Label("Pose de locomoción (LocomotionPoseSettings)", _head);
+            var p = _rig.Pose;
+            p.contactKnee = Slider("rodilla contacto", p.contactKnee, 0f, 40f);
+            p.midStanceKnee = Slider("rodilla apoyo medio", p.midStanceKnee, 0f, 30f);
+            p.toeOffKnee = Slider("rodilla despegue", p.toeOffKnee, 0f, 60f);
+            p.walkSwingKnee = Slider("rodilla vuelo andando", p.walkSwingKnee, 20f, 150f);
+            p.runSwingKnee = Slider("rodilla vuelo corriendo", p.runSwingKnee, 30f, 150f);
+            p.walkThigh = Slider("muslo andando", p.walkThigh, 5f, 80f);
+            p.runThigh = Slider("muslo corriendo", p.runThigh, 5f, 80f);
+            p.heelStrikePitch = Slider("talón (punta arriba)", p.heelStrikePitch, 0f, 30f);
+            p.toeOffPitch = Slider("punta al despegar", p.toeOffPitch, 0f, 45f);
+            p.absorb = Slider("absorción pelvis (m)", p.absorb, 0f, 0.1f);
+            p.walkLean = Slider("torso andando", p.walkLean, 0f, 30f);
+            p.runLean = Slider("torso corriendo", p.runLean, 0f, 30f);
+            p.kneelTorsoLean = Slider("torso media rodilla", p.kneelTorsoLean, 0f, 45f);
+            p.Validate();
             GUILayout.EndScrollView();
             GUILayout.EndArea();
+        }
+
+        private void DrawKneeGraph(Rect r)
+        {
+            var prev = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.5f); GUI.DrawTexture(r, Texture2D.whiteTexture);
+            GUI.color = new Color(0.6f, 0.6f, 0.6f, 0.8f);
+            float y150 = r.yMax - r.height * (LegSolver.MaxKneeFlexion / 160f);
+            GUI.DrawTexture(new Rect(r.x, y150, r.width, 1f), Texture2D.whiteTexture);
+            GUI.color = prev;
+            int n = _kneeHistL.Length;
+            for (int k = 1; k < n; k++)
+            {
+                int i0 = (_histIndex + k - 1) % n, i1 = (_histIndex + k) % n;
+                float x0 = r.x + r.width * (k - 1) / (n - 1), x1 = r.x + r.width * k / (n - 1);
+                GraphLine(new Vector2(x0, r.yMax - r.height * _kneeHistL[i0] / 160f), new Vector2(x1, r.yMax - r.height * _kneeHistL[i1] / 160f), new Color(0.4f, 0.7f, 1f));
+                GraphLine(new Vector2(x0, r.yMax - r.height * _kneeHistR[i0] / 160f), new Vector2(x1, r.yMax - r.height * _kneeHistR[i1] / 160f), new Color(1f, 0.6f, 0.2f));
+            }
+        }
+
+        private static void GraphLine(Vector2 a, Vector2 b, Color c)
+        {
+            float len = (b - a).magnitude; if (len < 0.1f) return;
+            var m = GUI.matrix; var prev = GUI.color;
+            GUIUtility.RotateAroundPivot(Mathf.Atan2(b.y - a.y, b.x - a.x) * Mathf.Rad2Deg, a);
+            GUI.color = c; GUI.DrawTexture(new Rect(a.x, a.y - 0.75f, len, 1.5f), Texture2D.whiteTexture);
+            GUI.matrix = m; GUI.color = prev;
+        }
+
+        /// <summary>Ángulo de cada rodilla y codo junto a la articulación, puntos de agarre del arma (verde: empuñadura, azul: guardamano, magenta: culata) y manos (amarillo).</summary>
+        private void DrawAngles()
+        {
+            var cam = Camera.main;
+            if (cam == null || _rig.Bones == null) return;
+            Label(cam, _rig.Bone(BoneId.LeftLowerLeg).position, _rig.KneeFlexion[0].ToString("0") + "°", _rig.KneeFlexion[0] > 145f ? Color.red : Color.green);
+            Label(cam, _rig.Bone(BoneId.RightLowerLeg).position, _rig.KneeFlexion[1].ToString("0") + "°", _rig.KneeFlexion[1] > 145f ? Color.red : Color.green);
+            Label(cam, _rig.Bone(BoneId.LeftLowerArm).position, _rig.ElbowFlexion[0].ToString("0") + "°", Color.cyan);
+            Label(cam, _rig.Bone(BoneId.RightLowerArm).position, _rig.ElbowFlexion[1].ToString("0") + "°", Color.cyan);
+            if (_shooting != null && _driver != null && _driver.WeaponPose != null)
+            {
+                var d = _shooting.Current.Data; var g = d.grip ?? WeaponGrip.For(d.kind, d.length, d.thickness);
+                var pose = _driver.WeaponPose;
+                Dot(cam, pose.TransformPoint(new Vector3(g.grip[0], g.grip[1], g.grip[2])), Color.green, 8f);
+                Dot(cam, pose.TransformPoint(new Vector3(g.foregrip[0], g.foregrip[1], g.foregrip[2])), new Color(0.3f, 0.6f, 1f), 8f);
+                if (g.shouldered) Dot(cam, pose.TransformPoint(new Vector3(g.stock[0], g.stock[1], g.stock[2])), Color.magenta, 8f);
+            }
+            for (int h = 0; h < 2; h++) Dot(cam, _rig.HandTargets[h], Color.yellow, 6f);
+        }
+
+        private static void Label(Camera cam, Vector3 p, string text, Color c)
+        {
+            Vector3 s = cam.WorldToScreenPoint(p);
+            if (s.z <= 0f) return;
+            var prev = GUI.color; GUI.color = c;
+            GUI.Label(new Rect(s.x + 6f, Screen.height - s.y - 10f, 60f, 20f), text);
+            GUI.color = prev;
         }
 
         private static string P(float v) => (v * 100f).ToString("0") + "%";
