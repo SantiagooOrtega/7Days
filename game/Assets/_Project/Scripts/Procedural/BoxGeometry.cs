@@ -17,6 +17,9 @@ namespace SevenDays.Procedural
         public int SubmeshSplit = -1;
         /// <summary>w de las tangentes. Con u a la derecha y v hacia arriba (como Unity) vale -1; los tubos usan +1 porque su v corre a lo largo del eje.</summary>
         public float TangentSign = 1f;
+        /// <summary>Signo de la tangente por vértice (si tiene tantos elementos como Positions); manda sobre TangentSign. Lo usa MeshBuilder al juntar piezas.</summary>
+        public readonly List<float> TangentW = new List<float>();
+        public float WOf(int i) => TangentW.Count == Positions.Count ? TangentW[i] : TangentSign;
     }
 
     /// <summary>
