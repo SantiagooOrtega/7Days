@@ -209,11 +209,7 @@ namespace SevenDays.Player
             _normal = n.sqrMagnitude > 1e-4f ? n.normalized : -transform.forward;
             _collider = bestCollider;
 
-            // Colocar al jugador pegado a la cobertura (el CharacterController hay que apagarlo para teletransportar).
-            _cc.enabled = false;
-            Vector3 target = bestPoint + _normal * StandOff;
-            transform.position = new Vector3(target.x, pos.y, target.z);
-            _cc.enabled = true;
+            // Ya no se teletransporta junto al muro: el movimiento lo lleva hasta allí en ~0.35 s (corrección de CoverVelocity) y los pies dan pasos de verdad.
             Active = true;
             Exposure.Reset();
             _nextEval = 0f;
@@ -236,7 +232,8 @@ namespace SevenDays.Player
             }
 
             Vector3 desired = _collider.ClosestPoint(pos) + _normal * StandOff;
-            Vector3 correction = Flat(desired - pos) * 8f; // mantiene la distancia a la pared
+            // mantiene la distancia a la pared; al entrar en cobertura acerca al jugador con suavidad (como mucho 4.5 m/s: pasos cortos, sin saltos)
+            Vector3 correction = Vector3.ClampMagnitude(Flat(desired - pos) * 8f, 4.5f);
             return slide + correction;
         }
 
