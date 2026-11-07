@@ -34,6 +34,14 @@ namespace SevenDays.Player
         public float Speed01 => Mathf.Clamp01(HorizontalSpeed / sprintSpeed);
         /// <summary>Movimiento local respecto al cuerpo (x lateral, y adelante), suavizado: entrada del blend tree de 8 direcciones (strafe). 1 = correr.</summary>
         public Vector2 LocalMove { get; private set; }
+        /// <summary>0..1 cuánto está agachado (suavizado).</summary>
+        public float CrouchAmount => _crouch;
+        /// <summary>Hacia dónde QUIERE mirar el cuerpo (el giro real va detrás): la animación anticipa el giro con el torso y la cabeza.</summary>
+        public Vector3 DesiredFacing { get; private set; } = Vector3.forward;
+        /// <summary>Al aterrizar: metros de caída (la animación amortigua según la altura).</summary>
+        public event System.Action<float> Landed;
+        /// <summary>false cuando hay un rig procedural: agacharse ya no aplasta el modelo, lo hace la pose.</summary>
+        public bool ScaleVisualOnCrouch { get; set; } = true;
 
         private CharacterController _cc;
         private PlayerCamera _camera;
@@ -168,6 +176,7 @@ namespace SevenDays.Player
 
             if (face.sqrMagnitude > 0.01f)
             {
+                DesiredFacing = face.normalized;
                 Quaternion target = Quaternion.LookRotation(face, Vector3.up);
                 transform.rotation = Quaternion.Slerp(transform.rotation, target, 1f - Mathf.Exp(-turnSpeed * dt));
             }
@@ -186,6 +195,7 @@ namespace SevenDays.Player
             {
                 float fall = _peakY - transform.position.y;
                 _impulse?.Land(fall);
+                Landed?.Invoke(fall);
                 float damage = FallDamage.Compute(fall, Settings);
                 if (damage > 0f)
                     _health.TakeDamage(new DamageInfo { Amount = damage, Point = transform.position, Direction = Vector3.up, Source = null });
@@ -200,7 +210,7 @@ namespace SevenDays.Player
             float h = Mathf.Lerp(StandHeight, CrouchHeight, _crouch);
             _cc.height = h;
             _cc.center = new Vector3(0f, h * 0.5f, 0f);
-            _visual.localScale = new Vector3(1f, h / StandHeight, 1f);
+            if (ScaleVisualOnCrouch) _visual.localScale = new Vector3(1f, h / StandHeight, 1f);
             var wp = _weaponHolder.localPosition;
             wp.y = Mathf.Lerp(1.2f, 0.72f, _crouch);
             _weaponHolder.localPosition = wp;

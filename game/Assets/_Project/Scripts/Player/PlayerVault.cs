@@ -14,6 +14,11 @@ namespace SevenDays.Player
     {
         public bool IsVaulting { get; private set; }
         public VaultVerdict LastVerdict { get; private set; }
+        /// <summary>0..1 del vault en curso, el punto alto del obstáculo y la dirección (los usa la animación procedural: manos al obstáculo, pierna que pasa).</summary>
+        public float Progress => IsVaulting ? Mathf.Clamp01(_t) : 0f;
+        public Vector3 ObstacleTop => _plan.Top;
+        public Vector3 VaultDirection => _plan.Dir;
+        public bool IsMantle => IsVaulting && _plan.Verdict == VaultVerdict.Mantle;
 
         private struct Plan
         {
