@@ -19,7 +19,7 @@ resistencia efectiva = clamp(resistencia del zombi − penetración de armadura 
 | smg | 12 | 30 % | 35 % | 0.00 | 1.0 | 0.5 |
 | shotgun | 12 × 8 | 15 % | 12 % | 0.05 | 1.0 | 2.4 |
 | assault_rifle | 36 | 35 % | 55 % | 0.30 | 1.0 | 1.0 |
-| sniper | 90 | 50 % | 100 % | 0.80 | 1.3 | 2.0 |
+| sniper | 90 | sin caída (alcance 400 m) | 100 % | 0.80 | 1.3 | 2.0 |
 | bar (melee) | 38 | sin caída | - | 0.20 | 1.0 | 1.8 |
 
 ## Disparos para matar a un zombi común (100 PV) a 10 m
@@ -113,7 +113,7 @@ Los valores van en el ScriptableObject de cada arma (`Resources/Weapons/*.asset`
 | smg | auto, ráfaga | 3.2 / 1.2 / 7 | 0.5 / 0.45 | 12 | 48 | x0.7 |
 | shotgun | bombeo | 6 / 4.2 / 8 | 3.4 / 0.8 | 6 | 50 | x0.7 |
 | assault_rifle | auto, ráfaga, semi | 2.2 / 0.4 / 5.5 | 0.8 / 0.3 | 10 | 40 | x0.55 |
-| sniper | cerrojo (mira x3 / x5 / x8.6) | 3.5 / 0.03 / 8 | 3.8 / 0.4 | 5 | 20 / 12 / 7 | x0.35 (y menor con el zoom) |
+| sniper | cerrojo (mira x3 / x5 / x8 / x12) | 3.5 / 0.03 / 8 | 3.8 / 0.4 | 5 | 20 / 12 / 7.5 / 5 | x0.35 (y menor con el zoom) |
 
 - El retroceso acumulado se limita a `recoilMaxPitch` y la desviación lateral a la mitad de ese valor; ×0.6 (o el `recoilAimMultiplier` del arma) apuntando y ×0.8 agachado. Al soltar el gatillo vuelve a la mira original.
 - La dispersión crece `spreadPerShot` por disparo (la mitad apuntando), `spreadMove` corriendo, `spreadAir` en el aire, ×0.75 agachado; nunca pasa de `spreadMax` y se recupera a `spreadRecovery` °/s.
@@ -129,3 +129,10 @@ Los valores van en el ScriptableObject de cada arma (`Resources/Weapons/*.asset`
 | sniper | 2 % / 100 % | 5 % / 100 % | 1 % |
 
 **TTK tras el cambio de precisión:** el daño por bala no cambió, así que la tabla de disparos para matar de arriba sigue igual (las pruebas `BalanceTests` siguen en verde). Esa tabla supone que las balas aciertan; `AccuracyBalanceTests` comprueba que eso se cumple apuntando a la distancia típica de cada arma (pistola a 15 m a la cabeza, fusil a 25 m al cuerpo, francotirador a 100 m a la cabeza: > 95 %; escopeta a 3 m al cuerpo: > 80 % de los perdigones). Sin apuntar la precisión cae mucho a 20 m: apuntar es la forma de alcanzar esos TTK, y disparar desde la cadera es para distancias cortas.
+
+### Francotirador: más alcance (datos v3)
+- Alcance 260 → **400 m** y sin caída de daño en todo el alcance: 90 de daño a cualquier distancia. TTK sin cambios: **1 disparo a la cabeza** (293) y 2 al cuerpo en cualquier punto hasta 400 m (`BalanceTests` lo comprueba a 5, 60, 130, 260 y 400 m).
+- Zoom x3 / x5 / x8 / x12 (FOV 20 / 12 / 7.5 / 5) con la rueda mientras apuntas; la sensibilidad baja en proporción al zoom.
+- Vaivén de la mira: `scopeSway` (0.35°) x `swayAmount` del arma (1.4) ≈ ±0.5°, más con fatiga. **Shift** contiene la respiración 3 s (vaivén x0.15); al agotarse, jadeo 2.5 s con vaivén x2. Soltar antes conserva el aire que queda.
+- Precisión apuntando (0.03°) sin vaivén: a 400 m el cono mide 0.21 m de radio, del tamaño de una cabeza: conteniendo la respiración el disparo a la cabeza es fiable; jadeando, no.
+- Los assets de armas de la versión 2 se actualizan solos a la 3 conservando lo editado a mano (solo cambian alcance, caída y niveles de zoom del francotirador).
