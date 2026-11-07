@@ -89,6 +89,13 @@ namespace SevenDays.UI
                 GUI.Label(new Rect(w / 2 - 200, h / 2 + 80, 400, 50), "RECARGANDO", _center);
                 Fill(new Rect(w / 2 - 120, h / 2 + 135, 240 * _shooting.ReloadProgress, 8), Color.white);
             }
+            else if (d.IsMelee && _shooting.MeleeCharging && _shooting.MeleeCharge > 0.25f)
+            {
+                // golpe cargado: la barra se llena en 0.45 s; suelta el clic para golpear
+                bool ready = _shooting.MeleeCharge >= 1f;
+                GUI.Label(new Rect(w / 2 - 200, h / 2 + 80, 400, 50), ready ? "¡GOLPE CARGADO!" : "CARGANDO...", _center);
+                Fill(new Rect(w / 2 - 120, h / 2 + 135, 240 * _shooting.MeleeCharge, 8), ready ? new Color(1f, 0.6f, 0.2f) : Color.white);
+            }
             else if (!d.IsMelee && wpn.Magazine == 0 && reserve == 0)
             {
                 GUI.Label(new Rect(w / 2 - 200, h / 2 + 80, 400, 50), "SIN MUNICIÓN", _center);

@@ -628,3 +628,20 @@ Pasos manuales (lo importante es la FLUIDEZ):
 10. Corre con Shift: el balanceo de la cámara y el sonido de los pasos van con cada pie que toca el suelo (antes eran un ciclo aparte).
 11. FPS en el HUD: el rig del jugador cuesta muy poco (la cifra exacta en ms la mostrará el panel F6 del Bloque 7).
 Si algo se ve roto (rodillas hacia atrás, pies que flotan, temblores), dime en qué acción y con qué arma.
+
+### Correcciones del Bloque 2: agachado, rendimiento y panel F6
+- **Agachado**: pelvis más baja y 12 cm atrás, pies algo abiertos y bajo las rodillas, rodillas hacia delante y algo hacia fuera (no se cruzan), torso inclinado 18°, arma a la altura del pecho (antes quedaba en la tripa). De pie las rodillas ya no se bloquean (estaban estiradas del todo y los pies podían flotar 1–2 cm). Las mismas medidas quieto y caminando: sin saltos al pasar de uno a otro.
+- **Rendimiento**: quieto, el rig no lanza rayos al suelo; caminando mide el suelo como mucho 10 veces por segundo por pie (antes en cada frame); a más de 18 / 35 / 60 m se actualiza cada 2 / 3 / 6 frames y desde 35 m sin rayos. Las piezas pequeñas del soldado no proyectan sombra.
+- **F6**: panel de la animación: coste en ms (último y media), coste de todos los rigs, rayos por actualización, LOD, fase y longitud de la zancada, apoyo, pesos de mezcla, suavizados editables, casilla para dibujar huesos (cian), pies (verde apoyado, rojo en el aire) y manos (amarillo), y una **prueba de carga con 20 soldados** caminando alrededor.
+Pasos:
+1. Agáchate quieto, caminando, en cobertura baja y con cada arma: rodillas hacia delante, pies plantados, arma frente al pecho.
+2. **F6**: anota "Coste del jugador" y "Todos los rigs" con 1 jugador. Marca "20 soldados" y vuelve a anotar el total y los FPS. Mándame los números.
+
+### Bloque 3: agarre, poses y recarga animada
+Pasos manuales:
+1. Cambia de arma (1-5): el arma baja a la cadera y sube en ~0.35 s; no dispara hasta estar lista.
+2. Pistola y revólver: a la cadera con una mano; al apuntar, las dos. Subfusil: al pecho con dos manos. Fusil, escopeta y francotirador: al hombro con dos manos.
+3. Corre (Shift): el arma baja e inclina (rifles en diagonal, pistola abajo); en cobertura sin asomarte, el arma pegada al pecho.
+4. Dispara: la corredera de la pistola y la palanca del fusil retroceden; la bomba de la escopeta y el cerrojo del francotirador ciclan tras el disparo (y entonces sale el casquillo). El torso y los brazos acusan el retroceso.
+5. Recarga (R) cada arma: pistola/subfusil/fusil: el cargador baja y desaparece, la mano izquierda va a la cintura, vuelve con el nuevo (sube y encaja: ahí sube la munición), golpe. Escopeta: cartucho a cartucho (mano a la cintura y a la ventana), y si disparas a mitad conserva los metidos. Revólver: el tambor se abre a un lado. Francotirador: cerrojo abierto, cargador, cerrojo cerrado. Cambia de arma a mitad: se cancela.
+6. Barra: clic = golpe con anticipación, curva y seguimiento, con estela; golpes seguidos alternan el lado. Mantén el clic: "CARGANDO..." y el arma se echa atrás; a los 0.45 s "¡GOLPE CARGADO!", suelta: golpe lento y fuerte.

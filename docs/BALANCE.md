@@ -136,3 +136,8 @@ Los valores van en el ScriptableObject de cada arma (`Resources/Weapons/*.asset`
 - Vaivén de la mira: `scopeSway` (0.35°) x `swayAmount` del arma (1.4) ≈ ±0.5°, más con fatiga. **Shift** contiene la respiración 3 s (vaivén x0.15); al agotarse, jadeo 2.5 s con vaivén x2. Soltar antes conserva el aire que queda.
 - Precisión apuntando (0.03°) sin vaivén: a 400 m el cono mide 0.21 m de radio, del tamaño de una cabeza: conteniendo la respiración el disparo a la cabeza es fiable; jadeando, no.
 - Los assets de armas de la versión 2 se actualizan solos a la 3 conservando lo editado a mano (solo cambian alcance, caída y niveles de zoom del francotirador).
+
+## Recarga por eventos y golpe cargado (Bloque 3 de ARTE_PROCEDURAL.md)
+- **La munición entra en el momento real de la animación**, no al final: cargador (pistola, subfusil, fusil) al 65 % del `reloadTime` (cargador nuevo); revólver al 62 % (meter las balas); francotirador al 62 % (cargador nuevo, con el cerrojo abierto entre el 12 y el 85 %). Cancelar antes (cambiar de arma) no da nada. La duración total no cambia.
+- **Escopeta cartucho a cartucho**: 0.25 s de inicio + un cartucho cada (3.2 − 0.55) / 6 ≈ 0.44 s + 0.3 s final con bombeo. Solo carga los que faltan (con 2 que faltan tarda ~1.4 s en vez de 3.2). Si disparas durante la recarga con algún cartucho ya dentro, deja de recargar y dispara; los cartuchos metidos se quedan.
+- **Cuerpo a cuerpo**: el daño se aplica en el impacto de la animación (0.14 s tras el clic en el golpe normal), no al pulsar. **Golpe cargado**: mantén el clic 0.45 s y suelta: daño x1.75 (barra: 38 → 66.5, dos golpes al cuerpo de un zombi común en vez de tres), empuje x1.5, impacto a 0.31 s y espera x1.6 antes del siguiente. Golpes seguidos alternan el lado (combo).
