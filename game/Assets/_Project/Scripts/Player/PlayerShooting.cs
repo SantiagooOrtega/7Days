@@ -37,8 +37,21 @@ namespace SevenDays.Player
         public IReadOnlyList<WeaponState> Weapons => _inventory.Weapons;
         public WeaponState Current => _inventory.Weapons[_current];
         public int CurrentReserve => _inventory.Reserve(Current);
-        public bool Reloading { get; private set; }
-        public float ReloadProgress => Reloading ? 1f - Mathf.Clamp01((_reloadEnd - Time.time) / Current.Data.reloadTime) : 0f;
+        /// <summary>Recarga por eventos (cargador, cartuchos, tambor, cerrojo): la animación, el sonido y la munición se sincronizan con ella.</summary>
+        public ReloadState Reload { get; } = new ReloadState();
+        public bool Reloading => Reload.Active;
+        public float ReloadProgress => Reload.Active ? Reload.Progress : 0f;
+        /// <summary>Sacar el arma al cambiar (0 guardada .. 1 lista).</summary>
+        public DrawState Draw { get; } = new DrawState();
+        public GunParts Parts { get; private set; }
+        /// <summary>Instante del último disparo (corredera) y del ciclo de bombeo/cerrojo.</summary>
+        public float LastShotTime { get; private set; } = -10f;
+        public float ActionStart { get; private set; } = -10f;
+        // cuerpo a cuerpo
+        public bool SwingHeavy { get; private set; }
+        public bool SwingMirror { get; private set; }
+        public bool MeleeCharging { get; private set; }
+        public float MeleeCharge => MeleeCharging ? Mathf.Clamp01((Time.time - _meleeHoldStart) / MeleeSwing.HeavyHold) : 0f;
         public PlayerStats Stats { get; } = new PlayerStats();
         public FireControl FireControl { get; } = new FireControl();
         public SpreadState Spread { get; } = new SpreadState();
@@ -59,7 +72,7 @@ namespace SevenDays.Player
 
         private PlayerInventory _inventory;
         private int _current;
-        private float _reloadEnd;
+        private float _meleeHoldStart, _meleeImpactAt = -1f, _meleeReadyAt, _meleeScale = 1f, _meleeKnock = 1f;
 
         private PlayerCamera _camera;
         private PlayerMotor _motor;
@@ -130,8 +143,13 @@ namespace SevenDays.Player
             if (_reloadQueued && (_cover == null || _cover.CanReload)) { _reloadQueued = false; StartReload(); }
 
             if (GameInput.FireModePressed && FireControl.Cycle(data)) HudMessages.Add("Modo de disparo: " + FireModes.Label(FireControl.Mode), Color.white, 1.2f);
-            if (Reloading && Time.time >= _reloadEnd) FinishReload();
+            Draw.Tick(dt);
+            TickReload(dt);
             if (GameInput.ReloadPressed && !data.IsMelee) StartReload();
+            // la escopeta deja de recargar para disparar si ya tiene algún cartucho dentro
+            if (GameInput.FirePressed && Reload.CanInterruptToFire) { Reload.Cancel(); _inventory.NotifyChanged(); }
+            if (data.IsMelee) { UpdateMelee(data); return; }
+            if (!Draw.Ready) return;   // sacando el arma
 
             bool wants = FireControl.Wants(Time.time, GameInput.FirePressed, GameInput.FireHeld);
             if (!wants || Reloading || _motor.IsVaulting) return; // no se ataca mientras se salta un obstáculo
@@ -140,8 +158,7 @@ namespace SevenDays.Player
             bool blind = coverShot == CoverShot.Blind;
             if (coverShot == CoverShot.PopAndFire && !_cover.Exposure.CanShootAimed) return;
 
-            if (data.IsMelee) { Swing(); FireControl.Commit(Time.time, data); }
-            else if (Current.Magazine <= 0)
+            if (Current.Magazine <= 0)
             {
                 FireControl.Cancel(Time.time, 0.4f);
                 _audio.PlayOneShot(ProceduralAudio.Empty(), 0.6f);
@@ -165,8 +182,10 @@ namespace SevenDays.Player
             }
             if (slot < 0 || slot >= count || slot == _current) return;
 
-            Reloading = false; // cambiar de arma cancela la recarga
+            Reload.Cancel(); // cambiar de arma cancela la recarga (los cartuchos de escopeta ya metidos se quedan)
             _reloadQueued = false;
+            MeleeCharging = false; _meleeImpactAt = -1f;
+            Draw.Holster();   // guardar y sacar: animación de 0.35 s
             _current = slot;
             OnWeaponEquipped();
             FireControl.Cancel(Time.time, 0.25f);
@@ -196,20 +215,33 @@ namespace SevenDays.Player
                 _reloadQueued = true;
                 return;
             }
-            Reloading = true;
-            _reloadEnd = Time.time + w.Data.reloadTime;
+            if (!Reload.Begin(w.Data, w.Data.magazineSize - w.Magazine, _inventory.Reserve(w))) return;
             FireControl.Cancel(Time.time);
-            _audio.PlayOneShot(ProceduralAudio.Reload(), 0.5f);
             ReloadStarted?.Invoke();
         }
 
-        private void FinishReload()
+        /// <summary>Avanza la recarga: cada evento suena, y la munición entra en el momento exacto (cargador nuevo o cada cartucho).</summary>
+        private void TickReload(float dt)
         {
+            if (!Reload.Active) return;
             var w = Current;
-            int taken = _inventory.Ammo.Take(w.Data.ammoType, w.Data.magazineSize - w.Magazine);
-            w.Magazine += taken;
-            Reloading = false;
-            _inventory.NotifyChanged();
+            var events = Reload.Tick(dt, out int ammo);
+            if (ammo > 0)
+            {
+                int taken = _inventory.Ammo.Take(w.Data.ammoType, Mathf.Min(ammo, w.Data.magazineSize - w.Magazine));
+                w.Magazine += taken;
+                _inventory.NotifyChanged();
+            }
+            for (int i = 0; i < events.Count; i++)
+            {
+                switch (events[i])
+                {
+                    case ReloadEvent.MagOut: case ReloadEvent.CylinderOpen: case ReloadEvent.BoltOpen: _audio.PlayOneShot(ProceduralAudio.Action(false), 0.45f); break;
+                    case ReloadEvent.MagIn: case ReloadEvent.ShellIn: _audio.PlayOneShot(ProceduralAudio.Reload(), 0.5f); break;
+                    case ReloadEvent.Slap: case ReloadEvent.CylinderClose: case ReloadEvent.BoltClose: _audio.PlayOneShot(ProceduralAudio.Action(true), 0.55f); break;
+                    case ReloadEvent.Done: if (w.Data.kind == WeaponKind.Shotgun) { ActionStart = Time.time; _audio.PlayOneShot(ProceduralAudio.Action(true), 0.6f); } break;   // bombeo final
+                }
+            }
         }
 
         // ------------------------------------------------------------------ disparo
@@ -242,6 +274,7 @@ namespace SevenDays.Player
             }
 
             w.Magazine--;
+            LastShotTime = Time.time;
             Stats.ShotsFired++;
             ShotFired?.Invoke();
             _motor.FaceCameraUntil = Time.time + 0.5f;
@@ -276,7 +309,8 @@ namespace SevenDays.Player
             _camera.AddRecoil(data, _motor.IsCrouched);
             Spread.OnShot(data, _camera.Aim.Eased > 0.5f);
             _handling?.OnShot();
-            if (data.ejectsCasings) _fx.SpawnCasing(_muzzle.position - _weaponPose.forward * data.length * 0.6f, _weaponPose.right, _weaponPose.up, data.kind == WeaponKind.Shotgun ? 1.6f : 1f);
+            if (data.ejectsCasings && data.kind != WeaponKind.Shotgun && data.kind != WeaponKind.SniperRifle && data.kind != WeaponKind.Revolver)
+                _fx.SpawnCasing(Parts != null ? Parts.CasingPoint.position : _muzzle.position, _weaponPose.right, _weaponPose.up, 1f);   // escopeta y cerrojo expulsan al ciclar
             _audio.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
             _audio.PlayOneShot(ProceduralAudio.Shot(data.kind), 0.8f);
             if (data.DefaultFireMode == FireModes.Pump || data.DefaultFireMode == FireModes.Bolt) StartCoroutine(PlayAction(data.DefaultFireMode == FireModes.Pump));
@@ -344,20 +378,50 @@ namespace SevenDays.Player
         private System.Collections.IEnumerator PlayAction(bool pump)
         {
             yield return new WaitForSeconds(pump ? 0.3f : 0.45f);
+            ActionStart = Time.time;   // la bomba o el cerrojo ciclan (WeaponHandling lo anima) y sale el casquillo
             _audio.pitch = 1f;
             _audio.PlayOneShot(ProceduralAudio.Action(pump), 0.7f);
+            var d = Current.Data;
+            if (Parts != null && d.ejectsCasings) _fx.SpawnCasing(Parts.CasingPoint.position, _weaponPose.right, _weaponPose.up, pump ? 1.6f : 1.2f);
         }
 
         // ------------------------------------------------------------------ cuerpo a cuerpo
-        private void Swing()
+        /// <summary>
+        /// Clic: golpe normal. Mantener al menos 0.45 s y soltar: golpe cargado (x1.75 de daño, x1.5 de empuje, más lento). El daño se aplica en el instante del impacto
+        /// de la animación (tras la anticipación), no al hacer clic. Golpes seguidos alternan el lado (combo).
+        /// </summary>
+        private void UpdateMelee(WeaponData data)
         {
-            var data = Current.Data;
-            SwingStart = Time.time;
-            _motor.FaceCameraUntil = Time.time + 0.5f;
-            ShotFired?.Invoke();
-            MeleeSwung?.Invoke(false, 0);
-            _audio.PlayOneShot(ProceduralAudio.Swing(), 0.7f);
+            if (_meleeImpactAt > 0f && Time.time >= _meleeImpactAt) { _meleeImpactAt = -1f; MeleeImpact(data); }
+            if (_motor.IsVaulting || !Draw.Ready) { MeleeCharging = false; return; }
+            if (!MeleeCharging)
+            {
+                if (GameInput.FirePressed && Time.time >= _meleeReadyAt) { MeleeCharging = true; _meleeHoldStart = Time.time; }
+                return;
+            }
+            if (GameInput.FireHeld) return;   // cargando
+            MeleeCharging = false;
+            StartSwing(data, MeleeSwing.IsHeavy(Time.time - _meleeHoldStart));
+        }
 
+        private void StartSwing(WeaponData data, bool heavy)
+        {
+            SwingMirror = Time.time - SwingStart < 0.9f && !SwingMirror;
+            SwingStart = Time.time;
+            SwingHeavy = heavy;
+            _meleeImpactAt = Time.time + MeleeSwing.ImpactTime(heavy);
+            _meleeReadyAt = Time.time + Mathf.Max(data.SecondsBetweenShots * (heavy ? MeleeSwing.HeavyCooldown : 1f), MeleeSwing.Total(heavy) * 0.8f);
+            _meleeScale = heavy ? MeleeSwing.HeavyDamage : 1f;
+            _meleeKnock = heavy ? MeleeSwing.HeavyKnockback : 1f;
+            _motor.FaceCameraUntil = Time.time + 0.6f;
+            ShotFired?.Invoke();
+            MeleeSwung?.Invoke(heavy, SwingMirror ? 1 : 0);
+            _audio.pitch = heavy ? 0.8f : 1f;
+            _audio.PlayOneShot(ProceduralAudio.Swing(), heavy ? 0.9f : 0.7f);
+        }
+
+        private void MeleeImpact(WeaponData data)
+        {
             Vector3 forward = Quaternion.Euler(0f, _camera.Yaw, 0f) * Vector3.forward;
             Vector3 origin = transform.position + Vector3.up * 1.1f;
             if (Physics.SphereCast(origin, 0.45f, forward, out RaycastHit hit, data.range, ShotMask, QueryTriggerInteraction.Ignore))
@@ -365,7 +429,7 @@ namespace SevenDays.Player
                 if (ApplyHit(hit, forward, data, hit.distance, true)) HitConfirmed?.Invoke();
                 _fx.SpawnImpact(hit.point, hit.normal);
             }
-            _impulse?.Fire(data.fireShake);
+            _impulse?.Fire(data.fireShake * (SwingHeavy ? 1.8f : 1f));
         }
 
         /// <summary>Aplica el daño del arma a lo que tocó el rayo: con falloff por distancia y, si es un hitbox, con su zona. Devuelve true si dañó a un enemigo.</summary>
@@ -376,9 +440,9 @@ namespace SevenDays.Player
             var health = (target as Hitbox)?.Owner;
             var info = new DamageInfo
             {
-                Amount = data.damage * DamageModel.Falloff(data, distance) * (melee ? 1f : _damageScale),
+                Amount = data.damage * DamageModel.Falloff(data, distance) * (melee ? _meleeScale : _damageScale),
                 Point = hit.point, Direction = dir, Source = gameObject,
-                ArmorPenetration = data.armorPenetration, HeadshotMultiplier = data.headshotMultiplier, Knockback = data.knockback,
+                ArmorPenetration = data.armorPenetration, HeadshotMultiplier = data.headshotMultiplier, Knockback = data.knockback * (melee ? _meleeKnock : 1f),
                 Distance = distance, WeaponId = data.id,
             };
             bool killed = target.TakeDamage(info);
@@ -399,19 +463,16 @@ namespace SevenDays.Player
         {
             if (_gunVisual != null) Destroy(_gunVisual);
             var data = Current.Data;
-            var c = data.color;
-            _gunVisual = Prim.Create(PrimitiveType.Cube, "Gun", new Vector3(0f, 0f, data.length * 0.5f),
-                new Vector3(data.thickness, data.IsMelee ? data.thickness : 0.14f, data.length), new Color(c[0], c[1], c[2]), _weaponPose, false);
-            _gunVisual.layer = 2;
+            Parts = GunParts.Build(data, _weaponPose);   // piezas separadas: corredera, cargador, bomba, cerrojo, tambor...
+            _gunVisual = Parts.gameObject;
             _muzzle.localPosition = new Vector3(0f, 0f, data.length + 0.05f);
             // mira provisional: sobre el arma, a un cuarto de su largo (cámara de primera persona al apuntar con aimFirstPerson)
             SightPoint.localPosition = new Vector3(0f, (data.IsMelee ? data.thickness : 0.14f) * 0.5f + 0.05f, data.length * 0.25f);
             if (data.HasScope)
             {
-                var scope = Prim.Create(PrimitiveType.Cylinder, "Scope", new Vector3(0f, 0.11f, data.length * 0.4f), new Vector3(0.05f, 0.14f, 0.05f), new Color(0.08f, 0.08f, 0.09f), _gunVisual.transform.parent, false);
+                var scope = Prim.Create(PrimitiveType.Cylinder, "Scope", new Vector3(0f, 0.11f, data.length * 0.4f), new Vector3(0.05f, 0.14f, 0.05f), new Color(0.08f, 0.08f, 0.09f), _gunVisual.transform, false);
                 scope.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 scope.layer = 2;
-                scope.transform.SetParent(_gunVisual.transform, true);
             }
             _camera.SightPoint = SightPoint;
             _camera.RefreshBodyRenderers();
