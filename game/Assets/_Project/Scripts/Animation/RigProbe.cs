@@ -48,6 +48,13 @@ namespace SevenDays.Animation
             return r;
         }
 
+        /// <summary>Inclinación del torso que se ve (grados, + adelante): la línea de la cadera a la base del cuello respecto a la vertical.</summary>
+        public static float TorsoLean(ProceduralRig rig)
+        {
+            Vector3 d = rig.Bone(BoneId.Neck).position - rig.Bone(BoneId.Hips).position;
+            return Mathf.Atan2(Vector3.Dot(d, rig.transform.forward), d.y) * Mathf.Rad2Deg;
+        }
+
         /// <summary>Pieza principal de un hueso (muslo, pantorrilla...): se llama "&lt;hueso&gt; limb".</summary>
         public static Transform Limb(Transform bone)
         {

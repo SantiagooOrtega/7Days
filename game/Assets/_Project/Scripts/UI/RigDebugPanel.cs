@@ -11,7 +11,7 @@ namespace SevenDays.UI
     /// </summary>
     public class RigDebugPanel : MonoBehaviour
     {
-        private ProceduralRig _rig;
+        private ProceduralRig _rig, _playerRig;
         private bool _open, _bones, _ground, _angles, _skeleton;
         private readonly float[] _kneeHistL = new float[150], _kneeHistR = new float[150];
         private int _histIndex;
@@ -24,12 +24,14 @@ namespace SevenDays.UI
 
         public void Initialize(ProceduralRig rig)
         {
-            _rig = rig;
+            _rig = _playerRig = rig;
             if (rig != null) { _shooting = rig.GetComponentInParent<SevenDays.Player.PlayerShooting>(); _driver = rig.GetComponentInParent<SevenDays.Animation.PlayerRigDriver>(); }
         }
 
         private void Update()
         {
+            // con el ciclo F7 activo, el panel mide y dibuja sobre el soldado de la demostración
+            _rig = RigDemoCycle.Current != null && RigDemoCycle.Current.Rig != null ? RigDemoCycle.Current.Rig : _playerRig;
             var k = Keyboard.current;
             if (k != null && k.f6Key.wasPressedThisFrame)
             {
@@ -80,6 +82,7 @@ namespace SevenDays.UI
             GUILayout.Label("Flexión de rodilla (últimos 2.5 s; azul izq, naranja der, línea gris = 150°)", _label);
             Rect graph = GUILayoutUtility.GetRect(400f, 90f);
             if (Event.current.type == EventType.Repaint) DrawKneeGraph(graph);
+            GUILayout.Label("Inclinación: total " + _rig.MoveLean.ToString("0.0") + "° (pelvis " + _rig.PelvisLean.ToString("0.0") + "°)  visible " + RigProbe.TorsoLean(_rig).ToString("0.0") + "°   pelvis " + ((_rig.Bone(BoneId.Hips).position.y - _rig.transform.position.y - _rig.StandPelvis) * 100f).ToString("+0.0;-0.0") + " cm vs de pie", _label);
             GUILayout.Label("Rodillas: izq " + _rig.KneeFlexion[0].ToString("0") + "°  der " + _rig.KneeFlexion[1].ToString("0") + "° (límite 0-" + LegSolver.MaxKneeFlexion.ToString("0") + "°)  arrodillado " + P(_rig.KneelWeight) + (_rig.PelvisLimited ? "  PELVIS LIMITADA" : ""), _label);
             _rig.DrawGizmos = _bones;
 
@@ -118,8 +121,15 @@ namespace SevenDays.UI
             p.heelStrikePitch = Slider("talón (punta arriba)", p.heelStrikePitch, 0f, 30f);
             p.toeOffPitch = Slider("punta al despegar", p.toeOffPitch, 0f, 45f);
             p.absorb = Slider("absorción pelvis (m)", p.absorb, 0f, 0.1f);
-            p.walkLean = Slider("torso andando", p.walkLean, 0f, 30f);
-            p.runLean = Slider("torso corriendo", p.runLean, 0f, 30f);
+            p.runLean = Slider("Inclinación al correr", p.runLean, 0f, 15f);
+            p.trotLean = Slider("inclinación al trotar", p.trotLean, 0f, 15f);
+            p.walkLean = Slider("inclinación andando", p.walkLean, 0f, 15f);
+            p.weaponLean = Slider("inclinación con arma", p.weaponLean, 0f, 15f);
+            p.maxRunLean = Slider("inclinación máxima", p.maxRunLean, 0f, 15f);
+            p.pelvisLeanShare = Slider("parte de la pelvis", p.pelvisLeanShare, 0f, 0.5f);
+            p.standKnee = Slider("rodilla de pie", p.standKnee, 0f, 20f);
+            p.runMidStanceKnee = Slider("rodilla apoyo corriendo", p.runMidStanceKnee, 0f, 60f);
+            p.stanceDrop = Slider("caída pelvis al apoyar (m)", p.stanceDrop, 0.01f, 0.12f);
             p.kneelTorsoLean = Slider("torso media rodilla", p.kneelTorsoLean, 0f, 45f);
             p.Validate();
             GUILayout.EndScrollView();
@@ -156,7 +166,7 @@ namespace SevenDays.UI
         /// <summary>Ángulo de cada rodilla y codo junto a la articulación, puntos de agarre del arma (verde: empuñadura, azul: guardamano, magenta: culata) y manos (amarillo).</summary>
         private void DrawAngles()
         {
-            var cam = Camera.main;
+            var cam = Cam();
             if (cam == null || _rig.Bones == null) return;
             Label(cam, _rig.Bone(BoneId.LeftLowerLeg).position, _rig.KneeFlexion[0].ToString("0") + "°", _rig.KneeFlexion[0] > 145f ? Color.red : Color.green);
             Label(cam, _rig.Bone(BoneId.RightLowerLeg).position, _rig.KneeFlexion[1].ToString("0") + "°", _rig.KneeFlexion[1] > 145f ? Color.red : Color.green);
@@ -179,7 +189,7 @@ namespace SevenDays.UI
         /// </summary>
         private void DrawSkeletonVsMesh()
         {
-            var cam = Camera.main;
+            var cam = Cam();
             if (cam == null || _rig.Bones == null) return;
             for (int b = 0; b < _rig.Bones.Length; b++)
             {
@@ -212,6 +222,8 @@ namespace SevenDays.UI
             GUI.color = prev;
         }
 
+        private static Camera Cam() => RigDemoCycle.Current != null && RigDemoCycle.Current.SideCamera != null ? RigDemoCycle.Current.SideCamera : Camera.main;
+
         private static string P(float v) => (v * 100f).ToString("0") + "%";
 
         private float Slider(string name, float v, float min, float max)
@@ -227,7 +239,7 @@ namespace SevenDays.UI
         /// <summary>Huesos (cian), objetivos de los pies (verde: apoyado, rojo: en el aire) y de las manos (amarillo) proyectados en pantalla.</summary>
         private void DrawBones()
         {
-            var cam = Camera.main;
+            var cam = Cam();
             if (cam == null || _rig.Bones == null) return;
             for (int b = 0; b < _rig.Bones.Length; b++)
             {
@@ -245,7 +257,7 @@ namespace SevenDays.UI
         /// </summary>
         private void DrawGround()
         {
-            var cam = Camera.main;
+            var cam = Cam();
             if (cam == null || _rig.Bones == null) return;
             float ankleH = _rig.Spec[(int)BoneId.LeftFoot].Length;
             for (int f = 0; f < 2; f++)
