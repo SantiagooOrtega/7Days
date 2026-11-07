@@ -52,6 +52,8 @@ namespace SevenDays.Player
         private PlayerImpulse _impulse;
         private JumpController _jump;
         private Health _health;
+        /// <summary>Multiplicador de velocidad de la variante jugable (PlayerVariantStats).</summary>
+        public float SpeedMultiplier = 1f;
         private Transform _visual;
         private Transform _weaponHolder;
         private float _crouch;
@@ -147,7 +149,7 @@ namespace SevenDays.Player
             else
             {
                 IsSprinting = GameInput.SprintHeld && input.y > 0.1f && !_camera.Aiming && !wantCrouch;
-                float speed = IsSprinting ? sprintSpeed : (IsCrouched ? crouchSpeed : walkSpeed);
+                float speed = (IsSprinting ? sprintSpeed : (IsCrouched ? crouchSpeed : walkSpeed)) * SpeedMultiplier;   // variante jugable
                 if (_camera.Aiming) speed *= 0.7f;
                 desired = moveDir * speed;
             }

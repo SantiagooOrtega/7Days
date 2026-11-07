@@ -13,6 +13,8 @@ namespace SevenDays.Player
         public HealingSession Session { get; } = new HealingSession();
         public bool Healing => Session.Active;
 
+        /// <summary>Multiplicador de curación de la variante jugable (PlayerVariantStats).</summary>
+        public float Multiplier = 1f;
         private Health _health;
         private PlayerInventory _inventory;
         private MedkitKind _usingKind;
@@ -46,6 +48,7 @@ namespace SevenDays.Player
                     // terminó: se gasta el botiquín y se cura
                     if (_inventory.Medkits.TryTake(_usingKind))
                     {
+                        heal *= Multiplier;   // variante jugable (el médico cura más)
                         _health.Heal(heal);
                         _inventory.NotifyChanged();
                         HudMessages.Add("+" + Mathf.RoundToInt(heal) + " de vida", new Color(0.5f, 1f, 0.5f));

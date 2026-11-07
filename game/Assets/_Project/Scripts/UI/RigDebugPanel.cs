@@ -133,6 +133,27 @@ namespace SevenDays.UI
             p.kneelTorsoLean = Slider("torso media rodilla", p.kneelTorsoLean, 0f, 45f);
             p.Validate();
 
+            // variante jugable: cambia ropa, cabeza, colores y estadísticas al momento
+            if (_rig == _playerRig)
+            {
+                GUILayout.Space(6);
+                GUILayout.Label("Variante (" + (_rig.Variant != null ? _rig.Variant.displayName : "-") + ")", _head);
+                GUILayout.BeginHorizontal();
+                foreach (var v in CharacterVariantLibrary.All)
+                {
+                    bool sel = _rig.Variant != null && _rig.Variant.id == v.id;
+                    if (GUILayout.Toggle(sel, v.displayName, GUI.skin.button) && !sel)
+                    {
+                        CharacterVariantLibrary.SetCurrent(v.id);
+                        RigVisuals.Rebuild(_rig, ProportionCopy(_rig.Proportions), v);
+                        SevenDays.Player.PlayerVariantStats.Apply(_rig.GetComponentInParent<SevenDays.Player.PlayerMotor>()?.gameObject, v);
+                    }
+                }
+                GUILayout.EndHorizontal();
+                if (_rig.Variant != null)
+                    GUILayout.Label("vida " + _rig.Variant.maxHealth.ToString("0") + "  velocidad x" + _rig.Variant.moveSpeed.ToString("0.00") + "  curación x" + _rig.Variant.healing.ToString("0.00") +
+                                    "  balanceo x" + _rig.Variant.weaponSway.ToString("0.00") + "  triángulos " + RigVisuals.Triangles(_rig) + (CharacterArt.Busy ? "  (generando texturas...)" : ""), _label);
+            }
             // complexión (ProportionSettings): se aplica reconstruyendo el esqueleto y las mallas del jugador
             if (_rig == _playerRig)
             {
@@ -147,7 +168,7 @@ namespace SevenDays.UI
                 _prop.headSize = Slider("cabeza", _prop.headSize, 0.8f, 1.3f);
                 _prop.armRatio = Slider("largo de brazos", _prop.armRatio, 0.85f, 1.15f);
                 _prop.legRatio = Slider("largo de piernas", _prop.legRatio, 0.44f, 0.56f);
-                if (GUILayout.Button("Aplicar complexión")) { _prop.Validate(); RigVisuals.Rebuild(_rig, ProportionCopy(_prop), RigPalette.Soldier); }
+                if (GUILayout.Button("Aplicar complexión")) { _prop.Validate(); RigVisuals.Rebuild(_rig, ProportionCopy(_prop), _rig.Variant); }
             }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
