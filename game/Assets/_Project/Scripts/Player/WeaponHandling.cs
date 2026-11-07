@@ -15,8 +15,6 @@ namespace SevenDays.Player
     /// </summary>
     public class WeaponHandling : MonoBehaviour
     {
-        private static readonly Vector3 AimPose = new Vector3(-0.2f, 0.17f, 0.12f);   // relativo a la cadera: más centrado y alto (a la línea de la mira)
-
         private Transform _pose, _torso;
         private PlayerCamera _camera;
         private PlayerMotor _motor;
@@ -28,12 +26,19 @@ namespace SevenDays.Player
         private Procedural.CriticalSpring3 _melee, _chest;
         private Procedural.CriticalSpring _sideSwing;
         private SevenDays.Animation.ProceduralRig _rig;
-        private static readonly Vector3 Holstered = new Vector3(0.1f, -0.5f, -0.12f);
         private Health _health;
+        // estado calculado en LateUpdate; la pose se compone en ApplyPose (con rig, tras colocar el torso de este frame)
+        private SevenDays.Animation.GripState _state;
+        private Vector3 _kickPos, _chestOffset, _reloadRot;
+        private float _kickPitch, _side, _blindW, _downW;
+        private V3 _meleeRot;
+        private bool _ready;
 
         /// <summary>Lo que el arma retrocede ahora mismo (0..1), para el panel de depuración.</summary>
         public float Kick => _kick;
         public Vector2 Sway => _sway;
+        /// <summary>Estado del agarre de este frame (pesos de cadera/carrera/cobertura/apuntado, recarga...): lo usa el driver para colocar las manos.</summary>
+        public SevenDays.Animation.GripState State => _state;
 
         public void Initialize(Transform pose, Transform torso, PlayerCamera cam, PlayerMotor motor, PlayerShooting shooting)
         {
@@ -46,27 +51,6 @@ namespace SevenDays.Player
         public void OnShot() => _kick = Mathf.Min(1.5f, _kick + 1f);
 
         private static Vector3 V(V3 v) => new Vector3(v.X, v.Y, v.Z);
-
-        /// <summary>
-        /// Posición del arma al apuntar (espacio del soporte): con culata, la culata va al hueco del hombro derecho del rig (mejilla pegada); pistola, centrada delante
-        /// del pecho a la altura de los ojos con los brazos extendidos. Sin rig se usa la pose fija de siempre.
-        /// </summary>
-        private Vector3 AimLocalPosition(WeaponData w, float pitch)
-        {
-            if (_rig == null || _pose.parent == null || w.IsMelee) return AimPose;
-            var g = w.grip ?? WeaponGrip.For(w.kind, w.length, w.thickness);
-            var chest = _rig.Bone(BoneId.UpperChest);
-            if (g.shouldered)
-            {
-                Vector3 shoulder = _rig.Bone(BoneId.RightUpperArm).position;
-                Vector3 pocket = shoulder - chest.right * 0.1f - chest.up * 0.03f + chest.forward * 0.08f;
-                Vector3 local = _pose.parent.InverseTransformPoint(pocket);
-                // la culata está detrás del origen del arma: se resta girada con la inclinación de la mira
-                return local - Quaternion.Euler(pitch, 0f, 0f) * V(g.StockPos);
-            }
-            Vector3 front = chest.position + _rig.transform.forward * 0.42f + Vector3.up * 0.08f + _rig.transform.right * 0.05f;
-            return _pose.parent.InverseTransformPoint(front);
-        }
 
         /// <summary>Piezas móviles: corredera al disparar, bomba y cerrojo al ciclar, cargador y tambor durante la recarga.</summary>
         private void AnimateParts(WeaponData w, ReloadState rl)
@@ -111,99 +95,111 @@ namespace SevenDays.Player
             float dt = Time.deltaTime;
             var w = _shooting.Current.Data;
             float aim = _camera.Aim.Eased;
-            float calm = Mathf.Lerp(1f, 0.3f, aim);   // sway y bob menores al apuntar
+            float calm = Mathf.Lerp(1f, 0.3f, aim);   // sway menor al apuntar
 
             // --- sway: muelle amortiguado que persigue al contrario del giro del ratón (limitado)
             Vector2 look = Cursor.lockState == CursorLockMode.Locked ? GameInput.Look : Vector2.zero;
             Vector2 target = Vector2.ClampMagnitude(-look * 0.05f * w.swayAmount * calm, 4f);
             _sway = Vector2.SmoothDamp(_sway, target, ref _swayVel, 0.08f, Mathf.Infinity, dt);
 
-            // --- bob: sigue a los pasos de la cámara de carrera (misma cadencia que los pies)
-            float phase = _camera.RunCam != null ? _camera.RunCam.Steps.Phase : 0f;
-            float speed01 = _motor.IsGrounded ? _motor.Speed01 : 0f;
-            float bobAmp = w.bobAmount * Mathf.Lerp(0.012f, 0.03f, _motor.IsSprinting ? 1f : 0f) * speed01 * calm;
-            Vector3 bob = new Vector3(Mathf.Sin(phase) * bobAmp, (Mathf.Abs(Mathf.Cos(phase)) - 0.5f) * bobAmp, 0f);
-            if (_rig != null) bob = Vector3.zero;   // con rig el arma sigue el rebote REAL del pecho (abajo): este balanceo sería un duplicado
-
             // --- kickback con muelle
             _kick = Mathf.MoveTowards(_kick, 0f, dt * 9f);
             float k = CameraMath.EaseInOut(Mathf.Clamp01(_kick));
             float kickMul = Mathf.Lerp(1f, w.recoilAimMultiplier, aim);
-            Vector3 kickPos = new Vector3(0f, 0f, -w.kickback * k * kickMul);
-            float kickPitch = -w.kickbackPitch * k * kickMul;
+            _kickPos = new Vector3(0f, 0f, -w.kickback * k * kickMul);
+            _kickPitch = -w.kickbackPitch * k * kickMul;
 
             // --- aim offset: al apuntar o al disparar, el arma sigue el pitch de la mira
             bool following = _camera.Aiming || Time.time < _motor.FaceCameraUntil;
             _aimOffsetWeight = Mathf.MoveTowards(_aimOffsetWeight, following ? 1f : 0.25f, dt * 6f);
             float aimPitch = CameraMath.DeltaAngle(0f, _camera.AimRotation.eulerAngles.x) * _aimOffsetWeight;
 
-            // --- pose base según el tipo de arma: cadera, corriendo (abajo e inclinada), cobertura (pegada al pecho) y apuntando (a la mira)
-            var hold = WeaponHolds.For(w.kind);
+            // --- pesos de la pose base: cadera, corriendo (abajo e inclinada), cobertura (pegada al pecho) y apuntando (a la mira)
             float sprint = _sprintW.Step(_motor.IsSprinting && !_camera.Aiming ? 1f : 0f, 0.12f, dt);
             float cover = _coverW.Step(_cover != null && _cover.Active && !_cover.WantsPop && !_cover.IsBlindFiring ? 1f : 0f, 0.15f, dt);
-            Vector3 pos = V(hold.HipPos), rot = V(hold.HipRot);
-            pos = Vector3.Lerp(pos, V(hold.SprintPos), sprint); rot = Vector3.Lerp(rot, V(hold.SprintRot), sprint);
-            pos = Vector3.Lerp(pos, V(hold.CoverPos), cover); rot = Vector3.Lerp(rot, V(hold.CoverRot), cover);
-            pos = Vector3.Lerp(pos, AimLocalPosition(w, aimPitch), aim); rot = Vector3.Lerp(rot, Vector3.zero, aim);
-            // sacar el arma (al cambiar): sube desde la cadera
-            float draw = _shooting.Draw.Eased;
-            pos = Vector3.Lerp(Holstered, pos, draw); rot = Vector3.Lerp(new Vector3(80f, 10f, 0f), rot, draw);
-
-            // --- recarga: el arma se inclina hacia la mano izquierda mientras dura
             var rl = _shooting.Reload;
             float reload = _reloadW.Step(rl.Active ? 1f : 0f, 0.12f, dt);
-            Vector3 reloadRot = new Vector3(-12f, 12f, 32f) * reload;
-            pos += new Vector3(-0.05f, 0.03f, -0.04f) * reload;
+            _reloadRot = new Vector3(-12f, 12f, 32f) * reload;
 
             // --- cuerpo a cuerpo: anticipación, golpe curvo y seguimiento; cargando, se echa atrás poco a poco
             V3 m = new V3(0, 0, 0);
+            float meleeT = -1f;
             if (w.IsMelee)
             {
                 float t = Time.time - _shooting.SwingStart;
                 if (_shooting.MeleeCharging) m = MeleeSwing.Pose(MeleeSwing.Windup(true) * _shooting.MeleeCharge, true, _shooting.SwingMirror);
-                else if (t <= MeleeSwing.Total(_shooting.SwingHeavy)) m = MeleeSwing.Pose(t, _shooting.SwingHeavy, _shooting.SwingMirror);
+                else if (t <= MeleeSwing.Total(_shooting.SwingHeavy)) { m = MeleeSwing.Pose(t, _shooting.SwingHeavy, _shooting.SwingMirror); meleeT = t; }
                 float strikeStart = MeleeSwing.Windup(_shooting.SwingHeavy);
                 _shooting.Parts?.SetTrail(!_shooting.MeleeCharging && t >= strikeStart * 0.8f && t <= strikeStart + MeleeSwing.Strike(_shooting.SwingHeavy) + 0.05f);
             }
-            V3 melee = _melee.Step(m, 0.025f, dt);
+            _meleeRot = _melee.Step(m, 0.025f, dt);
 
             // el arma sigue al pecho (rebote, giro, inclinación) con un retraso elástico: acompaña la inercia del torso sin vibrar
-            Vector3 chest = Vector3.zero;
+            _chestOffset = Vector3.zero;
             if (_rig != null)
             {
                 V3 c = _chest.Step(new V3(_rig.ChestOffsetLocal.x, _rig.ChestOffsetLocal.y, _rig.ChestOffsetLocal.z), 0.07f, dt);
-                chest = new Vector3(c.X, c.Y, c.Z) * 0.85f * (1f - aim);   // apuntando, el arma ya va al hombro real del rig
+                _chestOffset = new Vector3(c.X, c.Y, c.Z) * 0.85f * (1f - aim);   // apuntando, el arma ya va al hombro real del rig
             }
             // corriendo con un arma a una mano (pistola, barra): el brazo la lleva al costado con un pequeño balanceo amortiguado
             float oneHanded = (w.IsMelee || w.kind == WeaponKind.Pistol || w.kind == WeaponKind.Revolver) ? 1f : 0f;
-            float side = _sideSwing.Step(_rig != null ? ArmSwingMath.Offset(_rig.GaitPhase, false) * sprint * oneHanded : 0f, 0.06f, dt);
-            pos += new Vector3(0f, 0f, side * 0.07f);
-            rot.x += side * 12f;
+            _side = _sideSwing.Step(_rig != null ? ArmSwingMath.Offset(_rig.GaitPhase, false) * sprint * oneHanded : 0f, 0.06f, dt);
 
-            _pose.localPosition = pos + bob + kickPos + chest;
-            _pose.localRotation = Quaternion.Euler(rot.x + aimPitch + kickPitch + _sway.y + reloadRot.x + melee.X, rot.y + _sway.x + reloadRot.y + melee.Y, rot.z - _sway.x * 0.5f + reloadRot.z + melee.Z);
+            _blindW = _blind.Step(_cover != null && _cover.IsBlindFiring ? 1f : 0f, 0.08f, dt);
+            _downW = _down.Step(_health != null && _health.IsDead ? 1f : 0f, 0.25f, dt);
 
+            _state = new SevenDays.Animation.GripState
+            {
+                Aim = aim, Sprint = sprint, Cover = cover, Draw = _shooting.Draw.Eased, Reload = reload, AimPitch = aimPitch,
+                Aiming = _camera.Aiming, InCover = _cover != null && _cover.Active, Sprinting = _motor.IsSprinting,
+                ReloadInfo = rl, ActionCycle = ActionCycle(w), SinceShot = Time.time - _shooting.LastShotTime,
+                MeleeT = meleeT, MeleeHeavy = _shooting.SwingHeavy, MeleeCharging = _shooting.MeleeCharging,
+                TriggerOn = Time.time - _shooting.LastShotTime < 0.25f || (_camera.Aiming && GameInput.FireHeld),
+                FirstPerson = _camera.FirstPersonBlend,
+            };
+            _ready = true;
             AnimateParts(w, rl);
 
             // el torso de las primitivas se inclina un poco con la mira (aim offset del cuerpo; con modelos lo hará el Multi-Aim)
             float lean = _cover != null ? _cover.Lean.BodyRoll() : 0f;
             if (_torso != null) _torso.localRotation = Quaternion.Euler(aimPitch * 0.25f, 0f, lean);
+
+            if (_rig == null) ApplyPose();   // con rig la pose se compone en ProceduralRig.BeforeArms (PlayerRigDriver), con el pecho de este frame
+        }
+
+        private float ActionCycle(WeaponData w)
+        {
+            float action = (Time.time - _shooting.ActionStart) / (w.kind == WeaponKind.SniperRifle ? 0.45f : 0.3f);
+            return action >= 0f && action <= 1f ? Mathf.Sin(action * Mathf.PI) : 0f;
+        }
+
+        /// <summary>Compone la pose final del arma: base (WeaponGripSolver) + retroceso, sway, recarga, golpe, balanceo, lean, disparo a ciegas y caída al morir.</summary>
+        public void ApplyPose()
+        {
+            if (!_ready || _pose == null) return;
+            var w = _shooting.Current.Data;
+            SevenDays.Animation.WeaponGripSolver.BasePose(w, _rig, _pose, _state, out Vector3 pos, out Vector3 rot);
+            pos += new Vector3(-0.05f, 0.03f, -0.04f) * _state.Reload;
+            pos += new Vector3(0f, 0f, _side * 0.07f);
+            rot.x += _side * 12f;
+
+            _pose.localPosition = pos + _kickPos + _chestOffset;
+            _pose.localRotation = Quaternion.Euler(rot.x + _state.AimPitch + _kickPitch + _sway.y + _reloadRot.x + _meleeRot.X, rot.y + _sway.x + _reloadRot.y + _meleeRot.Y, rot.z - _sway.x * 0.5f + _reloadRot.z + _meleeRot.Z);
+
             // el arma acompaña el lean (se desplaza hacia el lado al que se asoma)
             if (_cover != null) _pose.localPosition += new Vector3(_cover.Lean.Value * 0.12f, 0f, 0f);
 
             // disparo a ciegas: el brazo se extiende y el arma sube sobre el borde de la cobertura (las manos del rig la siguen por IK)
-            float blind = _blind.Step(_cover != null && _cover.IsBlindFiring ? 1f : 0f, 0.08f, dt);
-            if (blind > 0.001f && _pose.parent != null)
+            if (_blindW > 0.001f && _pose.parent != null)
             {
                 Vector3 local = _pose.parent.InverseTransformPoint(_cover.PopBase(true));
-                _pose.localPosition = Vector3.Lerp(_pose.localPosition, local, blind);
+                _pose.localPosition = Vector3.Lerp(_pose.localPosition, local, _blindW);
             }
             // al morir el arma cae al suelo en vez de quedarse flotando
-            float down = _down.Step(_health != null && _health.IsDead ? 1f : 0f, 0.25f, dt);
-            if (down > 0.001f)
+            if (_downW > 0.001f)
             {
-                _pose.localPosition = Vector3.Lerp(_pose.localPosition, new Vector3(0.1f, 0.12f - (_pose.parent != null ? _pose.parent.localPosition.y : 1.2f), 0.35f), down);
-                _pose.localRotation = Quaternion.Slerp(_pose.localRotation, Quaternion.Euler(0f, 70f, 90f), down);
+                _pose.localPosition = Vector3.Lerp(_pose.localPosition, new Vector3(0.1f, 0.12f - (_pose.parent != null ? _pose.parent.localPosition.y : 1.2f), 0.35f), _downW);
+                _pose.localRotation = Quaternion.Slerp(_pose.localRotation, Quaternion.Euler(0f, 70f, 90f), _downW);
             }
         }
     }

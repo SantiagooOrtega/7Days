@@ -125,6 +125,9 @@ namespace SevenDays.Animation
 
         public Transform Bone(BoneId id) => Bones[(int)id];
 
+        /// <summary>Se llama tras colocar torso y cabeza y antes del IK de los brazos: aquí se pone el arma y se fijan las manos (Inputs) con el pecho de este frame.</summary>
+        public event System.Action<ProceduralRig, float> BeforeArms;
+
         /// <summary>Medidas reales de la bota (las mide RigVisuals de la malla): con ellas ningún vértice del pie baja del suelo al inclinarlo.</summary>
         public void SetFootShape(FootShape shape) => _footShape = shape;
         public FootShape FootShapeMeasured => _footShape;
@@ -281,6 +284,8 @@ namespace SevenDays.Animation
             UpdatePelvis(I, speed, run, jog, walk, moving, crouch, air, dead, localVel, dt);
             SolveLegs();
             UpdateTorso(I, run, jog, moving, crouch, dead, dt);
+            // el arma y los objetivos de las manos se colocan AQUÍ, con el pecho de este frame (si no, las manos irían un frame por detrás del arma)
+            if (BeforeArms != null) { BeforeArms(this, dt); I = Inputs; }
             UpdateArms(I, run, jog, walk, moving, dead, dt);
             UpdateDeathFall(dead);
 
