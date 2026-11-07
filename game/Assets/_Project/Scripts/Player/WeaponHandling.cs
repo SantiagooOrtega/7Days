@@ -1,6 +1,7 @@
 using UnityEngine;
 using SevenDays.Core;
 using SevenDays.Procedural;
+using SevenDays.Weapons;
 
 namespace SevenDays.Player
 {
@@ -23,7 +24,9 @@ namespace SevenDays.Player
         private PlayerCover _cover;
         private Vector2 _sway, _swayVel;
         private float _kick, _aimOffsetWeight;
-        private Procedural.CriticalSpring _blind, _down;
+        private Procedural.CriticalSpring _blind, _down, _sprintW, _coverW, _reloadW;
+        private Procedural.CriticalSpring3 _melee;
+        private static readonly Vector3 Holstered = new Vector3(0.1f, -0.5f, -0.12f);
         private Health _health;
 
         /// <summary>Lo que el arma retrocede ahora mismo (0..1), para el panel de depuración.</summary>
@@ -38,6 +41,45 @@ namespace SevenDays.Player
         }
 
         public void OnShot() => _kick = Mathf.Min(1.5f, _kick + 1f);
+
+        private static Vector3 V(V3 v) => new Vector3(v.X, v.Y, v.Z);
+
+        /// <summary>Piezas móviles: corredera al disparar, bomba y cerrojo al ciclar, cargador y tambor durante la recarga.</summary>
+        private void AnimateParts(WeaponData w, ReloadState rl)
+        {
+            var parts = _shooting.Parts;
+            if (parts == null) return;
+            float now = Time.time;
+            parts.SetSlide(1f - Mathf.Clamp01((now - _shooting.LastShotTime) / 0.07f));
+            float action = (now - _shooting.ActionStart) / (w.kind == WeaponKind.SniperRifle ? 0.45f : 0.3f);
+            float cycle = action >= 0f && action <= 1f ? Mathf.Sin(action * Mathf.PI) : 0f;
+            parts.SetPump(cycle);
+
+            float p = rl.Active ? rl.Progress : -1f;
+            float bolt = cycle;
+            switch (rl.Active ? rl.Style : ReloadStyle.None)
+            {
+                case ReloadStyle.Magazine: Mag(parts, p, 0.15f, 0.65f); break;
+                case ReloadStyle.BoltMagazine: Mag(parts, p, 0.28f, 0.62f); bolt = Window(p, 0.12f, 0.85f); break;
+                case ReloadStyle.Cylinder: parts.SetCylinder(Window(p, 0.12f, 0.85f)); break;
+                default: parts.SetMag(0f, true); parts.SetCylinder(0f); break;
+            }
+            parts.SetBolt(bolt);
+        }
+
+        /// <summary>Cargador: baja y desaparece al sacarlo; el nuevo aparece por debajo y sube hasta encajar.</summary>
+        private static void Mag(GunParts parts, float p, float outAt, float inAt)
+        {
+            if (p < outAt) parts.SetMag(0f, true);
+            else if (p < outAt + 0.12f) parts.SetMag(Mathf.Lerp(0f, 0.25f, (p - outAt) / 0.12f), true);
+            else if (p < inAt - 0.15f) parts.SetMag(0.25f, false);
+            else if (p < inAt) parts.SetMag(Mathf.Lerp(0.2f, 0f, CameraMath.EaseInOut((p - (inAt - 0.15f)) / 0.15f)), true);
+            else parts.SetMag(0f, true);
+        }
+
+        /// <summary>0 cerrado .. 1 abierto entre "open" y "close", con transiciones cortas.</summary>
+        private static float Window(float p, float open, float close)
+            => Mathf.Clamp01((p - open) / 0.06f) * Mathf.Clamp01((close - p) / 0.06f);
 
         private void LateUpdate()
         {
@@ -70,12 +112,40 @@ namespace SevenDays.Player
             _aimOffsetWeight = Mathf.MoveTowards(_aimOffsetWeight, following ? 1f : 0.25f, dt * 6f);
             float aimPitch = CameraMath.DeltaAngle(0f, _camera.AimRotation.eulerAngles.x) * _aimOffsetWeight;
 
-            // --- golpe cuerpo a cuerpo
-            float swingT = (Time.time - _shooting.SwingStart) / 0.3f;
-            float swing = swingT >= 0f && swingT <= 1f ? Mathf.Sin(swingT * Mathf.PI) * 80f : 0f;
+            // --- pose base según el tipo de arma: cadera, corriendo (abajo e inclinada), cobertura (pegada al pecho) y apuntando (a la mira)
+            var hold = WeaponHolds.For(w.kind);
+            float sprint = _sprintW.Step(_motor.IsSprinting && !_camera.Aiming ? 1f : 0f, 0.12f, dt);
+            float cover = _coverW.Step(_cover != null && _cover.Active && !_cover.WantsPop && !_cover.IsBlindFiring ? 1f : 0f, 0.15f, dt);
+            Vector3 pos = V(hold.HipPos), rot = V(hold.HipRot);
+            pos = Vector3.Lerp(pos, V(hold.SprintPos), sprint); rot = Vector3.Lerp(rot, V(hold.SprintRot), sprint);
+            pos = Vector3.Lerp(pos, V(hold.CoverPos), cover); rot = Vector3.Lerp(rot, V(hold.CoverRot), cover);
+            pos = Vector3.Lerp(pos, AimPose, aim); rot = Vector3.Lerp(rot, Vector3.zero, aim);
+            // sacar el arma (al cambiar): sube desde la cadera
+            float draw = _shooting.Draw.Eased;
+            pos = Vector3.Lerp(Holstered, pos, draw); rot = Vector3.Lerp(new Vector3(80f, 10f, 0f), rot, draw);
 
-            _pose.localPosition = Vector3.Lerp(Vector3.zero, AimPose, aim) + bob + kickPos;
-            _pose.localRotation = Quaternion.Euler(aimPitch + kickPitch + swing + _sway.y, _sway.x, -_sway.x * 0.5f);
+            // --- recarga: el arma se inclina hacia la mano izquierda mientras dura
+            var rl = _shooting.Reload;
+            float reload = _reloadW.Step(rl.Active ? 1f : 0f, 0.12f, dt);
+            Vector3 reloadRot = new Vector3(-12f, 12f, 32f) * reload;
+            pos += new Vector3(-0.05f, 0.03f, -0.04f) * reload;
+
+            // --- cuerpo a cuerpo: anticipación, golpe curvo y seguimiento; cargando, se echa atrás poco a poco
+            V3 m = new V3(0, 0, 0);
+            if (w.IsMelee)
+            {
+                float t = Time.time - _shooting.SwingStart;
+                if (_shooting.MeleeCharging) m = MeleeSwing.Pose(MeleeSwing.Windup(true) * _shooting.MeleeCharge, true, _shooting.SwingMirror);
+                else if (t <= MeleeSwing.Total(_shooting.SwingHeavy)) m = MeleeSwing.Pose(t, _shooting.SwingHeavy, _shooting.SwingMirror);
+                float strikeStart = MeleeSwing.Windup(_shooting.SwingHeavy);
+                _shooting.Parts?.SetTrail(!_shooting.MeleeCharging && t >= strikeStart * 0.8f && t <= strikeStart + MeleeSwing.Strike(_shooting.SwingHeavy) + 0.05f);
+            }
+            V3 melee = _melee.Step(m, 0.025f, dt);
+
+            _pose.localPosition = pos + bob + kickPos;
+            _pose.localRotation = Quaternion.Euler(rot.x + aimPitch + kickPitch + _sway.y + reloadRot.x + melee.X, rot.y + _sway.x + reloadRot.y + melee.Y, rot.z - _sway.x * 0.5f + reloadRot.z + melee.Z);
+
+            AnimateParts(w, rl);
 
             // el torso de las primitivas se inclina un poco con la mira (aim offset del cuerpo; con modelos lo hará el Multi-Aim)
             float lean = _cover != null ? _cover.Lean.BodyRoll() : 0f;
