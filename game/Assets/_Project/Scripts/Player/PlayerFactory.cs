@@ -27,17 +27,12 @@ namespace SevenDays.Player
             // Parte visual (se aplasta al agacharse)
             var visual = new GameObject("Visual").transform;
             visual.SetParent(root.transform, false);
-            // Colores claros y un acento naranja: el jugador se distingue del fondo gris aunque esté en sombra
-            Prim.Create(PrimitiveType.Capsule, "Body", new Vector3(0f, 0.9f, 0f), new Vector3(0.7f, 0.9f, 0.7f),
-                new Color(0.62f, 0.72f, 0.6f), visual, false);
-            Prim.Create(PrimitiveType.Sphere, "Helmet", new Vector3(0f, 1.62f, 0f), new Vector3(0.46f, 0.4f, 0.46f),
-                new Color(0.8f, 0.8f, 0.74f), visual, false);
-            Prim.Create(PrimitiveType.Cube, "Visor", new Vector3(0f, 1.6f, 0.2f), new Vector3(0.34f, 0.1f, 0.12f),
-                new Color(0.08f, 0.1f, 0.12f), visual, false); // indica hacia dónde mira
-            Prim.Create(PrimitiveType.Cube, "Vest Stripe", new Vector3(0f, 1.15f, 0.3f), new Vector3(0.56f, 0.12f, 0.08f),
-                new Color(0.95f, 0.55f, 0.1f), visual, false);
-            Prim.Create(PrimitiveType.Cube, "Backpack", new Vector3(0f, 1.05f, -0.34f), new Vector3(0.4f, 0.5f, 0.22f),
-                new Color(0.9f, 0.5f, 0.12f), visual, false);
+            // Cuerpo: esqueleto humanoide procedural con animación por capas (sin clips ni assets externos). Las mallas cuelgan de los huesos.
+            var rigGo = new GameObject("Rig");
+            rigGo.transform.SetParent(visual, false);
+            var rig = rigGo.AddComponent<SevenDays.Animation.ProceduralRig>();
+            rig.Build(RigProportions.Soldier());
+            SevenDays.Animation.RigVisuals.BuildSoldier(rig, SevenDays.Animation.RigPalette.Soldier);
 
             // Soporte del arma y boca del cañón
             var holder = new GameObject("WeaponHolder").transform;
@@ -75,7 +70,9 @@ namespace SevenDays.Player
             vault.Initialize(movement, cover, motor, impulse);
             inventory.Initialize(loot);
             shooting.Initialize(playerCamera, motor, pose, muzzle, inventory);
-            handling.Initialize(pose, visual, playerCamera, motor, shooting);
+            handling.Initialize(pose, null, playerCamera, motor, shooting);   // el torso lo inclina ahora el rig (aim offset y lean)
+            motor.ScaleVisualOnCrouch = false;                                  // agacharse es una pose del rig, no aplastar el modelo
+            root.AddComponent<SevenDays.Animation.PlayerRigDriver>().Initialize(rig, pose);
             healing.Initialize(inventory);
             interact.Initialize(inventory);
 
