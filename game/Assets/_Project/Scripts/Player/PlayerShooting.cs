@@ -252,6 +252,7 @@ namespace SevenDays.Player
             _damageScale = 1f;
             if (anyHit) { Stats.ShotsHit++; HitConfirmed?.Invoke(); }
             if (blind) _cover.OnBlindShot();
+            if (inCover && PlayerCover.DebugLogs) LogCoverShot(blind, origin, ignoreOwn, aimRot);
 
             // retroceso (cámara, recuperable), dispersión, kickback visual, casquillo, sonido y sacudida
             _camera.AddRecoil(data, _motor.IsCrouched);
@@ -285,6 +286,17 @@ namespace SevenDays.Player
                 if (h.distance < bestD) { bestD = h.distance; best = h; found = true; }
             }
             return found;
+        }
+
+        private void LogCoverShot(bool blind, Vector3 origin, bool ignoreOwn, Quaternion aimRot)
+        {
+            Vector3 dir = aimRot * Vector3.forward;
+            string hit = CastShot(origin, dir, Current.Data.range, ignoreOwn, out RaycastHit h) ? h.collider.name + " a " + h.distance.ToString("0.00") + " m" + (h.collider == _cover.CoverCollider ? " (¡SU PROPIA COBERTURA!)" : "") : "nada";
+            var e = _cover.LastEval;
+            Debug.Log("[7Days][Cobertura] disparo " + (blind ? "A CIEGAS" : "asomado") + " | estado " + _cover.Exposure.State + " exposición " + _cover.Exposure.Value.ToString("0.00")
+                + " | lado " + _cover.PopDir + " | borde sup. " + e.Top.ToString("0.00") + " m (baja " + e.Low + ", libre arriba " + e.OverClear + ", bordes " + e.EdgeLeft + "/" + e.EdgeRight + ")"
+                + " | origen " + origin.ToString("F2") + " (pies " + transform.position.ToString("F2") + ") | ignora su cobertura " + ignoreOwn + " | golpea: " + hit
+                + (blind || _cover.PopDir == PopDirection.None ? " | no se asomó: " + (_camera.Aiming ? _cover.WhyNoPop() : "no apuntaba (clic izq. sin apuntar = a ciegas)") : ""));
         }
 
         /// <summary>¿Hay espacio delante del cañón? Los hitboxes de zombis cuentan como libre (son el objetivo) y la propia cobertura se ignora.</summary>

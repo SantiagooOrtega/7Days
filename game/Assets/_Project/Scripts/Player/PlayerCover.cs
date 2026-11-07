@@ -10,8 +10,27 @@ namespace SevenDays.Player
     /// se agacha y se desliza lateralmente con A/D. Al apuntar (clic derecho) se asoma para disparar.
     /// C otra vez para salir.
     /// </summary>
+    [DefaultExecutionOrder(-50)]   // después de PlayerCamera (-60) y antes de PlayerShooting (0): la exposición de este frame ya está lista al disparar
     public class PlayerCover : MonoBehaviour
     {
+        /// <summary>Logs de cada disparo en cobertura (se activan en el panel F5).</summary>
+        public static bool DebugLogs;
+
+        /// <summary>Datos de la última evaluación de por dónde asomarse (para los logs y el panel F5).</summary>
+        public struct PopEval { public float Top; public bool Low, OverClear, EdgeLeft, EdgeRight, LeftClear, RightClear; }
+        public PopEval LastEval { get; private set; }
+
+        /// <summary>Por qué no se puede asomar ahora (texto para los logs).</summary>
+        public string WhyNoPop()
+        {
+            var e = LastEval;
+            if (!Active) return "fuera de cobertura";
+            if (PopDir != PopDirection.None) return "puede asomarse por " + PopDir;
+            if (e.Low && !e.OverClear) return "cobertura baja pero sin espacio por encima (algo a 1.7 m)";
+            if (!e.Low && !e.EdgeLeft && !e.EdgeRight) return "cobertura alta (" + e.Top.ToString("0.00") + " m) y lejos de sus bordes";
+            return "cobertura alta: bordes " + (e.EdgeLeft ? "izq" : "-") + "/" + (e.EdgeRight ? "der" : "-") + " pero sin espacio libre (izq " + e.LeftClear + ", der " + e.RightClear + ")";
+        }
+
         private const float SearchRadius = 2.2f;
         private const float StandOff = 0.6f;
 
@@ -103,6 +122,7 @@ namespace SevenDays.Player
             bool edgeL = IsEdge(pos, -tangent), edgeR = IsEdge(pos, tangent);
             bool leftClear = IsFree(pos + (-tangent) * (cfg.popSideMeters + 0.3f) + Vector3.up * 1.4f);
             bool rightClear = IsFree(pos + tangent * (cfg.popSideMeters + 0.3f) + Vector3.up * 1.4f);
+            LastEval = new PopEval { Top = CoverTop, Low = CoverTop <= cfg.lowCoverMax, OverClear = overClear, EdgeLeft = edgeL, EdgeRight = edgeR, LeftClear = leftClear, RightClear = rightClear };
             return PopOutRules.Choose(CoverTop, cfg.lowCoverMax, _camera.Shoulder.Side, overClear, edgeL, edgeR, leftClear, rightClear);
         }
 
