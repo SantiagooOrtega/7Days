@@ -18,7 +18,7 @@ namespace SevenDays.Procedural
     /// </summary>
     public static class LegSolver
     {
-        public const float Sole = 0.015f, KneeRadius = 0.055f, MaxKneeFlexion = 150f, MinKneeFlexion = 2f;
+        public const float Sole = 0.015f, KneeRadius = 0.065f, MaxKneeFlexion = 150f, MinKneeFlexion = 2f;
 
         public static LegResult Solve(V3 hip, V3 ankleTarget, float groundY, float ankleHeight, V3 pole, float thigh, float shin)
         {

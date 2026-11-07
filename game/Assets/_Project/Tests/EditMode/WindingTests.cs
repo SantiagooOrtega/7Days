@@ -48,6 +48,8 @@ namespace SevenDays.Tests
             yield return new TestCaseData(FoliageGeometry.Tire(1), 0.7f).SetName("Neumático");
             yield return new TestCaseData(FoliageGeometry.Bag(1), 0.2f).SetName("Bolsa");
             yield return new TestCaseData(FoliageGeometry.Bush(0, 3), 0.2f).SetName("Arbusto de bultos");
+            yield return new TestCaseData(LimbGeometry.Segment(0.41f, new[] { 0f, 0.0875f, 0.5f, 0.08f, 0.92f, 0.055f, 1f, 0.052f }, 10, 1.08f), 0.5f).SetName("Muslo (pivote en la cadera)");
+            yield return new TestCaseData(LimbGeometry.Segment(0.38f, new[] { 0f, 0.052f, 0.3f, 0.062f, 0.65f, 0.05f, 1f, 0.045f }, 10, 1.05f), 0.5f).SetName("Pantorrilla con gemelo");
         }
 
         [TestCaseSource(nameof(ClosedMeshes))]

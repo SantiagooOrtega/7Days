@@ -64,13 +64,79 @@ namespace SevenDays.Animation
                 var rh = RigHand.Build(rig.Bone(hand), !left, boots, k);
                 if (left) rig.LeftHandMesh = rh; else rig.RightHandMesh = rh;
 
-                // pierna: muslo, rodillera, espinillera, bota
-                Part(rig, ul, PrimitiveType.Capsule, new Vector3(0f, -L(ul) * 0.5f, 0f), new Vector3(0.18f, L(ul) * 0.56f, 0.18f) * k, cloth).name = ul + " limb";
-                Part(rig, ll, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.14f * k, armor);                                                                  // rodillera
-                Part(rig, ll, PrimitiveType.Capsule, new Vector3(0f, -L(ll) * 0.5f, 0f), new Vector3(0.14f, L(ll) * 0.55f, 0.14f) * k, cloth).name = ll + " limb";
-                Part(rig, ll, PrimitiveType.Cube, new Vector3(0f, -L(ll) * 0.75f, 0.01f), new Vector3(0.15f, L(ll) * 0.45f, 0.15f) * k, boots);                      // caña de la bota
-                Part(rig, foot, PrimitiveType.Cube, new Vector3(0f, -L(foot) * 0.5f, 0.05f), new Vector3(0.13f, L(foot) * 1.2f, 0.27f) * k, boots);                 // bota
+                // pierna articulada: cada pieza cuelga de su hueso con el pivote EN LA ARTICULACIÓN (no en su centro), así gira donde debe y no asoma
+                // por encima de ella. Muslo y pantorrilla se estrechan hacia la rodilla (radio <= el de la rótula) para que, arrodillado, nada atraviese el suelo.
+                BuildLeg(rig, left, cloth, armor, boots, k);
             }
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<string, Mesh> LimbMeshes = new System.Collections.Generic.Dictionary<string, Mesh>();
+
+        /// <summary>Radio de la rótula (m): todo lo que rodea la rodilla cabe en él. Arrodillado, la rodilla trasera queda a HalfKneel.RearKneeHeight del suelo.</summary>
+        public const float KneeJointRadius = 0.055f;
+
+        private static void BuildLeg(ProceduralRig rig, bool left, Material cloth, Material armor, Material boots, float k)
+        {
+            var spec = rig.Spec;
+            float side = left ? -1f : 1f;
+            BoneId ul = left ? BoneId.LeftUpperLeg : BoneId.RightUpperLeg, ll = left ? BoneId.LeftLowerLeg : BoneId.RightLowerLeg;
+            BoneId foot = left ? BoneId.LeftFoot : BoneId.RightFoot, toes = left ? BoneId.LeftToes : BoneId.RightToes;
+            float thigh = spec[(int)ul].Length, shin = spec[(int)ll].Length, drop = spec[(int)foot].Length, ball = spec[(int)toes].LocalPosition.Z;
+            float r = KneeJointRadius;
+
+            // muslo: ancho en la cadera, se estrecha hasta la rodilla; bolsillo lateral
+            var th = Limb(rig, ul, ul + " limb", thigh, new[] { 0f, 0.07f * k, 0.5f, 0.064f * k, 0.92f, r, 1f, r * 0.95f }, 1.08f, cloth);
+            Prim.CreateBox(ul + " bolsillo", new Vector3(side * 0.075f * k, -thigh * 0.45f, 0f), new Vector3(0.03f, 0.12f, 0.1f) * k, armor, th.transform, 0.3f, default, false, 0.006f);
+            // rodilla: rótula esférica + rodillera hacia delante (dentro del radio de la rótula)
+            Part(rig, ll, PrimitiveType.Sphere, Vector3.zero, Vector3.one * r * 2f, cloth);
+            Part(rig, ll, PrimitiveType.Sphere, new Vector3(0f, -0.01f, 0.02f), new Vector3(0.08f, 0.08f, 0.05f), armor);
+            // pantorrilla con gemelo, y caña de la bota sobre la parte baja
+            Limb(rig, ll, ll + " limb", shin, new[] { 0f, r * 0.95f, 0.3f, 0.062f, 0.65f, 0.05f, 1f, 0.045f }, 1.05f, cloth);
+            var shaft = Limb(rig, ll, ll + " caña", shin * 0.42f, new[] { 0f, 0.057f, 1f, 0.055f }, 1.05f, boots);
+            shaft.transform.localPosition = new Vector3(0f, -shin * 0.6f, 0f);
+            // tobillo
+            Part(rig, foot, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.096f, boots);
+            // pie en dos segmentos con el ORIGEN EN LA SUELA: talón-bola (hueso del pie) y punta (hueso de la punta, que se dobla para quedar plana)
+            var sole = new GameObject(foot + " suela").transform;
+            sole.SetParent(rig.Bone(foot), false);
+            sole.localPosition = new Vector3(0f, -drop, 0f);
+            float heel = 0.07f, h = Mathf.Min(0.085f, drop + 0.01f);
+            Prim.CreateBox(foot + " bota", new Vector3(0f, h * 0.5f, (ball - heel) * 0.5f), new Vector3(0.115f, h, ball + heel), boots, sole, 0.3f, default, false, 0.015f);
+            Prim.CreateBox(toes + " punta", new Vector3(0f, 0.025f, 0.0325f), new Vector3(0.11f, 0.05f, 0.085f), boots, rig.Bone(toes), 0.3f, default, false, 0.015f);
+            PartCount += 3;
+            // medida REAL de la bota (no la supuesta): el rig la usa para que ningún vértice baje del suelo al inclinar el pie
+            rig.SetFootShape(MeasureFoot(rig.Bone(foot), rig.Bone(toes)));
+        }
+
+        private static GameObject Limb(ProceduralRig rig, BoneId bone, string name, float length, float[] rings, float depth, Material m)
+        {
+            string key = length.ToString("0.###") + "|" + depth.ToString("0.##") + "|" + string.Join(",", System.Array.ConvertAll(rings, x => x.ToString("0.###")));
+            if (!LimbMeshes.TryGetValue(key, out var mesh) || mesh == null)
+            {
+                mesh = BoxMesh.ToMesh(LimbGeometry.Segment(length, rings, 10, depth));
+                mesh.name = "Limb " + key;
+                LimbMeshes[key] = mesh;
+            }
+            var go = new GameObject(name);
+            go.transform.SetParent(rig.Bone(bone), false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = m;
+            PartCount++;
+            return go;
+        }
+
+        /// <summary>Mide la bota en el espacio del pie (pose de reposo): caída del tobillo a la suela, talón, bola y largo de la punta.</summary>
+        private static FootShape MeasureFoot(Transform foot, Transform toes)
+        {
+            float minY = 0f, minZ = 0f, maxToeZ = 0f;
+            foreach (var mf in foot.GetComponentsInChildren<MeshFilter>())
+                foreach (var v in mf.sharedMesh.vertices)
+                {
+                    Vector3 p = foot.InverseTransformPoint(mf.transform.TransformPoint(v));
+                    minY = Mathf.Min(minY, p.y); minZ = Mathf.Min(minZ, p.z);
+                    if (mf.transform.IsChildOf(toes)) maxToeZ = Mathf.Max(maxToeZ, p.z);
+                }
+            return new FootShape { Drop = -minY, Heel = -minZ, Ball = toes.localPosition.z, Toe = maxToeZ - toes.localPosition.z };
         }
 
         private static GameObject Part(ProceduralRig rig, BoneId bone, PrimitiveType type, Vector3 localPos, Vector3 scale, Material m, float roll = 0f)
