@@ -68,6 +68,7 @@ namespace SevenDays.Player
         private Health _health;
         private PlayerCover _cover;
         private float _damageScale = 1f, _nextNoLineWarning;
+        private bool _reloadQueued;
         private readonly RaycastHit[] _hits = new RaycastHit[16];
         private Transform _weaponPose;
         private Transform _muzzle;
@@ -122,6 +123,12 @@ namespace SevenDays.Player
             HandleSwitch();
             data = Current.Data;
 
+            // cobertura: el clic izquierdo asoma al personaje (por encima o por el lado) y dispara desde ahí; Ctrl + clic, o sin hueco, dispara a ciegas
+            bool inCover = _cover != null && _cover.Active && !data.IsMelee;
+            var coverShot = CoverFireRules.Decide(inCover, data.IsMelee, GameInput.CrouchHeld, inCover ? _cover.PopDir : PopDirection.None);
+            if (coverShot == CoverShot.PopAndFire && (GameInput.FireHeld || GameInput.FirePressed) && !Reloading) _cover.RequestFirePop();
+            if (_reloadQueued && (_cover == null || _cover.CanReload)) { _reloadQueued = false; StartReload(); }
+
             if (GameInput.FireModePressed && FireControl.Cycle(data)) HudMessages.Add("Modo de disparo: " + FireModes.Label(FireControl.Mode), Color.white, 1.2f);
             if (Reloading && Time.time >= _reloadEnd) FinishReload();
             if (GameInput.ReloadPressed && !data.IsMelee) StartReload();
@@ -129,10 +136,9 @@ namespace SevenDays.Player
             bool wants = FireControl.Wants(Time.time, GameInput.FirePressed, GameInput.FireHeld);
             if (!wants || Reloading || _motor.IsVaulting) return; // no se ataca mientras se salta un obstáculo
 
-            // En cobertura: apuntando te asomas y solo disparas cuando ya estás fuera (el clic se recuerda 0.15 s); sin apuntar, o sin sitio para asomarse, es fuego a ciegas.
-            bool inCover = _cover != null && _cover.Active && !data.IsMelee;
-            bool blind = inCover && (!_camera.Aiming || _cover.PopDir == PopDirection.None);
-            if (inCover && !blind && !_cover.Exposure.CanShootAimed) return;
+            // asomándose: solo dispara cuando ya está fuera (el clic se recuerda 0.15 s y asomarse tarda ~0.1 s)
+            bool blind = coverShot == CoverShot.Blind;
+            if (coverShot == CoverShot.PopAndFire && !_cover.Exposure.CanShootAimed) return;
 
             if (data.IsMelee) { Swing(); FireControl.Commit(Time.time, data); }
             else if (Current.Magazine <= 0)
@@ -160,6 +166,7 @@ namespace SevenDays.Player
             if (slot < 0 || slot >= count || slot == _current) return;
 
             Reloading = false; // cambiar de arma cancela la recarga
+            _reloadQueued = false;
             _current = slot;
             OnWeaponEquipped();
             FireControl.Cancel(Time.time, 0.25f);
@@ -181,7 +188,14 @@ namespace SevenDays.Player
         {
             var w = Current;
             if (Reloading || w.Data.IsMelee || w.Magazine >= w.Data.magazineSize || _inventory.Reserve(w) <= 0) return;
-            if (_cover != null && !_cover.CanReload) { HudMessages.Add("Cúbrete para recargar", new Color(1f, 0.85f, 0.5f), 1.2f); return; }   // solo se recarga cubierto
+            if (_cover != null && !_cover.CanReload)
+            {
+                // solo se recarga cubierto: si estaba asomado por disparar, vuelve a cubrirse y recarga en cuanto esté a cubierto
+                if (_camera.Aiming) { HudMessages.Add("Cúbrete para recargar", new Color(1f, 0.85f, 0.5f), 1.2f); return; }
+                _cover.CancelFirePop();
+                _reloadQueued = true;
+                return;
+            }
             Reloading = true;
             _reloadEnd = Time.time + w.Data.reloadTime;
             FireControl.Cancel(Time.time);
@@ -235,6 +249,10 @@ namespace SevenDays.Player
             float spread = blind ? BlindFire.Spread(data, cfg) : CurrentSpread;
             _damageScale = blind ? cfg.blindDamageMultiplier : 1f;
             bool ignoreOwn = inCover && (blind || _cover.Exposure.Value > 0.2f);
+            // asomado: el disparo va desde la posición asomada HACIA el punto que marca la retícula (visto desde la cámara, atravesando solo su propia
+            // cobertura), no paralelo a la cámara: así no se clava en el muro aunque la cámara quede baja
+            if (inCover && !blind) aimRot = Quaternion.LookRotation(CrosshairTarget(cam.position, forward, data.range) - origin);
+            Vector3 tracerStart = inCover ? origin : _muzzle.position;   // en cobertura el cañón visual puede estar detrás del muro
 
             bool anyHit = false;
             for (int p = 0; p < data.pellets; p++)
@@ -247,7 +265,7 @@ namespace SevenDays.Player
                     if (ApplyHit(hit, dir, data, Vector3.Distance(origin, hit.point), false)) anyHit = true;
                     if (p < 3) _fx.SpawnImpact(hit.point, hit.normal); // con muchos perdigones solo se dibujan unos pocos efectos
                 }
-                if (p < 3) _fx.SpawnTracer(_muzzle.position, end);
+                if (p < 3) _fx.SpawnTracer(tracerStart, end);
             }
             _damageScale = 1f;
             if (anyHit) { Stats.ShotsHit++; HitConfirmed?.Invoke(); }
@@ -286,6 +304,16 @@ namespace SevenDays.Player
                 if (h.distance < bestD) { bestD = h.distance; best = h; found = true; }
             }
             return found;
+        }
+
+        /// <summary>Punto que marca la retícula: el primer impacto del rayo de la cámara, sin contar la propia cobertura (desde detrás del muro la mira "ve" más allá).</summary>
+        private Vector3 CrosshairTarget(Vector3 camPos, Vector3 forward, float range)
+        {
+            var own = _cover != null ? _cover.CoverCollider : null;
+            int n = Physics.RaycastNonAlloc(camPos, forward, _hits, range + 10f, ShotMask, QueryTriggerInteraction.Ignore);
+            float best = range + 10f;
+            for (int i = 0; i < n; i++) if (_hits[i].collider != own && _hits[i].distance > 0.5f && _hits[i].distance < best) best = _hits[i].distance;
+            return camPos + forward * best;
         }
 
         private void LogCoverShot(bool blind, Vector3 origin, bool ignoreOwn, Quaternion aimRot)

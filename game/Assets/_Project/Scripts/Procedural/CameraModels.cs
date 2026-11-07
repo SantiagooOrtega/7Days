@@ -20,6 +20,7 @@ namespace SevenDays.Procedural
         public float landShakeScale = 1f;
         // --- cobertura: asomarse (pop-out) y disparo a ciegas
         public float popSeconds = 0.2f;            // 0.15..0.25 s para asomarse y volver a cubrirse
+        public float popHoldAfterFire = 0.4f;      // al disparar cubierto: segundos asomado tras soltar el gatillo (0.3..0.5)
         public float lowCoverMax = 1.45f;          // altura (sobre los pies) hasta la que una cobertura es "baja": se asoma por encima
         public float popSideMeters = 0.5f;         // cuánto se inclina hacia el lado al asomarse por el borde
         public float blindDamageMultiplier = 0.6f; // daño a ciegas
@@ -41,7 +42,7 @@ namespace SevenDays.Procedural
             shakeScale = CameraMath.Clamp(shakeScale, 0f, 3f); fireShakeScale = CameraMath.Clamp(fireShakeScale, 0f, 3f);
             damageShake = CameraMath.Clamp(damageShake, 0f, 2f); runStepShake = CameraMath.Clamp(runStepShake, 0f, 0.2f);
             landShakeScale = CameraMath.Clamp(landShakeScale, 0f, 3f);
-            popSeconds = CameraMath.Clamp(popSeconds, 0.15f, 0.25f); lowCoverMax = CameraMath.Clamp(lowCoverMax, 0.8f, 2f); popSideMeters = CameraMath.Clamp(popSideMeters, 0.2f, 0.8f);
+            popSeconds = CameraMath.Clamp(popSeconds, 0.15f, 0.25f); popHoldAfterFire = CameraMath.Clamp(popHoldAfterFire, 0.3f, 0.5f); lowCoverMax = CameraMath.Clamp(lowCoverMax, 0.8f, 2f); popSideMeters = CameraMath.Clamp(popSideMeters, 0.2f, 0.8f);
             blindDamageMultiplier = CameraMath.Clamp(blindDamageMultiplier, 0.1f, 1f); blindSpreadMultiplier = CameraMath.Clamp(blindSpreadMultiplier, 1f, 6f);
             blindMinSpread = CameraMath.Clamp(blindMinSpread, 2f, 20f); blindMaxSpread = CameraMath.Clamp(blindMaxSpread, blindMinSpread, 30f);
             blindExposure = CameraMath.Clamp(blindExposure, 0.1f, 0.8f); blindHold = CameraMath.Clamp(blindHold, 0.1f, 2f); coveredDamageFloor = CameraMath.Clamp(coveredDamageFloor, 0f, 1f);
