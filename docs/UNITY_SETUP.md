@@ -674,3 +674,29 @@ Pasos manuales:
 4. Con el fusil apuntando: culata en el hombro, torso de perfil, mejilla en el arma, mano izquierda en el guardamano. Con la pistola: a la cadera con una mano, apuntando con dos. Escopeta: la mano izquierda en la bomba (y sigue la bomba al ciclar). Barra: puño cerrado.
 5. Dispara: el índice pasa al gatillo y vuelve a estirarse fuera del guardamonte un momento después.
 6. Recarga: la mano izquierda se abre al coger el cargador y vuelve al guardamano sin saltos.
+
+### Piernas v2: lo que se ve (no solo la matemática)
+**Causa encontrada:** los huesos de piernas y brazos se giraban con `Quaternion.LookRotation(dirección de doblado, eje del hueso)`. Unity conserva exacto el
+PRIMER vector y proyecta el segundo, así que el eje de cada hueso acababa sobre la línea cadera-tobillo. Resultado: la rodilla visible siempre a 0° (aunque el IK
+dijera 112°), y el pie salía más allá de su objetivo, hasta 47 cm bajo el suelo corriendo. Las pruebas pasaban porque medían el IK, no los huesos ni las mallas.
+Además: la bota era un cubo centrado que asomaba bajo la suela al inclinarse; de pie la rodilla estaba a 41° (no se notaba con la pierna recta) y la pelvis
+bajaba 27 cm al correr porque el apoyo era más largo de lo que alcanza la pierna.
+
+1. Deja que Unity compile (el panel **Test Runner** muestra un ensamblado nuevo: `SevenDays.Tests.Visual`).
+2. Window > General > Test Runner > **EditMode** > Run All. Deben pasar todas, incluidas las de `LegVisualTests`: crean el soldado con sus mallas, lo ponen en
+   cada fase (caminar, trotar, correr, correr con arma, media rodilla, agachado) y miden las mallas (vértices y `Renderer.bounds`).
+   `Report_FinalAngles` escribe en la consola los ángulos medidos.
+3. Play en la arena. Pulsa **F7**: aparece un soldado a tu derecha que camina, corre, corre con arma, se pone en media rodilla y se agacha (5 s cada uno),
+   visto de lado. Arriba a la izquierda verás, en vivo, la rodilla según el IK, los huesos y la malla (deben coincidir), la distancia de la bota al suelo
+   (siempre ≥ 0), la inclinación del torso y la pelvis respecto a de pie; y una tabla por tramo. F7 otra vez lo quita.
+4. Con F7 activo, pulsa **F6** y marca **"Esqueleto vs malla"**: huesos en cian, cadena del IK en magenta, eje de cada malla en blanco y, junto a cada
+   rodilla, "IK / hueso / malla" en verde si coinciden (rojo si no). Bajo cada pie, "pie +x cm". Mientras está marcado, la consola escribe una línea por frame
+   (`[Piernas] ...`) con tobillo (hueso, IK) y vértice más bajo de la malla frente al suelo.
+5. En F6, "Pose de locomoción": **Inclinación al correr** (y al trotar, con arma, máxima ≤ 15° y la parte de la pelvis), rodilla de pie, rodilla en el apoyo
+   corriendo y caída de la pelvis. Se aplican en vivo. Los valores por defecto están en `Resources/Config/LocomotionPoseSettings` (un asset viejo se pone al
+   día solo al cargarlo: `poseVersion`).
+6. Graba un clip (Cmd+Shift+5) con F7 y "Esqueleto vs malla": de lado caminando, corriendo, corriendo con arma y en media rodilla.
+
+Medido en las pruebas (mallas): correr rodilla 15° al contactar y 112° en el vuelo, cadera a -0.6 cm de su altura de pie con 4.3 cm de rebote, torso 10°
+(4.6° con arma); trotar 17°/83°, torso 6.5°; caminar 60° en el vuelo; media rodilla: delantera 94° con espinilla a 3° de la vertical, rodilla trasera a
+5.9 cm del suelo, torso 29.7°; sentadilla 112°/114°. Ningún vértice de la pierna bajo el suelo (mínimo +1.5 cm, la suela).
