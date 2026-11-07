@@ -139,6 +139,36 @@ describe('progreso', () => {
     expect(got.body.progress).toMatchObject(payload);
   });
 
+  it('guarda y devuelve las estadísticas de cobertura y fatiga', async () => {
+    const { accessToken } = await signup();
+    const stats = {
+      kills: 40, shotsFired: 200, shotsHit: 120, deaths: 0, headshots: 30, headshotKills: 22, averageTimeToKill: 2.4, damageTaken: 180.5,
+      coverSeconds: 310.5, poppedOutSeconds: 42.25, blindFireSeconds: 8, sprintSeconds: 95, maxFatigue: 0.87, daysPlayed: 3,
+    };
+    const put = await request(app).put('/api/progress').set(bearer(accessToken)).send({ ...payload, stats });
+    expect(put.status).toBe(200);
+    const got = await request(app).get('/api/progress').set(bearer(accessToken));
+    expect(got.body.progress.stats).toEqual(stats);
+  });
+
+  it('las estadísticas antiguas (sin los campos nuevos) siguen siendo válidas', async () => {
+    const { accessToken } = await signup();
+    expect((await request(app).put('/api/progress').set(bearer(accessToken)).send(payload)).status).toBe(200);
+  });
+
+  it('rechaza estadísticas imposibles', async () => {
+    const { accessToken } = await signup();
+    const bad = async (stats: object) => (await request(app).put('/api/progress').set(bearer(accessToken)).send({ ...payload, stats: { ...payload.stats, ...stats } })).status;
+    expect(await bad({ maxFatigue: 1.5 })).toBe(400);
+    expect(await bad({ maxFatigue: -0.1 })).toBe(400);
+    expect(await bad({ coverSeconds: -5 })).toBe(400);
+    expect(await bad({ coverSeconds: 10 ** 9 })).toBe(400);
+    expect(await bad({ shotsHit: 500 })).toBe(400);
+    expect(await bad({ headshotKills: 99 })).toBe(400);
+    expect(await bad({ daysPlayed: 9 })).toBe(400);
+    expect(await bad({ sprintSeconds: 'mucho' })).toBe(400);
+  });
+
   it('cada jugador tiene su propio progreso', async () => {
     const a = await signup(alice);
     const b = await signup(bob);

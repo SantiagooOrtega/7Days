@@ -12,9 +12,22 @@ Rutas protegidas: cabecera `Authorization: Bearer <accessToken>`.
 | POST | `/api/auth/logout` | no | `refreshToken` | 204 (revoca la sesión) |
 | GET | `/api/me` | sí | - | `{user}` |
 | GET | `/api/progress` | sí | - | `{progress:{currentDay, inventory, stats, updatedAt}}` (día 1 si no hay guardado) |
-| PUT | `/api/progress` | sí | `currentDay (1-7), inventory (objeto), stats {kills, shotsFired, shotsHit, deaths}` | `{progress}` |
+| PUT | `/api/progress` | sí | `currentDay (1-7), inventory (objeto), stats` (ver abajo) | `{progress}` |
 | POST | `/api/rankings` | sí | `score, daysSurvived (0-7), kills, victory` | 201 `{ranking}` |
 | GET | `/api/rankings?limit=20` | sí | - | `{rankings:[{position, username, score, ...}]}` |
+
+### `stats` de `/api/progress`
+Obligatorios (enteros >= 0): `kills`, `shotsFired`, `shotsHit` (<= shotsFired), `deaths`. Opcionales (los guarda Unity al terminar cada día, acumulados; los lee la IA director):
+| Campo | Rango | Significado |
+|-------|-------|-------------|
+| `headshots`, `headshotKills` | enteros >= 0 (`headshotKills` <= `kills`) | aciertos a la cabeza y muertes por headshot |
+| `averageTimeToKill` | 0–3600 s | tiempo medio desde el primer impacto hasta la muerte |
+| `damageTaken` | >= 0 | daño total recibido |
+| `coverSeconds`, `poppedOutSeconds`, `blindFireSeconds` | 0–604800 s | tiempo cubierto, asomado y disparando a ciegas (regla de abuso de cobertura) |
+| `sprintSeconds` | 0–604800 s | tiempo corriendo |
+| `maxFatigue` | 0–1 | lo más cansado que ha estado corriendo (cámara de carrera) |
+| `daysPlayed` | 0–7 | días con datos |
+Cualquier otro campo numérico extra se acepta (`catchall`). Los guardados antiguos sin los campos nuevos siguen siendo válidos. Validado con zod en `progress.routes.ts` y probado en `api.test.ts`.
 
 ## Planeado (aún no implementado)
 | Método | Ruta | Auth | Fase | Respuesta |
@@ -44,5 +57,5 @@ cp ../.env.example .env        # y pon en JWT_ACCESS_SECRET el resultado de: ope
 npx prisma generate
 npm run db:push                # crea prisma/dev.db
 npm run dev                    # http://localhost:3001
-npm test                       # 17 pruebas
+npm test                       # 20 pruebas
 ```
