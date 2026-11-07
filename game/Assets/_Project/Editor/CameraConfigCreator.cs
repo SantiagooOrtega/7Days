@@ -25,6 +25,7 @@ namespace SevenDays.EditorTools
             int created = 0;
             created += Create<CameraSettings>(Dir + "/CameraSettings.asset");
             created += Create<CameraRunSettings>(Dir + "/CameraRunSettings.asset");
+            created += Create<SevenDays.Animation.LocomotionPoseSettings>(Dir + "/LocomotionPoseSettings.asset");
             if (created > 0) { AssetDatabase.SaveAssets(); AssetDatabase.Refresh(); Debug.Log("[7Days] Creados " + created + " ajustes de cámara en " + Dir); }
             else if (verbose) Debug.Log("[7Days] Ya existen los ajustes de cámara en " + Dir);
         }
