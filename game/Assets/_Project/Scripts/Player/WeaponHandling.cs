@@ -23,16 +23,17 @@ namespace SevenDays.Player
         private Vector2 _sway, _swayVel;
         private float _kick, _aimOffsetWeight;
         private Procedural.CriticalSpring _blind, _down, _sprintW, _coverW, _reloadW;
-        private Procedural.CriticalSpring3 _melee, _chest;
+        private Procedural.CriticalSpring3 _melee;
         private Procedural.CriticalSpring _sideSwing;
         private SevenDays.Animation.ProceduralRig _rig;
         private Health _health;
         // estado calculado en LateUpdate; la pose se compone en ApplyPose (con rig, tras colocar el torso de este frame)
         private SevenDays.Animation.GripState _state;
-        private Vector3 _kickPos, _chestOffset, _reloadRot;
+        private Vector3 _kickPos, _reloadRot;
         private float _kickPitch, _side, _blindW, _downW;
         private V3 _meleeRot;
         private bool _ready;
+        private readonly SevenDays.Animation.GripInertia _inertia = new SevenDays.Animation.GripInertia();
 
         /// <summary>Lo que el arma retrocede ahora mismo (0..1), para el panel de depuración.</summary>
         public float Kick => _kick;
@@ -51,43 +52,6 @@ namespace SevenDays.Player
         public void OnShot() => _kick = Mathf.Min(1.5f, _kick + 1f);
 
         private static Vector3 V(V3 v) => new Vector3(v.X, v.Y, v.Z);
-
-        /// <summary>Piezas móviles: corredera al disparar, bomba y cerrojo al ciclar, cargador y tambor durante la recarga.</summary>
-        private void AnimateParts(WeaponData w, ReloadState rl)
-        {
-            var parts = _shooting.Parts;
-            if (parts == null) return;
-            float now = Time.time;
-            parts.SetSlide(1f - Mathf.Clamp01((now - _shooting.LastShotTime) / 0.07f));
-            float action = (now - _shooting.ActionStart) / (w.kind == WeaponKind.SniperRifle ? 0.45f : 0.3f);
-            float cycle = action >= 0f && action <= 1f ? Mathf.Sin(action * Mathf.PI) : 0f;
-            parts.SetPump(cycle);
-
-            float p = rl.Active ? rl.Progress : -1f;
-            float bolt = cycle;
-            switch (rl.Active ? rl.Style : ReloadStyle.None)
-            {
-                case ReloadStyle.Magazine: Mag(parts, p, 0.15f, 0.65f); break;
-                case ReloadStyle.BoltMagazine: Mag(parts, p, 0.28f, 0.62f); bolt = Window(p, 0.12f, 0.85f); break;
-                case ReloadStyle.Cylinder: parts.SetCylinder(Window(p, 0.12f, 0.85f)); break;
-                default: parts.SetMag(0f, true); parts.SetCylinder(0f); break;
-            }
-            parts.SetBolt(bolt);
-        }
-
-        /// <summary>Cargador: baja y desaparece al sacarlo; el nuevo aparece por debajo y sube hasta encajar.</summary>
-        private static void Mag(GunParts parts, float p, float outAt, float inAt)
-        {
-            if (p < outAt) parts.SetMag(0f, true);
-            else if (p < outAt + 0.12f) parts.SetMag(Mathf.Lerp(0f, 0.25f, (p - outAt) / 0.12f), true);
-            else if (p < inAt - 0.15f) parts.SetMag(0.25f, false);
-            else if (p < inAt) parts.SetMag(Mathf.Lerp(0.2f, 0f, CameraMath.EaseInOut((p - (inAt - 0.15f)) / 0.15f)), true);
-            else parts.SetMag(0f, true);
-        }
-
-        /// <summary>0 cerrado .. 1 abierto entre "open" y "close", con transiciones cortas.</summary>
-        private static float Window(float p, float open, float close)
-            => Mathf.Clamp01((p - open) / 0.06f) * Mathf.Clamp01((close - p) / 0.06f);
 
         private void LateUpdate()
         {
@@ -119,7 +83,7 @@ namespace SevenDays.Player
             float cover = _coverW.Step(_cover != null && _cover.Active && !_cover.WantsPop && !_cover.IsBlindFiring ? 1f : 0f, 0.15f, dt);
             var rl = _shooting.Reload;
             float reload = _reloadW.Step(rl.Active ? 1f : 0f, 0.12f, dt);
-            _reloadRot = new Vector3(-12f, 12f, 32f) * reload;
+            _reloadRot = SevenDays.Animation.WeaponGripSolver.ReloadTilt * reload;
 
             // --- cuerpo a cuerpo: anticipación, golpe curvo y seguimiento; cargando, se echa atrás poco a poco
             V3 m = new V3(0, 0, 0);
@@ -134,13 +98,6 @@ namespace SevenDays.Player
             }
             _meleeRot = _melee.Step(m, 0.025f, dt);
 
-            // el arma sigue al pecho (rebote, giro, inclinación) con un retraso elástico: acompaña la inercia del torso sin vibrar
-            _chestOffset = Vector3.zero;
-            if (_rig != null)
-            {
-                V3 c = _chest.Step(new V3(_rig.ChestOffsetLocal.x, _rig.ChestOffsetLocal.y, _rig.ChestOffsetLocal.z), 0.07f, dt);
-                _chestOffset = new Vector3(c.X, c.Y, c.Z) * 0.85f * (1f - aim);   // apuntando, el arma ya va al hombro real del rig
-            }
             // corriendo con un arma a una mano (pistola, barra): el brazo la lleva al costado con un pequeño balanceo amortiguado
             float oneHanded = (w.IsMelee || w.kind == WeaponKind.Pistol || w.kind == WeaponKind.Revolver) ? 1f : 0f;
             _side = _sideSwing.Step(_rig != null ? ArmSwingMath.Offset(_rig.GaitPhase, false) * sprint * oneHanded : 0f, 0.06f, dt);
@@ -158,7 +115,7 @@ namespace SevenDays.Player
                 FirstPerson = _camera.FirstPersonBlend,
             };
             _ready = true;
-            AnimateParts(w, rl);
+            SevenDays.Animation.WeaponGripSolver.AnimateParts(_shooting.Parts, w, rl, ActionCycle(w), Time.time - _shooting.LastShotTime);
 
             // el torso de las primitivas se inclina un poco con la mira (aim offset del cuerpo; con modelos lo hará el Multi-Aim)
             float lean = _cover != null ? _cover.Lean.BodyRoll() : 0f;
@@ -178,13 +135,10 @@ namespace SevenDays.Player
         {
             if (!_ready || _pose == null) return;
             var w = _shooting.Current.Data;
-            SevenDays.Animation.WeaponGripSolver.BasePose(w, _rig, _pose, _state, out Vector3 pos, out Vector3 rot);
-            pos += new Vector3(-0.05f, 0.03f, -0.04f) * _state.Reload;
-            pos += new Vector3(0f, 0f, _side * 0.07f);
-            rot.x += _side * 12f;
-
-            _pose.localPosition = pos + _kickPos + _chestOffset;
-            _pose.localRotation = Quaternion.Euler(rot.x + _state.AimPitch + _kickPitch + _sway.y + _reloadRot.x + _meleeRot.X, rot.y + _sway.x + _reloadRot.y + _meleeRot.Y, rot.z - _sway.x * 0.5f + _reloadRot.z + _meleeRot.Z);
+            SevenDays.Animation.WeaponGripSolver.ApplyPose(_pose, w, _rig, _state, new SevenDays.Animation.PoseExtras
+            {
+                KickPos = _kickPos, KickPitch = _kickPitch, Sway = _sway, ReloadRot = _reloadRot, MeleeRot = _meleeRot, Side = _side,
+            }, _inertia, Time.deltaTime);   // anclada al cuerpo del rig: ya sigue al pecho (con inercia según el peso)
 
             // el arma acompaña el lean (se desplaza hacia el lado al que se asoma)
             if (_cover != null) _pose.localPosition += new Vector3(_cover.Lean.Value * 0.12f, 0f, 0f);

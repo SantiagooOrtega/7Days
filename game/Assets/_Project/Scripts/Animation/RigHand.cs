@@ -15,7 +15,12 @@ namespace SevenDays.Animation
         private readonly Transform[] _base = new Transform[5], _tip = new Transform[5];
         private Quaternion _thumbRest;
 
-        private const float PalmLength = 0.085f, PalmWidth = 0.08f, PalmThickness = 0.03f;
+        private const float PalmLength = HandWrap.PalmLength, PalmWidth = HandWrap.PalmWidth, PalmThickness = HandWrap.PalmThickness;
+        /// <summary>Escala de la mano (grosor del personaje) y radio del mango que sostiene ahora (lo fija el agarre).</summary>
+        public float Scale { get; private set; } = 1f;
+        public float GripRadius;
+        /// <summary>Dónde queda el eje del mango que sostiene esta mano (mundo): delante de la palma, a GripRadius de su cara.</summary>
+        public Vector3 GripCenter { get { var a = HandWrap.Anchor(GripRadius, Scale); return transform.TransformPoint(new Vector3(a.X, a.Y, a.Z)); } }
 
         public static RigHand Build(Transform handBone, bool right, Material glove, float bulk)
         {
@@ -24,11 +29,11 @@ namespace SevenDays.Animation
             var h = root.gameObject.AddComponent<RigHand>();
             h.IsRight = right;
             float k = Mathf.Clamp(bulk, 0.8f, 1.4f);
+            h.Scale = k;
             Part(root, PrimitiveType.Cube, new Vector3(0f, -PalmLength * 0.5f, 0f), new Vector3(PalmThickness, PalmLength, PalmWidth) * k, glove);
             float thumbSide = right ? 1f : -1f;
             // dedos: índice junto al pulgar
-            float[] z = { 0.03f, 0.01f, -0.01f, -0.028f };
-            float[] l1 = { 0.042f, 0.046f, 0.044f, 0.036f }, l2 = { 0.036f, 0.038f, 0.036f, 0.03f };
+            float[] z = HandWrap.Z, l1 = HandWrap.L1, l2 = HandWrap.L2;
             for (int i = 0; i < 4; i++)
             {
                 var b = Pivot(root, new Vector3(0f, -PalmLength, z[i] * thumbSide) * k);

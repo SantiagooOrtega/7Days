@@ -212,15 +212,19 @@ namespace SevenDays.Procedural
         public float neckRatio = 1f;
         public float headSize = 1f;
         public float hunch;                  // 0..1: encorvado (corredor zombi)
+        public float torsoDepth = 1f;        // grosor del torso delante-detrás (chaleco incluido)
+        public float limbThickness = 1f;     // grosor de brazos y piernas
 
         public void Validate()
         {
             height = CameraMath.Clamp(height, 1.2f, 4.5f); shoulderWidth = CameraMath.Clamp(shoulderWidth, 0.25f, 1.4f); hipWidth = CameraMath.Clamp(hipWidth, 0.15f, 0.8f);
             bulk = CameraMath.Clamp(bulk, 0.5f, 2.5f); legRatio = CameraMath.Clamp(legRatio, 0.4f, 0.58f); armRatio = CameraMath.Clamp(armRatio, 0.7f, 1.5f);
             neckRatio = CameraMath.Clamp(neckRatio, 0.5f, 2f); headSize = CameraMath.Clamp(headSize, 0.6f, 1.6f); hunch = CameraMath.Clamp01(hunch);
+            torsoDepth = CameraMath.Clamp(torsoDepth, 0.6f, 1.6f); limbThickness = CameraMath.Clamp(limbThickness, 0.6f, 1.6f);
         }
 
-        public static RigProportions Soldier() => new RigProportions { height = 1.82f, shoulderWidth = 0.56f, hipWidth = 0.3f, bulk = 1.25f };
+        /// <summary>Soldado atlético (no corpulento): hombros proporcionados, torso y chaleco delgados, misma altura (cámara, mira y pies no cambian).</summary>
+        public static RigProportions Soldier() => new RigProportions { height = 1.82f, shoulderWidth = 0.44f, hipWidth = 0.27f, bulk = 1f, torsoDepth = 0.9f, limbThickness = 0.92f };
     }
 
     public enum BoneId
