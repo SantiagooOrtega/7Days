@@ -84,3 +84,20 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class GripDataTests
+    {
+        [Test]
+        public void EveryWeaponHasGripData_AndOldAssetsGetIt()
+        {
+            foreach (var w in WeaponCatalog.Defaults()) { Assert.IsNotNull(w.grip, w.id); Assert.AreEqual(6, w.grip.grip.Length); }
+            var old = WeaponCatalog.Get("assault_rifle"); old.dataVersion = 3; old.grip = null; old.damage = 40f;
+            Assert.IsTrue(WeaponCatalog.Migrate(old));
+            Assert.IsNotNull(old.grip); Assert.AreEqual(40f, old.damage, "lo editado se conserva");
+            var broken = new WeaponData { id = "x", kind = WeaponKind.Pistol }; broken.Validate();
+            Assert.IsNotNull(broken.grip, "Validate repara un agarre vacío");
+        }
+    }
+}

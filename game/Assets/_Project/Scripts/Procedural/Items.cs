@@ -64,8 +64,10 @@ namespace SevenDays.Procedural
         public float kickbackPitch = 4f;       // grados que se levanta visualmente
         public float fireShake = 0.05f;        // impulso de cámara por disparo
         public bool ejectsCasings = true;
+        // --- agarre (puntos para las manos y la culata; ver WeaponGrip)
+        public WeaponGrip grip;
 
-        public const int CurrentDataVersion = 3;
+        public const int CurrentDataVersion = 4;
 
         public bool IsMelee => kind == WeaponKind.Melee;
         public bool HasScope => scopeFovs != null && scopeFovs.Length > 0;
@@ -116,6 +118,7 @@ namespace SevenDays.Procedural
             kickback = Clamp(kickback, 0f, 0.3f); kickbackPitch = Clamp(kickbackPitch, 0f, 25f);
             fireShake = Clamp(fireShake, 0f, 1f);
             if (scopeFovs != null) for (int i = 0; i < scopeFovs.Length; i++) scopeFovs[i] = Clamp(scopeFovs[i], 2f, 60f);
+            if (grip == null || grip.grip == null || grip.grip.Length < 6 || grip.foregrip == null || grip.foregrip.Length < 6 || grip.stock == null || grip.stock.Length < 3) grip = WeaponGrip.For(kind, length, thickness);
             if (fireModes != null) foreach (var m in fireModes) if (Array.IndexOf(FireModes.All, m) < 0) { fireModes = new string[0]; break; }
         }
     }
@@ -163,6 +166,7 @@ namespace SevenDays.Procedural
             foreach (var w in list)
             {
                 w.dataVersion = WeaponData.CurrentDataVersion;
+                w.grip = WeaponGrip.For(w.kind, w.length, w.thickness);
                 switch (w.id)
                 {
                     case "pistol":
@@ -206,6 +210,8 @@ namespace SevenDays.Procedural
                 w.minDamageFraction = 1f;
                 w.scopeFovs = new[] { 20f, 12f, 7.5f, 5f };
             }
+            // v3 -> v4: puntos de agarre (empuñadura, guardamano, culata) según el tipo de arma
+            if (w.dataVersion < 4 && (w.grip == null || w.grip.grip == null || w.grip.grip.Length < 6)) w.grip = WeaponGrip.For(w.kind, w.length, w.thickness);
             w.dataVersion = WeaponData.CurrentDataVersion;
             return true;
         }
