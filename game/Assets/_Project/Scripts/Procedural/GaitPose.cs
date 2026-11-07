@@ -10,7 +10,10 @@ namespace SevenDays.Procedural
     public class LocomotionPoseData
     {
         public float contactKnee = 15f;      // contacto del talón: 10-20°
-        public float midStanceKnee = 5f;     // apoyo medio: casi extendida
+        public float midStanceKnee = 5f;     // apoyo medio caminando: casi extendida
+        public float runMidStanceKnee = 38f; // apoyo medio corriendo: la rodilla amortigua (da el rebote de 4-6 cm de la pelvis)
+        public float standKnee = 6f;         // de pie: rodilla casi recta (la altura de la pelvis sale de aquí y de la pierna real)
+        public float stanceDrop = 0.045f;    // lo más que baja la pelvis al contactar: limita lo largo del apoyo (la cadera no se hunde al correr)
         public float toeOffKnee = 32f;       // despegue: empieza a doblar
         public float walkSwingKnee = 62f;    // vuelo caminando: 50-70°
         public float runSwingKnee = 112f;    // vuelo corriendo: 100-120° (talón hacia el glúteo)
@@ -20,8 +23,13 @@ namespace SevenDays.Procedural
         public float heelStrikePitch = 12f;  // contacto: punta arriba (rueda sobre el talón)
         public float toeOffPitch = 28f;      // despegue: flexión plantar (rueda sobre la punta)
         public float absorb = 0.035f;        // la pelvis baja unos cm al contactar (absorción)
-        public float walkLean = 3f, runLean = 14f;          // torso hacia delante según la velocidad
-        public float walkPelvisTilt = 3f, runPelvisTilt = 6f;
+        public float walkLean = 3f, trotLean = 6.5f, runLean = 10f;   // torso hacia delante: trotar 5-8°, correr 8-12°
+        public float maxRunLean = 15f;       // nunca más que esto por correr
+        public float weaponLean = 4.5f;      // con arma en las manos (o low ready): 3-6°, pecho erguido
+        public float pelvisLeanShare = 0.3f; // parte de la inclinación que pone la pelvis (2-4°); el resto la columna y el pecho
+        /// <summary>Versión de estos valores: un asset más viejo se actualiza solo al cargarlo (ver LocomotionPoseSettings.Load).</summary>
+        public int poseVersion;
+        public const int CurrentPoseVersion = 2;
         public float walkHipYaw = 6f, runHipYaw = 12f;       // giro de cadera (los hombros van al contrario)
         public float swingBlend = 0.62f;     // fracción del vuelo desde la que el pie converge a su aterrizaje (sin patinar)
         public float kneelTorsoLean = 30f;   // media rodilla: torso 25-35° adelante
@@ -32,11 +40,24 @@ namespace SevenDays.Procedural
             walkSwingKnee = Clamp(walkSwingKnee, 20f, 150f); runSwingKnee = Clamp(runSwingKnee, 30f, 150f);
             walkThigh = Clamp(walkThigh, 5f, 80f); runThigh = Clamp(runThigh, 5f, 80f); backThigh = Clamp(backThigh, -40f, 0f);
             heelStrikePitch = Clamp(heelStrikePitch, 0f, 30f); toeOffPitch = Clamp(toeOffPitch, 0f, 45f); absorb = Clamp(absorb, 0f, 0.1f);
-            walkLean = Clamp(walkLean, 0f, 30f); runLean = Clamp(runLean, 0f, 30f); walkPelvisTilt = Clamp(walkPelvisTilt, 0f, 15f); runPelvisTilt = Clamp(runPelvisTilt, 0f, 15f);
+            maxRunLean = Clamp(maxRunLean, 0f, 15f);
+            walkLean = Clamp(walkLean, 0f, maxRunLean); trotLean = Clamp(trotLean, 0f, maxRunLean); runLean = Clamp(runLean, 0f, maxRunLean); weaponLean = Clamp(weaponLean, 0f, maxRunLean);
+            pelvisLeanShare = Clamp(pelvisLeanShare, 0f, 0.5f);
+            runMidStanceKnee = Clamp(runMidStanceKnee, 0f, 60f); standKnee = Clamp(standKnee, 0f, 20f); stanceDrop = Clamp(stanceDrop, 0.01f, 0.12f);
             walkHipYaw = Clamp(walkHipYaw, 0f, 25f); runHipYaw = Clamp(runHipYaw, 0f, 25f); swingBlend = Clamp(swingBlend, 0.3f, 0.9f); kneelTorsoLean = Clamp(kneelTorsoLean, 0f, 45f);
         }
 
         private static float Clamp(float v, float lo, float hi) => v < lo ? lo : (v > hi ? hi : v);
+
+        /// <summary>Pone al día un asset viejo: los valores que cambiaron de significado o de rango vuelven al nuevo por defecto (el resto se respeta).</summary>
+        public bool Migrate()
+        {
+            if (poseVersion >= CurrentPoseVersion) return false;
+            var d = new LocomotionPoseData();
+            if (poseVersion < 2) { runLean = d.runLean; walkLean = d.walkLean; }   // v2: correr 8-12° (antes 14° más la pelvis)
+            poseVersion = CurrentPoseVersion;
+            return true;
+        }
     }
 
     /// <summary>
@@ -51,8 +72,9 @@ namespace SevenDays.Procedural
             if (footPhase < stance)
             {
                 float s = footPhase / Math.Max(1e-3f, stance);
-                if (s < 0.5f) return Lerp(d.contactKnee, d.midStanceKnee, Smooth(s / 0.5f));
-                return Lerp(d.midStanceKnee, d.toeOffKnee, Smooth((s - 0.5f) / 0.5f));
+                float mid = Lerp(d.midStanceKnee, d.runMidStanceKnee, run);
+                if (s < 0.5f) return Lerp(d.contactKnee, mid, Smooth(s / 0.5f));
+                return Lerp(mid, d.toeOffKnee, Smooth((s - 0.5f) / 0.5f));
             }
             float u = (footPhase - stance) / Math.Max(1e-3f, 1f - stance);
             float peak = Lerp(d.walkSwingKnee, d.runSwingKnee, run);
@@ -109,6 +131,38 @@ namespace SevenDays.Procedural
             float v = d * d - horizontal * horizontal;
             return v > 0f ? (float)Math.Sqrt(v) : 0f;
         }
+
+        /// <summary>
+        /// Fracción del ciclo que un pie puede estar apoyado sin que la pelvis baje más de "stanceDrop": el pie se apoya bajo la cadera a mitad del apoyo, así que
+        /// recorre ±alcance, con alcance = lo que llega la pierna (rodilla de contacto) desde la cadera de pie menos esa caída, más la palanca de la bola del pie.
+        /// Corriendo sale ~0.3 (hay vuelo y la cadera no se hunde); caminando sigue > 0.5 (doble apoyo).
+        /// </summary>
+        public static float ReachStance(float baseStance, float cycleLength, float standHipJoint, float ankleAtContact, float ballLever, LocomotionPoseData d, float thigh, float shin)
+        {
+            float v = standHipJoint - d.stanceDrop - ankleAtContact;
+            float dist = LegSolver.Distance(thigh, shin, d.contactKnee);
+            float h2 = dist * dist - v * v;
+            float travel = 2f * (h2 > 0f ? (float)Math.Sqrt(h2) : 0f) + ballLever;
+            float s = cycleLength > 1e-3f ? travel / cycleLength : baseStance;
+            return Math.Max(0.22f, Math.Min(baseStance, s));
+        }
+
+        /// <summary>Altura de la articulación de la cadera de pie (sobre el suelo) con la rodilla a "kneeDeg" y el tobillo a "ankleHeight" (suela incluida).</summary>
+        public static float StandHipJoint(float ankleHeight, float thigh, float shin, float kneeDeg) => ankleHeight + LegSolver.Distance(thigh, shin, kneeDeg);
+
+        /// <summary>
+        /// Inclinación del torso al moverse (grados), por pesos de la mezcla: andar, trotar, correr; con arma en las manos se acerca a "weaponLean"; nunca más de
+        /// maxRunLean. Devuelve el total; la pelvis pone pelvisLeanShare (2-4°) y la columna y el pecho el resto.
+        /// </summary>
+        public static float MoveLean(LocomotionPoseData d, float walk, float jog, float run, float armed)
+        {
+            float lean = walk * d.walkLean + jog * d.trotLean + run * d.runLean;
+            float moving = walk + jog + run;
+            lean = Lerp(lean, Math.Min(lean, d.weaponLean * moving), armed);
+            return Math.Min(lean, d.maxRunLean);
+        }
+
+        public static float PelvisLean(LocomotionPoseData d, float totalLean) => Math.Min(4f, totalLean * d.pelvisLeanShare);
 
         public static float Lerp(float a, float b, float t) => a + (b - a) * Math.Max(0f, Math.Min(1f, t));
         public static float Smooth(float t) => CameraMath.EaseInOut(t);

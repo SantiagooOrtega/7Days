@@ -17,6 +17,7 @@ namespace SevenDays.Animation
         {
             var a = Resources.Load<LocomotionPoseSettings>(ResourcePath);
             var s = a != null ? JsonUtility.FromJson<LocomotionPoseData>(JsonUtility.ToJson(a.Settings)) : new LocomotionPoseData();
+            s.Migrate();   // un asset de una versión anterior toma los valores nuevos que cambiaron (p. ej. la inclinación al correr)
             s.Validate();
             return s;
         }
