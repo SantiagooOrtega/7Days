@@ -25,7 +25,9 @@ namespace SevenDays.Player
         private Vector2 _sway, _swayVel;
         private float _kick, _aimOffsetWeight;
         private Procedural.CriticalSpring _blind, _down, _sprintW, _coverW, _reloadW;
-        private Procedural.CriticalSpring3 _melee;
+        private Procedural.CriticalSpring3 _melee, _chest;
+        private Procedural.CriticalSpring _sideSwing;
+        private SevenDays.Animation.ProceduralRig _rig;
         private static readonly Vector3 Holstered = new Vector3(0.1f, -0.5f, -0.12f);
         private Health _health;
 
@@ -38,6 +40,7 @@ namespace SevenDays.Player
             _pose = pose; _torso = torso; _camera = cam; _motor = motor; _shooting = shooting;
             _cover = GetComponent<PlayerCover>();
             _health = GetComponent<Health>();
+            _rig = GetComponentInChildren<SevenDays.Animation.ProceduralRig>();
         }
 
         public void OnShot() => _kick = Mathf.Min(1.5f, _kick + 1f);
@@ -99,6 +102,7 @@ namespace SevenDays.Player
             float speed01 = _motor.IsGrounded ? _motor.Speed01 : 0f;
             float bobAmp = w.bobAmount * Mathf.Lerp(0.012f, 0.03f, _motor.IsSprinting ? 1f : 0f) * speed01 * calm;
             Vector3 bob = new Vector3(Mathf.Sin(phase) * bobAmp, (Mathf.Abs(Mathf.Cos(phase)) - 0.5f) * bobAmp, 0f);
+            if (_rig != null) bob = Vector3.zero;   // con rig el arma sigue el rebote REAL del pecho (abajo): este balanceo sería un duplicado
 
             // --- kickback con muelle
             _kick = Mathf.MoveTowards(_kick, 0f, dt * 9f);
@@ -142,7 +146,20 @@ namespace SevenDays.Player
             }
             V3 melee = _melee.Step(m, 0.025f, dt);
 
-            _pose.localPosition = pos + bob + kickPos;
+            // el arma sigue al pecho (rebote, giro, inclinación) con un retraso elástico: acompaña la inercia del torso sin vibrar
+            Vector3 chest = Vector3.zero;
+            if (_rig != null)
+            {
+                V3 c = _chest.Step(new V3(_rig.ChestOffsetLocal.x, _rig.ChestOffsetLocal.y, _rig.ChestOffsetLocal.z), 0.07f, dt);
+                chest = new Vector3(c.X, c.Y, c.Z) * 0.85f * (1f - aim * 0.7f);
+            }
+            // corriendo con un arma a una mano (pistola, barra): el brazo la lleva al costado con un pequeño balanceo amortiguado
+            float oneHanded = (w.IsMelee || w.kind == WeaponKind.Pistol || w.kind == WeaponKind.Revolver) ? 1f : 0f;
+            float side = _sideSwing.Step(_rig != null ? ArmSwingMath.Offset(_rig.GaitPhase, false) * sprint * oneHanded : 0f, 0.06f, dt);
+            pos += new Vector3(0f, 0f, side * 0.07f);
+            rot.x += side * 12f;
+
+            _pose.localPosition = pos + bob + kickPos + chest;
             _pose.localRotation = Quaternion.Euler(rot.x + aimPitch + kickPitch + _sway.y + reloadRot.x + melee.X, rot.y + _sway.x + reloadRot.y + melee.Y, rot.z - _sway.x * 0.5f + reloadRot.z + melee.Z);
 
             AnimateParts(w, rl);
