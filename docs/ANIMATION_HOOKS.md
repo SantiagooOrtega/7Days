@@ -1,4 +1,21 @@
-# Hooks de animación del jugador (para conectar los modelos en la Fase 3)
+# Hooks de animación del jugador
+
+**Hoy la animación es procedural** (sin clips ni modelos externos, ver `ARTE_PROCEDURAL.md`): `Animation/ProceduralRig` anima un esqueleto humanoide propio y `Animation/PlayerRigDriver` lo alimenta leyendo ESTOS mismos parámetros de `PlayerAnimatorHooks` (la interfaz pública no cambia). Si un día se usan clips reales, basta con asignar un Animator con estos parámetros y quitar el driver: el resto del juego no se toca.
+
+## Esqueleto procedural
+Huesos con nombres estilo Humanoid: `Hips, Spine, Chest, UpperChest, Neck, Head, Left/RightShoulder, Left/RightUpperArm, Left/RightLowerArm, Left/RightHand, Left/RightUpperLeg, Left/RightLowerLeg, Left/RightFoot, Left/RightToes` (22). Pose de reposo con brazos y piernas hacia abajo; eje de las extremidades = -Y local, columna = +Y. Proporciones en `RigProportions` (altura, hombros, cadera, grosor, encorvado...). No se construye un Avatar Humanoid: toda la animación es procedural y no hace falta; los nombres permiten mapearlo después con `AvatarBuilder` si se quisiera.
+
+## Capas del ProceduralRig
+| Capa | Qué mueve | Suavizado (`RigSmoothing`) |
+|------|-----------|----------------------------|
+| Locomoción | zancada ligada a la distancia real (no patina), pies plantados con raycast + IK de dos huesos, pelvis (rebote, balanceo, giro de cadera), idle con cambios de peso y pasos correctivos, aire y aterrizaje | `pelvis` 0.06 s, `footPlanted` 0.02 s, `footSwing` 0.05 s |
+| Torso | inclinación al correr y agachado, contrabalanceo de hombros, respiración (más con fatiga), lean lateral de cobertura, aim offset, anticipación del giro | `torso` 0.12 s |
+| Cabeza | mira hacia la mira con límites y se adelanta al torso | `head` 0.06 s |
+| Brazos y arma | IK de dos huesos a la empuñadura y al guardamano (pesos continuos), balanceo libre al correr | `hands` 0.05 s, `weights` 0.15 s |
+| Reacciones | retroceso según la dirección del golpe, aterrizaje amortiguado, muerte (se desploma y cae de espaldas) | muelles propios |
+Todo pasa por muelles con amortiguación crítica (`CriticalSpring`): nunca hay saltos de pose. La mezcla de estados es continua por pesos (`LocomotionBlend`: idle/caminar/trotar/correr por velocidad, 8 direcciones por MoveX/MoveY).
+
+# Parámetros (interfaz pública)
 
 `Player/PlayerAnimatorHooks.cs` escribe cada frame estos parámetros en el `Animator` que le asignes (campo **Animator**). Solo escribe los que existan en el controlador, así que uno parcial no da errores. El menú **7Days > Crear Animator del jugador** genera `Assets/_Project/Animation/PlayerAnimator.controller` con todos los parámetros, el blend tree de 8 direcciones y las capas: solo hay que arrastrar los clips a cada ranura.
 

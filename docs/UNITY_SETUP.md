@@ -610,3 +610,21 @@ Requiere el backend en marcha (`cd backend && npm run dev`, puerto 3001) y haber
 4. Con más del 85 % del tiempo escondido (≥ 20 s), al pulsar **N** la Console dice `[7Days] Director: abuso de cobertura ...` (también en F4) y salen más lanzadores. Con fatiga ≥ 80 % y ≥ 30 s corriendo: "corres hasta agotarte": más corredores.
 5. Cierra Unity, vuelve a entrar con la misma cuenta: la Console dice `Estadísticas guardadas cargadas ...` y la regla de abuso sigue usando lo acumulado.
 Nota: por ahora el guardado envía el inventario vacío (el guardado del inventario llega en la Fase 6), así que sobrescribe el inventario guardado.
+
+## Arte y animación procedural (ARTE_PROCEDURAL.md)
+
+### Bloques 1 y 2: esqueleto, rig y animación del jugador
+El jugador ya no es una cápsula: es un soldado corpulento (casco, hombreras, chaleco, guantes, botas) sobre un esqueleto de 22 huesos animado por código. Las mallas detalladas y texturas llegan en el Bloque 4.
+Pasos manuales (lo importante es la FLUIDEZ):
+1. Play. Quieto: respira (el pecho sube y baja), cambia el peso de un pie a otro muy despacio. Gira la cámara y el cuerpo: si los pies quedan mal colocados, da un pasito corrector (uno cada vez).
+2. Camina (WASD) y corre (Shift): los pies se apoyan en el suelo SIN patinar (fíjate en un pie apoyado: no se desliza); la zancada se alarga al correr, el torso se inclina hacia delante, los hombros contrarrestan la cadera, la pelvis rebota en cada paso. Corriendo sin apuntar el brazo izquierdo suelta el arma y se balancea.
+3. Apunta (clic derecho) y muévete en 8 direcciones: el cuerpo mira a la cámara y las piernas dan pasos laterales y hacia atrás; el pie que cruza pasa por delante. Las dos manos van al arma.
+4. Gira rápido: el torso y la cabeza empiezan a girar antes que las piernas (anticipación); el arma se retrasa un poco (sway).
+5. Agáchate (Ctrl) quieto y caminando: la pelvis baja, las rodillas se doblan y los pies se separan un poco.
+6. Salta: piernas recogidas en el aire; desde una altura (U): al aterrizar la pelvis baja más cuanto mayor es la caída y vuelve con suavidad.
+7. Vault (Espacio junto a una caja): las manos se apoyan en el obstáculo y las piernas se recogen al pasar.
+8. Cobertura (C): agachado y pegado; A/D se desliza dando pasos laterales; clic derecho o clic izquierdo se asoma (por encima se levanta, por el lado se inclina); Ctrl + clic: el brazo se extiende sobre el borde (a ciegas).
+9. T (recibir daño) desde distintos ángulos: el torso retrocede en la dirección del golpe. Muere: se desploma y cae de espaldas; el arma cae al suelo.
+10. Corre con Shift: el balanceo de la cámara y el sonido de los pasos van con cada pie que toca el suelo (antes eran un ciclo aparte).
+11. FPS en el HUD: el rig del jugador cuesta muy poco (la cifra exacta en ms la mostrará el panel F6 del Bloque 7).
+Si algo se ve roto (rodillas hacia atrás, pies que flotan, temblores), dime en qué acción y con qué arma.
