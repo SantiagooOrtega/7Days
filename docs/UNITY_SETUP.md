@@ -595,3 +595,9 @@ Pasos: 1) pégate a un muro bajo (C) y haz clic izquierdo sin apuntar: te levant
 3. Francotirador apuntando: la lente es más clara (borde negro fino, viñeta suave). La rueda cambia x3 → x5 → x8 → x12 (se ve en la etiqueta) y la sensibilidad baja con cada nivel.
 4. La mira se mece despacio. Mantén **Shift**: el vaivén casi desaparece ("CONTENIENDO 100%" baja hasta 0 en ~3 s). Al agotarse: jadeo audible, pequeño cabeceo y la mira se mueve más ("JADEANDO") durante ~2.5 s.
 5. Dispara a un zombi a más de 260 m (si el mapa lo permite) o a 100–200 m: el daño es el mismo que de cerca (un tiro a la cabeza).
+
+### Corrección: "The referenced script on this Behaviour is missing" (CameraRunSettings)
+Causa: `CameraSettings` y `CameraRunSettings` estaban en un mismo archivo (`CameraConfigs.cs`). Unity solo enlaza un ScriptableObject a un archivo que se llame como su clase, así que `CameraRunSettings.asset` se creó con `m_Script: {fileID: 0}` y la cámara de carrera usaba los valores por defecto. Ahora cada clase tiene su archivo (`CameraSettings.cs` conserva el GUID de antes) y `MissingScriptRepair` vuelve a enlazar el asset sin tocar sus valores.
+1. Abre Unity y espera a que compile: la Console debe decir `Reparado Assets/_Project/Resources/Config/CameraRunSettings.asset ... (valores conservados)` (o usa **7Days > Reparar scripts de los ajustes**).
+2. Selecciona `Resources/Config/CameraRunSettings.asset`: el Inspector muestra el script y sus valores (fovBoost 6, swayMeters 0.045...).
+3. Play: el aviso de script desvinculado ya no aparece. Corre 5 s: balanceo y fatiga como antes; cambia `swayMeters` en el asset y comprueba que se nota (antes no se leía).
