@@ -190,6 +190,9 @@ namespace SevenDays.Procedural
             return total <= 0f ? 0f : (popped + blind * 0.5f) / total;
         }
 
+        /// <summary>La regla sobre las estadísticas guardadas (acumuladas): más del 85 % del tiempo en cobertura escondido, con al menos 20 s de datos.</summary>
+        public static bool IsAbusing(CombatStatsRecord s, float minSeconds = 20f) => s != null && IsAbusing(s.coverSeconds, s.poppedOutSeconds, s.blindFireSeconds, minSeconds);
+
         /// <summary>true si en una ventana de al menos "minSeconds" en cobertura el jugador pasó más del 85 % escondido.</summary>
         public static bool IsAbusing(float covered, float popped, float blind, float minSeconds = 20f)
             => covered + popped + blind >= minSeconds && covered / (covered + popped + blind) > 0.85f;
