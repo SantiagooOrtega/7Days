@@ -58,6 +58,14 @@ namespace SevenDays.Player
         public bool IsBlindFiring => Active && Exposure.State == CoverState.BlindFiring;
         /// <summary>Solo se recarga cubierto.</summary>
         public bool CanReload => !Active || Exposure.Value < 0.1f;
+        /// <summary>Quiere asomarse: apuntando, o disparando cubierto (y un momento después de soltar el gatillo).</summary>
+        public bool WantsPop => Active && CoverFireRules.WantsPop(_camera.Aiming, _triggerHeld, Time.time, _lastTrigger, _camera.Settings.popHoldAfterFire);
+
+        /// <summary>El disparo pide asomarse este frame (gatillo pulsado en cobertura). Lo llama PlayerShooting cada frame mientras se dispara.</summary>
+        public void RequestFirePop() { _lastTrigger = Time.time; _triggerHeld = true; }
+        /// <summary>Volver a cubrirse ya (por ejemplo, para recargar).</summary>
+        public void CancelFirePop() { _lastTrigger = -10f; _triggerHeld = false; }
+
         /// <summary>Altura del borde superior de la cobertura sobre los pies del jugador.</summary>
         public float CoverTop => _collider != null ? _collider.bounds.max.y - transform.position.y : 0f;
 
@@ -66,7 +74,8 @@ namespace SevenDays.Player
         private Health _health;
         private Collider _collider;
         private Vector3 _normal;
-        private float _nextEval;
+        private float _nextEval, _lastTrigger = -10f;
+        private bool _triggerHeld;
         private int _lastShoulder = 1;
         private static readonly Collider[] Overlap = new Collider[8];
 
@@ -91,7 +100,8 @@ namespace SevenDays.Player
             }
             if (!Active) PopDir = PopDirection.None;
 
-            bool wants = Active && _camera.Aiming;
+            bool wants = WantsPop;
+            _triggerHeld = false;   // PlayerShooting lo vuelve a pedir en su Update si sigue disparando
             Exposure.Tick(Time.deltaTime, Active, wants, PopDir != PopDirection.None, cfg.blindExposure, cfg.popSeconds);
 
             // asomarse por el lado opuesto al hombro: la cámara cambia de hombro para acompañar

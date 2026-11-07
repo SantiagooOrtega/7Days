@@ -157,3 +157,62 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class CoverFireTests
+    {
+        [Test]
+        public void LeftClickInCover_PopsAndFires_BlindOnlyWithModifierOrNoRoom()
+        {
+            Assert.AreEqual(CoverShot.PopAndFire, CoverFireRules.Decide(true, false, false, PopDirection.Over));
+            Assert.AreEqual(CoverShot.PopAndFire, CoverFireRules.Decide(true, false, false, PopDirection.Left));
+            Assert.AreEqual(CoverShot.Blind, CoverFireRules.Decide(true, false, true, PopDirection.Over), "Ctrl + clic = a ciegas");
+            Assert.AreEqual(CoverShot.Blind, CoverFireRules.Decide(true, false, false, PopDirection.None), "sin hueco: a ciegas");
+            Assert.AreEqual(CoverShot.Normal, CoverFireRules.Decide(false, false, true, PopDirection.None), "fuera de cobertura: normal");
+            Assert.AreEqual(CoverShot.Normal, CoverFireRules.Decide(true, true, false, PopDirection.Over), "cuerpo a cuerpo: normal");
+        }
+
+        [Test]
+        public void StaysPoppedWhileFiringAndForTheHoldTimeAfterRelease()
+        {
+            const float hold = 0.4f;
+            Assert.IsTrue(CoverFireRules.WantsPop(false, true, 10f, 10f, hold), "con el gatillo pulsado (ráfaga/auto)");
+            Assert.IsTrue(CoverFireRules.WantsPop(false, false, 10.35f, 10f, hold), "0.35 s después de soltar sigue asomado");
+            Assert.IsFalse(CoverFireRules.WantsPop(false, false, 10.45f, 10f, hold), "pasado el tiempo vuelve a cubrirse");
+            Assert.IsTrue(CoverFireRules.WantsPop(true, false, 99f, 10f, hold), "apuntando siempre asomado");
+            var c = new CameraSettingsData { popHoldAfterFire = 2f }; c.Validate();
+            Assert.That(c.popHoldAfterFire, Is.InRange(0.3f, 0.5f));
+        }
+
+        [Test]
+        public void ClickToShot_IsFastEnoughForTheInputBuffer()
+        {
+            // el clic se recuerda 0.15 s (FireControl.InputBuffer): asomarse hasta poder disparar (exposición 0.6) debe tardar menos
+            var e = new ExposureState(); float t = 0f;
+            while (!e.CanShootAimed && t < 1f) { e.Tick(1f / 60f, true, true, true, 0.35f, new CameraSettingsData().popSeconds); t += 1f / 60f; }
+            Assert.Less(t, FireControl.InputBuffer);
+        }
+
+        [Test]
+        public void PoppedOriginClearsALowWall_CrouchedOriginDoesNot()
+        {
+            // muro bajo de 1 m de alto y 0.4 m de grosor entre z = 0.6 y 1.0; el jugador está en z = 0 y el zombi en z = 15 a 1.2 m de altura
+            float minX = -2f, minY = 0f, minZ = 0.6f, maxX = 2f, maxY = 1f, maxZ = 1f;
+            Assert.IsTrue(ShotGeometry.SegmentHitsBox(0f, 0.72f, 0f, 0f, 1.2f, 15f, minX, minY, minZ, maxX, maxY, maxZ), "agachado (cañón a 0.72 m) el tiro choca con el muro");
+            Assert.IsFalse(ShotGeometry.SegmentHitsBox(0f, 1.55f, 0f, 0f, 1.2f, 15f, minX, minY, minZ, maxX, maxY, maxZ), "asomado (1.55 m) pasa por encima");
+            // origen dentro del muro: se saca por arriba y desde ahí el tiro pasa
+            ShotOrigin.PushOut(0f, 0.9f, 0.8f, minX, minY, minZ, maxX, maxY, maxZ, 0.08f, PopDirection.Over, out float ox, out float oy, out float oz);
+            Assert.IsFalse(ShotGeometry.SegmentHitsBox(ox, oy, oz, 0f, 1.2f, 15f, minX, minY, minZ, maxX, maxY, maxZ));
+        }
+
+        [Test]
+        public void SideOriginClearsATallWall_FromItsEdge()
+        {
+            // muro alto (2.5 m) de x = -2 a 2; el jugador junto al borde derecho (x = 1.7) se asoma 0.5 m: x = 2.2, ya fuera del muro
+            float minX = -2f, minY = 0f, minZ = 0.6f, maxX = 2f, maxY = 2.5f, maxZ = 1f;
+            Assert.IsTrue(ShotGeometry.SegmentHitsBox(1.7f, 1.55f, 0f, 2.5f, 1.2f, 15f, minX, minY, minZ, maxX, maxY, maxZ), "sin asomarse choca");
+            Assert.IsFalse(ShotGeometry.SegmentHitsBox(2.2f, 1.55f, 0f, 2.6f, 1.2f, 15f, minX, minY, minZ, maxX, maxY, maxZ), "asomado por el lado pasa");
+        }
+    }
+}

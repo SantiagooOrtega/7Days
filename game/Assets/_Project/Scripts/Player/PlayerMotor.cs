@@ -88,7 +88,7 @@ namespace SevenDays.Player
             if (IsVaulting) return; // durante el vault la posición la gobierna PlayerVault
             float dt = Mathf.Min(Time.deltaTime, 0.05f); // un tirón de FPS no debe lanzar al jugador
 
-            bool wantCrouch = (_cover.Active && !_camera.Aiming) || GameInput.CrouchHeld;
+            bool wantCrouch = (_cover.Active && !_cover.WantsPop) || GameInput.CrouchHeld;   // asomarse por encima = levantarse (la cámara sube con el pivote)
             _crouch = Mathf.MoveTowards(_crouch, wantCrouch ? 1f : 0f, dt * 6f);
             ApplyCrouchPose();
 

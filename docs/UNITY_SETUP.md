@@ -580,3 +580,11 @@ Indicador en pantalla: **CUBIERTO** (azul), **ASOMADO** (rojo) y **A CIEGAS** (n
 5. Con un lanzador: cubierto del todo, su proyectil directo se estrella en la caja ("La cobertura te protegió"); asomado, te golpea. Un zombi cuerpo a cuerpo hace ~35 % del daño si estás cubierto y 100 % asomado.
 6. A 15 m de un zombi, agáchate tras la caja sin asomarte: tarda en detectarte (solo te ve de cerca, ~6 m); asomado te ve desde su rango normal.
 7. **F4**: tiempo cubierto, asomado y a ciegas; "[ABUSO]" aparece si pasas más del 85 % de ≥ 20 s escondido. **F5** muestra la exposición y por dónde te asomas.
+
+### Cambio: disparar cubierto = asomarse solo
+- **Clic izquierdo en cobertura**: el personaje se asoma lo justo (por encima si es baja, por el lado si es alta y hay borde), dispara desde ahí hacia el punto de la retícula y vuelve a cubrirse 0.4 s después de soltar (`popHoldAfterFire`, 0.3–0.5). En automático/ráfaga sigue asomado mientras disparas.
+- **Ctrl + clic izquierdo**: fuego a ciegas (también si no hay hueco para asomarse).
+- **Clic derecho**: asomarse y apuntar hasta soltar.
+- **R** tras disparar: vuelve a cubrirse y recarga en cuanto está cubierto.
+- Depuración: **F5** > "Logs de cada disparo en cobertura": la Console escribe estado, lado, origen, collider golpeado y por qué no se asomó.
+Pasos: 1) pégate a un muro bajo (C) y haz clic izquierdo sin apuntar: te levantas, el tiro pasa por encima y el indicador muestra ASOMADO; 2) suelta: a los ~0.4 s vuelves a CUBIERTO; 3) Ctrl + clic: A CIEGAS; 4) junto al borde de un muro alto, clic: te asomas por el lado.

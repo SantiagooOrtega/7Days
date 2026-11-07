@@ -97,6 +97,26 @@ namespace SevenDays.Procedural
         public static float VisibleRange(float exposure, float aggroRange, float coveredRange = 6f) => CameraMath.Lerp(Math.Min(coveredRange, aggroRange), aggroRange, exposure);
     }
 
+    public enum CoverShot { Normal, PopAndFire, Blind }
+
+    /// <summary>
+    /// Qué hace el disparo estando en cobertura: el clic izquierdo asoma al personaje solo lo justo y dispara desde ahí (PopAndFire); a ciegas solo con el
+    /// modificador (Ctrl) o si de verdad no hay hueco por donde asomarse. Fuera de cobertura, o con arma cuerpo a cuerpo, disparo normal.
+    /// </summary>
+    public static class CoverFireRules
+    {
+        public static CoverShot Decide(bool inCover, bool melee, bool blindModifier, PopDirection pop)
+        {
+            if (!inCover || melee) return CoverShot.Normal;
+            if (blindModifier || pop == PopDirection.None) return CoverShot.Blind;
+            return CoverShot.PopAndFire;
+        }
+
+        /// <summary>Sigue asomado mientras se dispara y "hold" segundos después de soltar el gatillo (o mientras se apunta).</summary>
+        public static bool WantsPop(bool aiming, bool triggerHeld, float time, float lastTriggerTime, float hold)
+            => aiming || triggerHeld || time - lastTriggerTime < hold;
+    }
+
     public static class BlindFire
     {
         public static float Spread(WeaponData w, CameraSettingsData c) => CameraMath.Clamp(w.spreadHip * c.blindSpreadMultiplier, c.blindMinSpread, c.blindMaxSpread);
@@ -136,6 +156,28 @@ namespace SevenDays.Procedural
                 case 5: oz = maxZ + margin; break;
             }
             return true;
+        }
+    }
+
+    public static class ShotGeometry
+    {
+        /// <summary>¿El segmento A→B atraviesa la caja (min..max)? Método de las franjas. Sirve para comprobar que el disparo asomado pasa por encima del muro.</summary>
+        public static bool SegmentHitsBox(float ax, float ay, float az, float bx, float by, float bz, float minX, float minY, float minZ, float maxX, float maxY, float maxZ)
+        {
+            float t0 = 0f, t1 = 1f;
+            if (!Slab(ax, bx - ax, minX, maxX, ref t0, ref t1)) return false;
+            if (!Slab(ay, by - ay, minY, maxY, ref t0, ref t1)) return false;
+            if (!Slab(az, bz - az, minZ, maxZ, ref t0, ref t1)) return false;
+            return t0 <= t1;
+        }
+
+        private static bool Slab(float a, float d, float min, float max, ref float t0, ref float t1)
+        {
+            if (Math.Abs(d) < 1e-7f) return a >= min && a <= max;
+            float ta = (min - a) / d, tb = (max - a) / d;
+            if (ta > tb) { float t = ta; ta = tb; tb = t; }
+            t0 = Math.Max(t0, ta); t1 = Math.Min(t1, tb);
+            return t0 <= t1;
         }
     }
 
