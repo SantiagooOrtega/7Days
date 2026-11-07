@@ -12,7 +12,7 @@ namespace SevenDays.UI
     public class RigDebugPanel : MonoBehaviour
     {
         private ProceduralRig _rig;
-        private bool _open, _bones;
+        private bool _open, _bones, _ground;
         private GUIStyle _label, _head;
         private Vector2 _scroll;
         private RigStressTest _stress;
@@ -39,6 +39,7 @@ namespace SevenDays.UI
         {
             if (_rig == null) return;
             if (_bones && Event.current.type == EventType.Repaint) DrawBones();
+            if (_ground && Event.current.type == EventType.Repaint) DrawGround();
             if (!_open) return;
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 13, normal = { textColor = Color.white } };
             _head ??= new GUIStyle(_label) { fontSize = 15, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.5f, 1f, 0.8f) } };
@@ -59,6 +60,8 @@ namespace SevenDays.UI
             GUILayout.Label("Entradas: agachado " + i.Crouch.ToString("0.00") + "  apuntando " + i.Aiming + "  cobertura " + i.InCover + "  lean " + i.Lean.ToString("0.00") + "  manos " + i.RightWeight.ToString("0.0") + "/" + i.LeftWeight.ToString("0.0"), _label);
 
             _bones = GUILayout.Toggle(_bones, " Dibujar huesos y objetivos IK");
+            _ground = GUILayout.Toggle(_ground, " Mostrar altura de suelo y mínimo de pies");
+            GUILayout.Label("Rodillas: izq " + _rig.KneeFlexion[0].ToString("0") + "°  der " + _rig.KneeFlexion[1].ToString("0") + "° (límite 0-" + LegSolver.MaxKneeFlexion.ToString("0") + "°)  arrodillado " + P(_rig.KneelWeight) + (_rig.PelvisLimited ? "  PELVIS LIMITADA" : ""), _label);
             _rig.DrawGizmos = _bones;
 
             GUILayout.Space(6);
@@ -112,6 +115,39 @@ namespace SevenDays.UI
             }
             for (int f = 0; f < 2; f++) Dot(cam, _rig.FootTargets[f], _rig.FootPlanted[f] ? Color.green : Color.red, 8f);
             for (int h = 0; h < 2; h++) Dot(cam, _rig.HandTargets[h], Color.yellow, 7f);
+        }
+
+        /// <summary>
+        /// Bajo cada pie: el plano del suelo (cruz blanca), el mínimo del tobillo (línea naranja: suelo + tobillo + suela) y el tobillo real (punto verde si está por
+        /// encima, rojo si estuviera por debajo). Junto a cada rodilla, su flexión con color según el límite.
+        /// </summary>
+        private void DrawGround()
+        {
+            var cam = Camera.main;
+            if (cam == null || _rig.Bones == null) return;
+            float ankleH = _rig.Spec[(int)BoneId.LeftFoot].Length;
+            for (int f = 0; f < 2; f++)
+            {
+                var ankle = _rig.Bone(f == 0 ? BoneId.LeftFoot : BoneId.RightFoot).position;
+                var knee = _rig.Bone(f == 0 ? BoneId.LeftLowerLeg : BoneId.RightLowerLeg).position;
+                float g = _rig.FootGround[f];
+                if (g < _rig.transform.position.y - 5f) continue;   // en el aire
+                Vector3 ground = new Vector3(ankle.x, g, ankle.z);
+                Vector3 r = _rig.transform.right * 0.15f, fw = _rig.transform.forward * 0.15f;
+                Line(cam, ground - r, ground + r, Color.white); Line(cam, ground - fw, ground + fw, Color.white);
+                Vector3 min = ground + Vector3.up * (ankleH + LegSolver.Sole);
+                Line(cam, min - r * 0.8f, min + r * 0.8f, new Color(1f, 0.6f, 0.1f));
+                Dot(cam, ankle, ankle.y >= min.y - 0.005f ? Color.green : Color.red, 7f);
+                float flex = _rig.KneeFlexion[f];
+                Vector3 sk = cam.WorldToScreenPoint(knee);
+                if (sk.z > 0f)
+                {
+                    var prev = GUI.color;
+                    GUI.color = flex > LegSolver.MaxKneeFlexion - 5f ? Color.red : (flex > 120f ? Color.yellow : Color.green);
+                    GUI.Label(new Rect(sk.x + 6f, Screen.height - sk.y - 10f, 60f, 20f), flex.ToString("0") + "°");
+                    GUI.color = prev;
+                }
+            }
         }
 
         private static void Line(Camera cam, Vector3 a, Vector3 b, Color c)
