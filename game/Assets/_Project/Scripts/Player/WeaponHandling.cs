@@ -23,6 +23,8 @@ namespace SevenDays.Player
         private PlayerCover _cover;
         private Vector2 _sway, _swayVel;
         private float _kick, _aimOffsetWeight;
+        private Procedural.CriticalSpring _blind, _down;
+        private Health _health;
 
         /// <summary>Lo que el arma retrocede ahora mismo (0..1), para el panel de depuración.</summary>
         public float Kick => _kick;
@@ -32,6 +34,7 @@ namespace SevenDays.Player
         {
             _pose = pose; _torso = torso; _camera = cam; _motor = motor; _shooting = shooting;
             _cover = GetComponent<PlayerCover>();
+            _health = GetComponent<Health>();
         }
 
         public void OnShot() => _kick = Mathf.Min(1.5f, _kick + 1f);
@@ -79,6 +82,21 @@ namespace SevenDays.Player
             if (_torso != null) _torso.localRotation = Quaternion.Euler(aimPitch * 0.25f, 0f, lean);
             // el arma acompaña el lean (se desplaza hacia el lado al que se asoma)
             if (_cover != null) _pose.localPosition += new Vector3(_cover.Lean.Value * 0.12f, 0f, 0f);
+
+            // disparo a ciegas: el brazo se extiende y el arma sube sobre el borde de la cobertura (las manos del rig la siguen por IK)
+            float blind = _blind.Step(_cover != null && _cover.IsBlindFiring ? 1f : 0f, 0.08f, dt);
+            if (blind > 0.001f && _pose.parent != null)
+            {
+                Vector3 local = _pose.parent.InverseTransformPoint(_cover.PopBase(true));
+                _pose.localPosition = Vector3.Lerp(_pose.localPosition, local, blind);
+            }
+            // al morir el arma cae al suelo en vez de quedarse flotando
+            float down = _down.Step(_health != null && _health.IsDead ? 1f : 0f, 0.25f, dt);
+            if (down > 0.001f)
+            {
+                _pose.localPosition = Vector3.Lerp(_pose.localPosition, new Vector3(0.1f, 0.12f - (_pose.parent != null ? _pose.parent.localPosition.y : 1.2f), 0.35f), down);
+                _pose.localRotation = Quaternion.Slerp(_pose.localRotation, Quaternion.Euler(0f, 70f, 90f), down);
+            }
         }
     }
 }
