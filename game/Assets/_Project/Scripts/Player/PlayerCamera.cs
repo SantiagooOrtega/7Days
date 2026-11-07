@@ -62,6 +62,7 @@ namespace SevenDays.Player
         private PlayerMotor _motor;
         private PlayerCover _cover;
         private PlayerImpulse _impulse;
+        private SevenDays.Animation.ProceduralRig _rig;
         private float _pivotSmoothed = 1.55f, _smYaw, _smPitch;
         private readonly List<Renderer> _bodyRenderers = new List<Renderer>();
         private bool _bodyHidden, _aimToggled;
@@ -156,7 +157,7 @@ namespace SevenDays.Player
 
         private void Update()
         {
-            if (_motor == null) { _motor = GetComponent<PlayerMotor>(); _cover = GetComponent<PlayerCover>(); _impulse = GetComponent<PlayerImpulse>(); }
+            if (_motor == null) { _motor = GetComponent<PlayerMotor>(); _cover = GetComponent<PlayerCover>(); _impulse = GetComponent<PlayerImpulse>(); _rig = GetComponentInChildren<SevenDays.Animation.ProceduralRig>(); }
             float dt = Time.deltaTime;
             var w = Weapon ?? Fallback;
 
@@ -247,6 +248,10 @@ namespace SevenDays.Player
                 MoveX = move.x, MoveY = move.y,
                 Speed = _motor.HorizontalSpeed,
                 MotionScale = Settings.motionScale,
+                // el balanceo y los pasos siguen a los pies reales del rig (sin un segundo ciclo que se desincronice)
+                HasExternalStep = _rig != null,
+                ExternalPhase = _rig != null ? _rig.GaitPhase : 0f,
+                ExternalStepped = _rig != null && _rig.ConsumeStep(),
             };
             RunOutput = RunCam.Tick(dt, input);
             if (RunOutput.Stepped && RunOutput.Weight > 0.2f) _impulse?.RunStep(RunOutput.Weight);

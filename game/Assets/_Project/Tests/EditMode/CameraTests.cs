@@ -220,3 +220,25 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class RunCamRigSyncTests
+    {
+        [Test]
+        public void ExternalSteps_DriveTheSwayAndTheStepEvents()
+        {
+            var m = new RunCamModel(new CameraRunSettingsData());
+            var i = new RunCamInput { Sprinting = true, MoveY = 1f, Speed = 6.8f, MotionScale = 1f, HasExternalStep = true };
+            for (int k = 0; k < 30; k++) { i.ExternalPhase = 0f; i.ExternalStepped = false; m.Tick(1f / 60f, i); }
+            Assert.AreEqual(0f, m.Steps.Phase, 1e-5f, "la fase es la del rig, no avanza sola");
+            i.ExternalPhase = 0.25f; i.ExternalStepped = false;
+            var o = m.Tick(1f / 60f, i);
+            Assert.IsFalse(o.Stepped);
+            Assert.AreEqual(System.Math.PI * 0.5, m.Steps.Phase, 1e-4f);
+            Assert.Greater(o.OffsetX, 0f, "a un cuarto de ciclo el balanceo está a un lado");
+            i.ExternalPhase = 0.5f; i.ExternalStepped = true;
+            Assert.IsTrue(m.Tick(1f / 60f, i).Stepped, "el paso de la cámara es el apoyo real del pie");
+        }
+    }
+}
