@@ -39,8 +39,13 @@ namespace SevenDays.Player
         public Collider CoverCollider => Active ? _collider : null;
         /// <summary>Sale de la cobertura (por ejemplo al saltar el obstáculo).</summary>
         public void Exit() { Active = false; Exposure.Reset(); }
-        /// <summary>Dirección en la que el jugador mira mientras está en cobertura (hacia el objeto).</summary>
+        /// <summary>Dirección hacia el objeto de cobertura (para saber si un proyectil viene de frente).</summary>
         public Vector3 FacingDirection => -_normal;
+        /// <summary>
+        /// Hacia dónde mira el cuerpo cubierto: a 45° entre el muro y el lado del hombro activo, con el hombro más cercano pegado al muro (no el pecho de frente ni el
+        /// torso torcido). Al asomarse o disparar el cuerpo gira hacia la cámara.
+        /// </summary>
+        public Vector3 RestFacing => Active ? (Tangent() * _camera.Shoulder.Side + FacingDirection).normalized : transform.forward;
         /// <summary>true si el jugador puede ser golpeado con normalidad (fuera de cobertura o asomado).</summary>
         public bool IsExposed => !Active || Exposure.Value > 0.5f;
         /// <summary>Lean (-1 izquierda .. +1 derecha) al asomarse por el lado; la cámara y el cuerpo lo acompañan.</summary>

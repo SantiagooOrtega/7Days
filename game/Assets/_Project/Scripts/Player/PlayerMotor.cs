@@ -173,7 +173,7 @@ namespace SevenDays.Player
             // --- girar el cuerpo
             Vector3 face = Vector3.zero;
             if (_camera.Aiming || Time.time < FaceCameraUntil) face = Quaternion.Euler(0f, _camera.Yaw, 0f) * Vector3.forward;
-            else if (_cover.Active) face = _cover.FacingDirection;
+            else if (_cover.Active) face = _cover.RestFacing;   // hombro pegado al muro, mirando a lo largo de él
             else if (moveDir.sqrMagnitude > 0.01f) face = moveDir;
 
             if (face.sqrMagnitude > 0.01f)
