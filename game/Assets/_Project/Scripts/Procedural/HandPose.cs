@@ -72,7 +72,7 @@ namespace SevenDays.Procedural
         public float[] grip = { 0f, -0.1f, 0.045f, 15f, 0f, 0f };
         public float[] foregrip = { 0f, -0.07f, 0.4f, 0f, 0f, 0f };
         public float[] stock = { 0f, -0.02f, -0.2f };
-        public string support = "cgrip";     // cgrip | mag | pump | pistol | none
+        public string support = "cgrip";     // cgrip | mag | pump | pistol | melee | none
         public bool shouldered = true;         // culata al hombro (rifles, escopeta, francotirador)
 
         public V3 GripPos => new V3(grip[0], grip[1], grip[2]);
@@ -81,33 +81,42 @@ namespace SevenDays.Procedural
 
         public HandGrip SupportGrip => support == "mag" ? HandGrip.MagGrip : support == "pump" ? HandGrip.Pump : HandGrip.Support;
 
-        /// <summary>Agarre por defecto según el tipo de arma y su geometría (coincide con GunParts).</summary>
+        /// <summary>
+        /// Agarre por defecto según el tipo de arma y su geometría (coincide con GunParts). Desde los datos v5 cada punto es el EJE del mango que se agarra (centro de
+        /// la empuñadura, del guardamano, de la bomba o del cargador): la mano coloca su palma a un radio de él y los dedos lo envuelven.
+        /// </summary>
         public static WeaponGrip For(WeaponKind kind, float length, float thickness)
         {
+            var g = new[] { 0f, -0.09f, 0.04f, 15f, 0f, 0f };   // centro de la empuñadura (inclinada 15°)
             switch (kind)
             {
                 case WeaponKind.Pistol:
-                case WeaponKind.Revolver:
-                    return new WeaponGrip { grip = new[] { 0f, -0.1f, 0.045f, 15f, 0f, 0f }, foregrip = new[] { -0.03f, -0.1f, 0.05f, 15f, 0f, -30f }, stock = new[] { 0f, 0f, 0f }, support = "pistol", shouldered = false };
-                case WeaponKind.Smg:
-                    return new WeaponGrip { grip = new[] { 0f, -0.1f, 0.045f, 15f, 0f, 0f }, foregrip = new[] { 0f, -0.15f, length * 0.42f, -12f, 0f, 0f }, stock = new[] { 0f, -0.01f, -0.06f }, support = "mag", shouldered = true };
-                case WeaponKind.Shotgun:
-                    return new WeaponGrip { grip = new[] { 0f, -0.1f, 0.045f, 15f, 0f, 0f }, foregrip = new[] { 0f, -0.08f, length * 0.42f, 0f, 0f, 0f }, stock = new[] { 0f, -0.02f, -0.21f }, support = "pump", shouldered = true };
-                case WeaponKind.Melee:
-                    return new WeaponGrip { grip = new[] { 0f, 0f, 0.08f, 0f, 0f, 0f }, foregrip = new[] { 0f, 0f, 0.2f, 0f, 0f, 0f }, stock = new[] { 0f, 0f, 0f }, support = "none", shouldered = false };
-                case WeaponKind.SniperRifle:
-                    return new WeaponGrip { grip = new[] { 0f, -0.1f, 0.045f, 15f, 0f, 0f }, foregrip = new[] { 0f, -0.07f, length * 0.22f, 0f, 0f, 0f }, stock = new[] { 0f, -0.02f, -0.24f }, support = "cgrip", shouldered = true };
-                default:   // fusil de asalto
-                    return new WeaponGrip { grip = new[] { 0f, -0.1f, 0.045f, 15f, 0f, 0f }, foregrip = new[] { 0f, -0.07f, length * 0.4f, 0f, 0f, 0f }, stock = new[] { 0f, -0.02f, -0.21f }, support = "cgrip", shouldered = true };
+                case WeaponKind.Revolver:   // agarre cruzado: la mano de apoyo envuelve la misma empuñadura por fuera
+                    return new WeaponGrip { grip = g, foregrip = new[] { 0f, -0.09f, 0.04f, 15f, 0f, 0f }, stock = new[] { 0f, 0f, 0f }, support = "pistol", shouldered = false };
+                case WeaponKind.Smg:        // mano de apoyo sobre el cargador
+                    return new WeaponGrip { grip = g, foregrip = new[] { 0f, -0.13f, length * 0.42f, -12f, 0f, 0f }, stock = new[] { 0f, -0.01f, -0.06f }, support = "mag", shouldered = true };
+                case WeaponKind.Shotgun:    // en la bomba (se mueve al bombear)
+                    return new WeaponGrip { grip = g, foregrip = new[] { 0f, -0.065f, length * PumpAt, 0f, 0f, 0f }, stock = new[] { 0f, -0.02f, -0.21f }, support = "pump", shouldered = true };
+                case WeaponKind.Melee:      // mano baja en el extremo del mango y alta más arriba (MeleeGrip decide si va a una o dos manos)
+                    return new WeaponGrip { grip = new[] { 0f, 0f, 0.08f, 0f, 0f, 0f }, foregrip = new[] { 0f, 0f, length * 0.36f, 0f, 0f, 0f }, stock = new[] { 0f, 0f, 0f }, support = "melee", shouldered = false };
+                case WeaponKind.SniperRifle:   // guardamano a la cadera; apuntando, la mano de apoyo va bajo la culata
+                    return new WeaponGrip { grip = g, foregrip = new[] { 0f, 0f, length * 0.22f, 0f, 0f, 0f }, stock = new[] { 0f, -0.02f, -0.24f }, support = "cgrip", shouldered = true };
+                default:   // fusil de asalto: "C" bajo el guardamano, delante del cargador
+                    return new WeaponGrip { grip = g, foregrip = new[] { 0f, 0f, length * 0.36f, 0f, 0f, 0f }, stock = new[] { 0f, -0.02f, -0.21f }, support = "cgrip", shouldered = true };
             }
         }
+
+        /// <summary>Bomba de la escopeta (fracción del largo) y cargador del fusil: más cerca del cuerpo, donde llega un brazo real desde el hombro.</summary>
+        public const float PumpAt = 0.33f, RifleMagAt = 0.28f;
     }
 
     /// <summary>Colocación del arma apuntando con culata (pura): la culata toca el hombro y el arma mira hacia delante.</summary>
     public static class GripLayout
     {
         /// <summary>Al encarar un arma con culata el torso gira (postura de perfil): el hombro izquierdo se adelanta y llega al guardamano.</summary>
-        public const float ShoulderedTwist = 25f;
+        public const float ShoulderedTwist = 30f;
+        /// <summary>Con el arma de culata a la cadera (sin apuntar) el cuerpo también va algo de perfil.</summary>
+        public const float ReadyTwist = 15f;
 
         /// <summary>Gira un punto del cuerpo alrededor del eje vertical (grados, positivo = el lado derecho atrás, el izquierdo adelante).</summary>
         public static V3 Twist(V3 p, float yawDeg)
@@ -122,5 +131,56 @@ namespace SevenDays.Procedural
 
         /// <summary>Hueco del hombro donde apoya la culata: un poco hacia dentro, abajo y delante de la articulación del hombro derecho.</summary>
         public static V3 StockPocket(V3 rightShoulder) => rightShoulder + new V3(-0.1f, -0.03f, 0.08f);
+    }
+}
+
+namespace SevenDays.Procedural
+{
+    /// <summary>Cómo se coge cada arma cuerpo a cuerpo: mano baja (en el extremo) y alta (fracción del largo), a dos manos o a una, y si la mano de apoyo suelta en el golpe.</summary>
+    public struct MeleeGrip
+    {
+        public float Low, High;          // metros desde el extremo del mango
+        public bool TwoHanded, ReleaseOnStrike;
+    }
+
+    public static class MeleeGrips
+    {
+        /// <summary>Barra, bate, hacha y pala (por id; cualquier otra cuerpo a cuerpo usa el de la barra).</summary>
+        public static MeleeGrip For(string id, float length)
+        {
+            switch (id)
+            {
+                case "bat": return new MeleeGrip { Low = 0.06f, High = 0.21f, TwoHanded = true, ReleaseOnStrike = true };              // manos juntas abajo
+                case "axe": return new MeleeGrip { Low = 0.07f, High = length * 0.42f, TwoHanded = true, ReleaseOnStrike = true };     // la de arriba suelta al golpear
+                case "shovel": return new MeleeGrip { Low = 0.06f, High = length * 0.5f, TwoHanded = true, ReleaseOnStrike = false };  // empuje: las dos manos siempre
+                default: return new MeleeGrip { Low = 0.08f, High = length * 0.36f, TwoHanded = true, ReleaseOnStrike = true };         // barra
+            }
+        }
+
+        /// <summary>¿La mano de apoyo suelta en este instante del golpe? (de la mitad de la preparación a la mitad del seguimiento).</summary>
+        public static bool Released(MeleeGrip g, float t, bool heavy)
+        {
+            if (!g.ReleaseOnStrike || t < 0f) return false;
+            float w = MeleeSwing.Windup(heavy), s = MeleeSwing.Strike(heavy), f = MeleeSwing.Follow(heavy);
+            return t > w * 0.6f && t < w + s + f * 0.6f;
+        }
+    }
+
+    /// <summary>Peso relativo de cada arma (0..1): más inercia al seguir el torso y el hombro baja un poco.</summary>
+    public static class WeaponWeights
+    {
+        public static float For(WeaponKind kind, string id)
+        {
+            switch (kind)
+            {
+                case WeaponKind.Pistol: return 0.15f;
+                case WeaponKind.Revolver: return 0.22f;
+                case WeaponKind.Smg: return 0.35f;
+                case WeaponKind.AssaultRifle: return 0.55f;
+                case WeaponKind.Shotgun: return 0.7f;
+                case WeaponKind.SniperRifle: return 0.9f;
+                default: return id == "axe" || id == "shovel" ? 0.6f : 0.45f;
+            }
+        }
     }
 }
