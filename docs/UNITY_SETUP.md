@@ -700,3 +700,30 @@ bajaba 27 cm al correr porque el apoyo era más largo de lo que alcanza la piern
 Medido en las pruebas (mallas): correr rodilla 15° al contactar y 112° en el vuelo, cadera a -0.6 cm de su altura de pie con 4.3 cm de rebote, torso 10°
 (4.6° con arma); trotar 17°/83°, torso 6.5°; caminar 60° en el vuelo; media rodilla: delantera 94° con espinilla a 3° de la vertical, rodilla trasera a
 5.9 cm del suelo, torso 29.7°; sentadilla 112°/114°. Ningún vértice de la pierna bajo el suelo (mínimo +1.5 cm, la suela).
+
+### Agarre del arma por arma y soldado esbelto
+**Diagnóstico (medido en las mallas reales antes de cambiar nada):** la muñeca iba al punto de agarre, así que la palma quedaba a 6.6 cm de la empuñadura en
+todas las armas; el arma colgaba de un soporte fijo del jugador (no del pecho): sin apuntar la mano de apoyo no llegaba (14–25 cm; corriendo 27–62 cm, codo
+bloqueado), la culata se hundía 11–13 cm en el chaleco y en cobertura el arma atravesaba el pecho 14–15 cm; los dedos atravesaban el arma hasta 4.7 cm.
+
+**Qué cambió:** el arma va anclada al cuerpo (culata en el hueco del hombro; pistola y cuerpo a cuerpo respecto al pecho) con inercia según su peso; cada mano
+se coloca por el EJE del mango que agarra (palma a un radio, dedos que lo envuelven sin atravesarlo); uso de manos por arma (pistola a una mano a la cadera y
+agarre cruzado apuntando, revólver con el pulgar al martillo al disparar, subfusil con la mano en el cargador, fusil en "C" bajo el guardamano, escopeta en
+la bomba que se mueve al bombear, francotirador con la mano bajo la culata y la derecha al cerrojo al ciclar, cuerpo a cuerpo con agarre alto y bajo que suelta
+la de apoyo en el golpe, salvo la pala); recarga que nunca cruza el arma (la mano se aparta por su lado, agarra el cargador y lo acompaña); manos con velocidad
+y giro limitados (sin saltos); hombro que se adelanta para llegar y baja un poco con las armas pesadas; codos abajo y algo hacia dentro.
+Soldado sin mochila, hombros y chaleco ligeros (ProportionSettings). Misma altura: cámara, mira y pies no cambian. El jugador no tiene hitboxes por zona (son de
+los zombis); su CharacterController (radio 0.35) no se toca porque de él dependen cobertura, vault y puertas.
+Bate, hacha y pala tienen su agarre listo pero aún no están en el botín (sus modelos llegan en el Bloque 4).
+
+1. Deja que Unity compile. Si tus assets de armas son de una versión anterior, se ponen al día solos (datos v5: los puntos de agarre pasan a ser el eje del mango).
+   Aparece `Resources/Config/ProportionSettings.asset` (complexión).
+2. Window > General > Test Runner > EditMode > Run All. En `GripVisualTests`: manos a menos de 2 cm de su agarre en todas las armas (sin apuntar, apuntando,
+   disparando, corriendo y en cobertura), dedos y arma sin atravesar, codos sin hiperextensión, recarga sin cruzar el arma, transiciones sin saltos, cuerpo a
+   cuerpo a dos manos que suelta en el golpe, sin mochila y torso esbelto. `Report_GripPerWeaponAndStep` escribe la tabla de medidas en la consola.
+3. Play. Pulsa **F7**: tras las piernas vienen las armas, cada una con sacar, sin apuntar, apuntando, disparando (o golpe y golpe cargado), recargando y
+   bajándola al correr, con la cámara cerca de las manos y, arriba, la distancia de cada mano a su agarre, dedos dentro, culata y codos. Al final, el soldado de
+   frente y de lado. **[** y **]** saltan de tramo; F7 sale.
+4. En **F6** > "Complexión (ProportionSettings)": hombros, cadera, grosor general, torso, brazos y piernas, cabeza y largo de brazos y piernas; pulsa
+   **"Aplicar complexión"** y el soldado se reconstruye en vivo (los valores por defecto se cambian en el asset).
+5. Graba un clip (Cmd+Shift+5) con F7: el agarre de cada arma de cerca, sin apuntar, apuntando y recargando, y el personaje de frente y de lado.
