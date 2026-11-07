@@ -727,3 +727,41 @@ Bate, hacha y pala tienen su agarre listo pero aún no están en el botín (sus 
 4. En **F6** > "Complexión (ProportionSettings)": hombros, cadera, grosor general, torso, brazos y piernas, cabeza y largo de brazos y piernas; pulsa
    **"Aplicar complexión"** y el soldado se reconstruye en vivo (los valores por defecto se cambian en el asset).
 5. Graba un clip (Cmd+Shift+5) con F7: el agarre de cada arma de cerca, sin apuntar, apuntando y recargando, y el personaje de frente y de lado.
+
+## Rendimiento a pantalla grande (cuello de botella de GPU por resolución)
+**Diagnóstico:** el URP Asset del PC tenía 4 cascadas de sombra con suavizado Alto, sombras de luces adicionales, textura opaca y de profundidad (copias de
+pantalla completa que nada usaba) y SSAO a resolución completa; filtrado anisotrópico forzado en todas las texturas; y la niebla/humo con partículas de 6 a
+48 m que podían cubrir media pantalla (overdraw que crece con la resolución). En una Mac Retina la ventana Game grande renderiza a píxeles nativos.
+Banco de pruebas (Unity real en batch, Apple M3, render + espera de GPU, mediana; con el editor abierto hay ±3 ms de ruido): antes 720p 8.7–9.8 ms, 1080p
+15.0–16.8 ms, 1440p 16.7–18.3 ms; lo que más cuesta por píxel son las sombras del sol, el SSAO y las partículas grandes.
+
+**Qué cambió:** resolución dinámica por tiempo de GPU (render scale 0.6–1.0 con FSR; la interfaz se dibuja a resolución nativa), gobernador de calidad que
+baja y vuelve a subir (QualityDirector), URP con 2 cascadas, sombra suave media, sin sombras de luces adicionales, sin textura opaca ni de profundidad y SSAO a
+mitad; bloom a mitad (o a un cuarto); texturas de color comprimidas (BC/DXT) con anisotrópico 4x; niebla y humo con tamaño máximo del 30 % de la pantalla y
+fundido junto a la cámara; ayuda del HUD que se oculta a los 10 s. Después (mismo banco, calidad Alta a escala 1.0): 720p 8.3–8.6 ms, 1080p 12.4–13.3 ms,
+1440p ~17 ms; a 1440p la resolución dinámica baja a 0.75 (15 ms) o 0.6 (10.8 ms).
+
+### Niveles de calidad (QualityProfile)
+| Nivel | Sombras | Suavizado | SSAO | Bloom | Grano | Atmósfera | Resolución dinámica |
+|---|---|---|---|---|---|---|---|
+| Alta | 50 m, 2 cascadas | medio | a mitad | a mitad | sí | completa | 0.75–1.0 |
+| Media | 42 m, 2 cascadas | bajo | a mitad | a un cuarto | sí | 60 % | 0.67–1.0 |
+| Baja | 35 m, 1 cascada | duras | no | a un cuarto | no | 30 % | 0.6–0.9 |
+| Mínima | 30 m, 1 cascada | duras | no | no | no | lo esencial | 0.6–0.8 |
+En **Auto**: primero baja la resolución (en ~0.35 s si la GPU pasa de 15 ms; sube 0.05 tras 3 s por debajo de 11.5 ms; entre medias no cambia: sin parpadeo);
+si con la resolución al mínimo el FPS sigue por debajo de 55 durante 2.5 s, baja un nivel; si pasa de 58 durante 4 s con la resolución al máximo, sube uno.
+F3 pasa de nivel a mano.
+
+1. **Menú Esc > Calidad:** Auto (recomendado), Alta, Media o Baja; casilla **Resolución dinámica**. Se guardan para la próxima vez.
+2. **F6 > panel "Render"** (a la izquierda): ventana e interna, render scale, ms de CPU y **GPU**, draw calls, SetPass, triángulos, shadow casters, luces y
+   nivel de calidad. Con la ventana grande, si el FPS no llega a 60 mira primero la GPU: si pasa de 15 ms, la resolución dinámica debería estar bajando.
+3. **Perfil de calidad "Demo"** (opcional; el juego lo usa si existe): Edit > Project Settings > Quality > Add Quality Level, nómbralo `Demo`, Render Pipeline
+   Asset = `PC_RPAsset`, Anisotropic Textures = Per Texture, Anti Aliasing = Disabled, VSync Count = Don't Sync, y márcalo como predeterminado de la
+   plataforma (flecha verde en la fila "Default"). En el URP Asset (Assets/Settings/PC_RPAsset) comprueba: Opaque Texture y Depth Texture desactivados,
+   HDR activado, Anti Aliasing (MSAA) Disabled, Shadows: Max Distance 50, Cascade Count 2, Soft Shadows Medium, Additional Lights > Cast Shadows desactivado.
+4. **Medir en el editor:** Game view en 1280x720, 1920x1080 y 2560x1440 (desplegable de resolución), Play, F6, apunta FPS y GPU ms con calidad Alta y
+   resolución dinámica APAGADA (para comparar) y luego en Auto. Window > Analysis > Profiler (GPU) para ver qué pasa cuesta más.
+5. **Medir en una build** (el editor rinde peor): File > Build Profiles > macOS > marca "Development Build" (para ver draw calls en F6) > Build And Run;
+   en la build, mismas resoluciones (ventana o pantalla completa), F6.
+6. **Banco de pruebas en batch:** Window > General > Test Runner > PlayMode > `RenderBenchmark` (es [Explicit]: se lanza a mano). Escribe en la consola una
+   tabla de ms por resolución y nivel.
