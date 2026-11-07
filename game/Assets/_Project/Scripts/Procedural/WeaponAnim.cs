@@ -27,7 +27,7 @@ namespace SevenDays.Procedural
                     {
                         HipPos = new V3(0.02f, -0.12f, 0.02f), HipRot = new V3(8f, 0f, 0f),
                         SprintPos = new V3(0.04f, -0.32f, -0.08f), SprintRot = new V3(70f, 0f, 0f),
-                        CoverPos = new V3(-0.14f, 0.0f, -0.1f), CoverRot = new V3(-35f, -20f, 0f),
+                        CoverPos = new V3(-0.14f, -0.08f, 0.02f), CoverRot = new V3(15f, -4f, 0f),
                         TwoHandsHip = false, TwoHandsAim = true, LeftGripFraction = 0.1f,
                     };
                 case WeaponKind.Smg:
@@ -35,7 +35,7 @@ namespace SevenDays.Procedural
                     {
                         HipPos = new V3(-0.06f, -0.04f, 0f), HipRot = new V3(0f, 0f, 0f),
                         SprintPos = new V3(-0.02f, -0.2f, -0.06f), SprintRot = new V3(38f, -35f, 12f),
-                        CoverPos = new V3(-0.16f, 0.02f, -0.12f), CoverRot = new V3(-30f, -30f, 0f),
+                        CoverPos = new V3(-0.12f, -0.05f, -0.02f), CoverRot = new V3(12f, -6f, 0f),
                         TwoHandsHip = true, TwoHandsAim = true, LeftGripFraction = 0.55f,
                     };
                 case WeaponKind.Melee:
@@ -51,7 +51,7 @@ namespace SevenDays.Procedural
                     {
                         HipPos = new V3(-0.08f, 0.0f, -0.06f), HipRot = new V3(0f, 0f, 0f),
                         SprintPos = new V3(-0.04f, -0.22f, -0.1f), SprintRot = new V3(35f, -40f, 15f),
-                        CoverPos = new V3(-0.18f, 0.04f, -0.15f), CoverRot = new V3(-28f, -35f, 0f),
+                        CoverPos = new V3(-0.12f, -0.04f, -0.04f), CoverRot = new V3(12f, -6f, 0f),
                         TwoHandsHip = true, TwoHandsAim = true, LeftGripFraction = 0.6f,
                     };
             }

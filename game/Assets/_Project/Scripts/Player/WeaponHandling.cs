@@ -47,6 +47,27 @@ namespace SevenDays.Player
 
         private static Vector3 V(V3 v) => new Vector3(v.X, v.Y, v.Z);
 
+        /// <summary>
+        /// Posición del arma al apuntar (espacio del soporte): con culata, la culata va al hueco del hombro derecho del rig (mejilla pegada); pistola, centrada delante
+        /// del pecho a la altura de los ojos con los brazos extendidos. Sin rig se usa la pose fija de siempre.
+        /// </summary>
+        private Vector3 AimLocalPosition(WeaponData w, float pitch)
+        {
+            if (_rig == null || _pose.parent == null || w.IsMelee) return AimPose;
+            var g = w.grip ?? WeaponGrip.For(w.kind, w.length, w.thickness);
+            var chest = _rig.Bone(BoneId.UpperChest);
+            if (g.shouldered)
+            {
+                Vector3 shoulder = _rig.Bone(BoneId.RightUpperArm).position;
+                Vector3 pocket = shoulder - chest.right * 0.1f - chest.up * 0.03f + chest.forward * 0.08f;
+                Vector3 local = _pose.parent.InverseTransformPoint(pocket);
+                // la culata está detrás del origen del arma: se resta girada con la inclinación de la mira
+                return local - Quaternion.Euler(pitch, 0f, 0f) * V(g.StockPos);
+            }
+            Vector3 front = chest.position + _rig.transform.forward * 0.42f + Vector3.up * 0.08f + _rig.transform.right * 0.05f;
+            return _pose.parent.InverseTransformPoint(front);
+        }
+
         /// <summary>Piezas móviles: corredera al disparar, bomba y cerrojo al ciclar, cargador y tambor durante la recarga.</summary>
         private void AnimateParts(WeaponData w, ReloadState rl)
         {
@@ -123,7 +144,7 @@ namespace SevenDays.Player
             Vector3 pos = V(hold.HipPos), rot = V(hold.HipRot);
             pos = Vector3.Lerp(pos, V(hold.SprintPos), sprint); rot = Vector3.Lerp(rot, V(hold.SprintRot), sprint);
             pos = Vector3.Lerp(pos, V(hold.CoverPos), cover); rot = Vector3.Lerp(rot, V(hold.CoverRot), cover);
-            pos = Vector3.Lerp(pos, AimPose, aim); rot = Vector3.Lerp(rot, Vector3.zero, aim);
+            pos = Vector3.Lerp(pos, AimLocalPosition(w, aimPitch), aim); rot = Vector3.Lerp(rot, Vector3.zero, aim);
             // sacar el arma (al cambiar): sube desde la cadera
             float draw = _shooting.Draw.Eased;
             pos = Vector3.Lerp(Holstered, pos, draw); rot = Vector3.Lerp(new Vector3(80f, 10f, 0f), rot, draw);
@@ -151,7 +172,7 @@ namespace SevenDays.Player
             if (_rig != null)
             {
                 V3 c = _chest.Step(new V3(_rig.ChestOffsetLocal.x, _rig.ChestOffsetLocal.y, _rig.ChestOffsetLocal.z), 0.07f, dt);
-                chest = new Vector3(c.X, c.Y, c.Z) * 0.85f * (1f - aim * 0.7f);
+                chest = new Vector3(c.X, c.Y, c.Z) * 0.85f * (1f - aim);   // apuntando, el arma ya va al hombro real del rig
             }
             // corriendo con un arma a una mano (pistola, barra): el brazo la lleva al costado con un pequeño balanceo amortiguado
             float oneHanded = (w.IsMelee || w.kind == WeaponKind.Pistol || w.kind == WeaponKind.Revolver) ? 1f : 0f;
