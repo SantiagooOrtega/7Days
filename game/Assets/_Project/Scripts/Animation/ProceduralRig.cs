@@ -103,6 +103,7 @@ namespace SevenDays.Animation
         private CriticalSpring _headYaw, _headPitch, _death, _rightW, _leftW, _air, _kneel, _aimTwist, _cheek;
         private float _runWeight, _gaitHeightLast;
         private float _hipJointDrop, _toeLength;
+        private FootShape _footShape;
         private Vector3 _chestRestLocal;
         private readonly float[] _swingFrom = new float[2];
         private CriticalSpring3 _hit;
@@ -122,6 +123,10 @@ namespace SevenDays.Animation
         private static readonly System.Diagnostics.Stopwatch Watch = new System.Diagnostics.Stopwatch();
 
         public Transform Bone(BoneId id) => Bones[(int)id];
+
+        /// <summary>Medidas reales de la bota (las mide RigVisuals de la malla): con ellas ningún vértice del pie baja del suelo al inclinarlo.</summary>
+        public void SetFootShape(FootShape shape) => _footShape = shape;
+        public FootShape FootShapeMeasured => _footShape;
 
         private void OnEnable() { if (!Active.Contains(this)) Active.Add(this); _frameOffset = Random.Range(0, 6); }
         private void OnDisable() => Active.Remove(this);
@@ -148,6 +153,7 @@ namespace SevenDays.Animation
             _footHeight = Spec[(int)BoneId.LeftFoot].Length;
             _hipJointDrop = -Spec[(int)BoneId.LeftUpperLeg].LocalPosition.Y;
             _toeLength = Spec[(int)BoneId.LeftToes].LocalPosition.Z;
+            _footShape = FootShape.FromSpec(_footHeight, _toeLength);
             var chest = HumanoidRigSpec.RestPosition(Spec, BoneId.UpperChest);
             _chestRestLocal = new Vector3(chest.X, chest.Y - CrouchPose.StandBend, chest.Z);
             ResetPose();
@@ -288,7 +294,7 @@ namespace SevenDays.Animation
                 // media rodilla: la pierna del hombro activo va atrás (rodilla casi en el suelo), la otra delante a ~90° con el pie plano
                 bool rear = (side > 0f) == (Inputs.KneelSide >= 0);
                 float hipJ = HalfKneel.HipJointHeight(_thigh);
-                V3 k = rear ? HalfKneel.RearAnkle(side * _hipHalf, _shin) : HalfKneel.FrontAnkle(side * _hipHalf, _thigh, _shin, _footHeight, hipJ);
+                V3 k = rear ? HalfKneel.RearAnkle(side * _hipHalf, _shin, FootGeometry.MinAnkleHeight(_footShape, HalfKneel.RearFootPitch, FootGeometry.FlatToeBend(HalfKneel.RearFootPitch))) : HalfKneel.FrontAnkle(side * _hipHalf, _thigh, _shin, _footHeight, hipJ);
                 local = Vector3.Lerp(local, new Vector3(k.X * 1.1f, 0f, k.Z), kneel);
             }
             return transform.position + transform.rotation * local;
@@ -495,17 +501,27 @@ namespace SevenDays.Animation
                     : frontKneelLeg ? hip + fwd * 1.2f + Vector3.up * 0.3f + transform.right * side * 0.15f   // delantera: adelante, a ~90°
                     : CrouchPose.KneePole(ToV3(hip), ToV3(fwd), ToV3(transform.right), side).ToUnity();       // rodillas hacia delante y algo hacia fuera: nunca se cruzan
                 Vector3 ankleTarget = FootTargets[f] + Vector3.up * _footHeight;
-                // rodar el pie al caminar: talón al contactar, plano, punta al despegar (el tobillo sube para que la punta siga en el suelo)
+                // inclinación del pie: talón al contactar, plano, punta al despegar; en el aire algo de punta arriba; arrodillado, el pie de atrás apoya la punta
                 bool walkingLegs = MeasuredSpeed > 0.15f && Inputs.Grounded && !Inputs.Vaulting && !Inputs.Dead;
-                float gaitPitch = walkingLegs ? GaitPose.FootPitch(Pose, _gait.FootPhase(f), StanceFraction) : 0f;
-                if (walkingLegs && FootPlanted[f]) ankleTarget += Vector3.up * GaitPose.HeelRaise(gaitPitch, _toeLength);
+                float pitch = walkingLegs ? GaitPose.FootPitch(Pose, _gait.FootPhase(f), StanceFraction) : (FootPlanted[f] ? 0f : -18f);
+                if (kneelingLeg) pitch = Mathf.Lerp(pitch, HalfKneel.RearFootPitch, (kneel - 0.5f) * 2f);
+                bool onGround = FootPlanted[f] || kneelingLeg;
+                // con el pie apoyado la punta se dobla para quedar plana (rueda sobre la bola); la altura mínima del tobillo sale de la bota REAL inclinada
+                float toeBend = onGround ? FootGeometry.FlatToeBend(pitch) : 0f;
+                float minAnkle = FootGeometry.MinAnkleHeight(_footShape, pitch, toeBend);
+                if (onGround) ankleTarget.y = Mathf.Max(ankleTarget.y, FootGround[f] + minAnkle);
 
-                // reglas duras: tobillo y rodilla nunca bajo el suelo, rodilla 0-150° sin hiperextensión
-                var r = LegSolver.Solve(ToV3(hip), ToV3(ankleTarget), FootGround[f], _footHeight, ToV3(pole), _thigh, _shin);
+                // reglas duras: ningún vértice de la bota ni la rodilla bajo el suelo, rodilla 0-150° sin hiperextensión
+                var r = LegSolver.Solve(ToV3(hip), ToV3(ankleTarget), FootGround[f], minAnkle - LegSolver.Sole, ToV3(pole), _thigh, _shin);
                 // sentadilla muy profunda: se levanta el talón (la punta sigue en el suelo) para no forzar la rodilla
                 float heel = FootPlanted[f] && !kneelingLeg ? Mathf.Clamp01((r.KneeFlexion - 120f) / 30f) * 25f : 0f;
                 if (heel > 0.5f)
-                    r = LegSolver.Solve(ToV3(hip), ToV3(ankleTarget + Vector3.up * _toeLength * Mathf.Sin(heel * Mathf.Deg2Rad)), FootGround[f], _footHeight, ToV3(pole), _thigh, _shin);
+                {
+                    pitch = Mathf.Max(pitch, heel); toeBend = FootGeometry.FlatToeBend(pitch);
+                    minAnkle = FootGeometry.MinAnkleHeight(_footShape, pitch, toeBend);
+                    ankleTarget.y = Mathf.Max(ankleTarget.y, FootGround[f] + minAnkle);
+                    r = LegSolver.Solve(ToV3(hip), ToV3(ankleTarget), FootGround[f], minAnkle - LegSolver.Sole, ToV3(pole), _thigh, _shin);
+                }
                 KneeFlexion[f] = r.KneeFlexion;
 
                 Vector3 knee = r.Knee.ToUnity(), ank = r.Ankle.ToUnity();
@@ -514,11 +530,9 @@ namespace SevenDays.Animation
                 if (bendDir.sqrMagnitude < 1e-6f) bendDir = fwd;
                 upper.rotation = SegmentRotation(hip, knee, bendDir);
                 lower.rotation = SegmentRotation(knee, ank, bendDir);
-                // pie plano; punta arriba al despegar; talón arriba en sentadilla profunda; arrodillado, el pie de atrás apoya la punta
                 Vector3 footFwd = Vector3.ProjectOnPlane(fwd, Vector3.up).normalized;
-                float pitch = walkingLegs ? gaitPitch : (FootPlanted[f] ? heel : -18f);
-                if (kneelingLeg) pitch = Mathf.Lerp(pitch, 70f, (kneel - 0.5f) * 2f);   // pie trasero: apoya la punta
                 foot.rotation = Quaternion.LookRotation(Quaternion.AngleAxis(pitch, Vector3.Cross(Vector3.up, footFwd)) * footFwd, Vector3.up);
+                Bone(f == 0 ? BoneId.LeftToes : BoneId.RightToes).localRotation = Quaternion.Euler(-toeBend, 0f, 0f);
             }
         }
 

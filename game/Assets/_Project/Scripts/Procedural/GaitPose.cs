@@ -120,7 +120,9 @@ namespace SevenDays.Procedural
     /// </summary>
     public static class HalfKneel
     {
-        public const float RearKneeHeight = 0.055f, RearKneeBack = 0.04f, RearShinPitch = 8f;
+        public const float RearKneeHeight = 0.065f, RearKneeBack = 0.04f, RearShinPitch = 8f;
+        /// <summary>Pie trasero: punta abajo (apoya la bola y la punta doblada), en línea con la espinilla casi horizontal.</summary>
+        public const float RearFootPitch = 70f;
 
         /// <summary>Altura de la articulación de la cadera: el muslo trasero baja casi vertical hasta la rodilla apoyada.</summary>
         public static float HipJointHeight(float thigh) => RearKneeHeight + (float)Math.Sqrt(Math.Max(0f, thigh * thigh - RearKneeBack * RearKneeBack));
@@ -132,6 +134,13 @@ namespace SevenDays.Procedural
         {
             double p = RearShinPitch * Math.PI / 180.0;
             return new V3(x, RearKneeHeight + (float)(Math.Sin(p) * shin), -RearKneeBack - (float)(Math.Cos(p) * shin));
+        }
+
+        /// <summary>Tobillo trasero a la altura que pide la bota con la punta apoyada ("ankleY", de FootGeometry): la espinilla sube lo justo desde la rodilla.</summary>
+        public static V3 RearAnkle(float x, float shin, float ankleY)
+        {
+            float dy = Math.Max(0f, Math.Min(shin, ankleY - RearKneeHeight));
+            return new V3(x, ankleY, -RearKneeBack - (float)Math.Sqrt(shin * shin - dy * dy));
         }
 
         /// <summary>Tobillo delantero: justo bajo la rodilla delantera (espinilla vertical), con la rodilla a la altura de la cadera delante (muslo horizontal, ~90°).</summary>
