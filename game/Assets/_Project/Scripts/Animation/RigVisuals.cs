@@ -28,20 +28,19 @@ namespace SevenDays.Animation
 
         public static void BuildSoldier(ProceduralRig rig, RigPalette pal)
         {
-            var spec = rig.Spec; float k = rig.Proportions.bulk;
+            var spec = rig.Spec; var pr = rig.Proportions; float k = pr.bulk, d = pr.torsoDepth, t = pr.limbThickness;
             Material cloth = Prim.GetMaterial(pal.Cloth), armor = Prim.GetMaterial(pal.Armor), skin = Prim.GetMaterial(pal.Skin), accent = Prim.GetMaterial(pal.Accent), boots = Prim.GetMaterial(pal.Boots);
             float L(BoneId id) => spec[(int)id].Length;
 
-            // pelvis y columna
-            Part(rig, BoneId.Hips, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0f), new Vector3(rig.Proportions.hipWidth * 1.35f, 0.2f, 0.24f) * k, cloth);
-            Part(rig, BoneId.Hips, PrimitiveType.Cube, new Vector3(0f, 0.07f, 0f), new Vector3(rig.Proportions.hipWidth * 1.45f, 0.05f, 0.27f) * k, boots);            // cinturón
-            Part(rig, BoneId.Spine, PrimitiveType.Cube, new Vector3(0f, L(BoneId.Spine) * 0.5f, 0f), new Vector3(0.36f, L(BoneId.Spine) * 1.15f, 0.24f) * k, cloth);
-            Part(rig, BoneId.Chest, PrimitiveType.Cube, new Vector3(0f, L(BoneId.Chest) * 0.5f, 0.01f), new Vector3(0.44f, L(BoneId.Chest) * 1.2f, 0.3f) * k, armor);   // chaleco
-            Part(rig, BoneId.UpperChest, PrimitiveType.Cube, new Vector3(0f, L(BoneId.UpperChest) * 0.45f, 0.01f), new Vector3(rig.Proportions.shoulderWidth * 0.95f, L(BoneId.UpperChest) * 1.05f, 0.32f) * k, armor);
-            Part(rig, BoneId.UpperChest, PrimitiveType.Cube, new Vector3(0f, L(BoneId.UpperChest) * 0.25f, 0.17f * k), new Vector3(0.3f, 0.05f, 0.03f) * k, accent);       // franja de acento
-            Part(rig, BoneId.UpperChest, PrimitiveType.Cube, new Vector3(0f, L(BoneId.UpperChest) * 0.3f, -0.2f * k), new Vector3(0.34f, L(BoneId.UpperChest) * 1.1f, 0.14f) * k, cloth);  // mochila
+            // pelvis y columna (sin mochila ni bultos en la espalda; chaleco táctico ligero que no ensancha la silueta)
+            Part(rig, BoneId.Hips, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0f), new Vector3(pr.hipWidth * 1.3f * k, 0.2f * k, 0.22f * k * d), cloth);
+            Part(rig, BoneId.Hips, PrimitiveType.Cube, new Vector3(0f, 0.07f, 0f), new Vector3(pr.hipWidth * 1.38f * k, 0.045f * k, 0.24f * k * d), boots);            // cinturón
+            Part(rig, BoneId.Spine, PrimitiveType.Cube, new Vector3(0f, L(BoneId.Spine) * 0.5f, 0f), new Vector3(0.3f * k, L(BoneId.Spine) * 1.15f, 0.21f * k * d), cloth);
+            Part(rig, BoneId.Chest, PrimitiveType.Cube, new Vector3(0f, L(BoneId.Chest) * 0.5f, 0.005f), new Vector3(0.34f * k, L(BoneId.Chest) * 1.2f, 0.24f * k * d), armor);   // chaleco ligero
+            Part(rig, BoneId.UpperChest, PrimitiveType.Cube, new Vector3(0f, L(BoneId.UpperChest) * 0.45f, 0.005f), new Vector3(pr.shoulderWidth * 0.82f * k, L(BoneId.UpperChest) * 1.05f, 0.24f * k * d), armor);
+            Part(rig, BoneId.UpperChest, PrimitiveType.Cube, new Vector3(0f, L(BoneId.UpperChest) * 0.25f, 0.125f * k * d), new Vector3(0.24f * k, 0.045f, 0.02f), accent);       // franja de acento
             // cuello, cabeza y casco
-            Part(rig, BoneId.Neck, PrimitiveType.Capsule, new Vector3(0f, L(BoneId.Neck) * 0.5f, 0f), new Vector3(0.12f, L(BoneId.Neck) * 0.7f, 0.12f) * k, skin);
+            Part(rig, BoneId.Neck, PrimitiveType.Capsule, new Vector3(0f, L(BoneId.Neck) * 0.5f, 0f), new Vector3(0.11f * k, L(BoneId.Neck) * 0.7f, 0.11f * k), skin);
             float head = L(BoneId.Head);
             Part(rig, BoneId.Head, PrimitiveType.Sphere, new Vector3(0f, head * 0.45f, 0.01f), new Vector3(0.2f, head * 0.95f, 0.22f), skin);
             Part(rig, BoneId.Head, PrimitiveType.Sphere, new Vector3(0f, head * 0.62f, -0.005f), new Vector3(0.25f, head * 0.78f, 0.27f), armor);                 // casco
@@ -54,20 +53,31 @@ namespace SevenDays.Animation
                 BoneId ul = left ? BoneId.LeftUpperLeg : BoneId.RightUpperLeg, ll = left ? BoneId.LeftLowerLeg : BoneId.RightLowerLeg, foot = left ? BoneId.LeftFoot : BoneId.RightFoot;
 
                 // brazo: hombrera, brazo, codo, antebrazo, guante
-                Part(rig, ua, PrimitiveType.Sphere, new Vector3(0f, 0f, 0f), Vector3.one * 0.17f * k, cloth);                                                        // rótula del hombro
-                Part(rig, ua, PrimitiveType.Cube, new Vector3(side * 0.02f, 0.03f, 0f), new Vector3(0.2f, 0.09f, 0.2f) * k, armor, side * 12f);                    // hombrera
-                Part(rig, ua, PrimitiveType.Capsule, new Vector3(0f, -L(ua) * 0.5f, 0f), new Vector3(0.13f, L(ua) * 0.55f, 0.13f) * k, cloth);
-                Part(rig, la, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.11f * k, cloth);                                                                  // codo
-                Part(rig, la, PrimitiveType.Capsule, new Vector3(0f, -L(la) * 0.5f, 0f), new Vector3(0.11f, L(la) * 0.55f, 0.11f) * k, cloth);
-                Part(rig, la, PrimitiveType.Cube, new Vector3(0f, -L(la) * 0.62f, 0f), new Vector3(0.12f, L(la) * 0.45f, 0.12f) * k, armor);                         // protector de antebrazo
+                // brazo con pivote en cada articulación: hombro, brazo, codo y antebrazo (hombrera pequeña: no ensancha la silueta)
+                Part(rig, ua, PrimitiveType.Sphere, new Vector3(0f, 0f, 0f), Vector3.one * 0.12f * k * t, cloth);                                                     // rótula del hombro
+                Part(rig, ua, PrimitiveType.Cube, new Vector3(side * 0.01f, 0.02f, 0f), new Vector3(0.12f, 0.05f, 0.14f) * k, armor, side * 12f);                  // hombrera
+                Limb(rig, ua, ua + " limb", L(ua), new[] { 0f, 0.05f * k * t, 0.45f, 0.048f * k * t, 1f, 0.04f * k * t }, 1f, cloth);
+                Part(rig, la, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.08f * k * t, cloth);                                                              // codo
+                Limb(rig, la, la + " limb", L(la), new[] { 0f, 0.04f * k * t, 0.35f, 0.042f * k * t, 1f, 0.03f * k * t }, 1f, cloth);
+                var guard = Limb(rig, la, la + " protector", L(la) * 0.45f, new[] { 0f, 0.046f * k * t, 1f, 0.038f * k * t }, 1f, armor);                       // protector de antebrazo
+                guard.transform.localPosition = new Vector3(0f, -L(la) * 0.4f, 0f);
                 // mano con dedos (pulgar + 4 dedos de 2 falanges): agarra el arma con poses (empuñadura, guardamano, bomba, puño)
                 var rh = RigHand.Build(rig.Bone(hand), !left, boots, k);
                 if (left) rig.LeftHandMesh = rh; else rig.RightHandMesh = rh;
 
                 // pierna articulada: cada pieza cuelga de su hueso con el pivote EN LA ARTICULACIÓN (no en su centro), así gira donde debe y no asoma
                 // por encima de ella. Muslo y pantorrilla se estrechan hacia la rodilla (radio <= el de la rótula) para que, arrodillado, nada atraviese el suelo.
-                BuildLeg(rig, left, cloth, armor, boots, k);
+                BuildLeg(rig, left, cloth, armor, boots, k * t);
             }
+        }
+
+        /// <summary>Reconstruye esqueleto y mallas con otra complexión (en Play, desde F6), conservando la capa del personaje.</summary>
+        public static void Rebuild(ProceduralRig rig, RigProportions p, RigPalette pal)
+        {
+            rig.Rebuild(p);
+            BuildSoldier(rig, pal);
+            int layer = rig.gameObject.layer;
+            foreach (var t in rig.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
         }
 
         private static readonly System.Collections.Generic.Dictionary<string, Mesh> LimbMeshes = new System.Collections.Generic.Dictionary<string, Mesh>();

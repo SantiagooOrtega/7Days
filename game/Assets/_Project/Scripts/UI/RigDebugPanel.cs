@@ -132,6 +132,23 @@ namespace SevenDays.UI
             p.stanceDrop = Slider("caída pelvis al apoyar (m)", p.stanceDrop, 0.01f, 0.12f);
             p.kneelTorsoLean = Slider("torso media rodilla", p.kneelTorsoLean, 0f, 45f);
             p.Validate();
+
+            // complexión (ProportionSettings): se aplica reconstruyendo el esqueleto y las mallas del jugador
+            if (_rig == _playerRig)
+            {
+                GUILayout.Space(6);
+                GUILayout.Label("Complexión (ProportionSettings)", _head);
+                _prop ??= ProportionCopy(_rig.Proportions);
+                _prop.shoulderWidth = Slider("ancho de hombros", _prop.shoulderWidth, 0.3f, 0.7f);
+                _prop.hipWidth = Slider("ancho de cadera", _prop.hipWidth, 0.18f, 0.4f);
+                _prop.bulk = Slider("grosor general", _prop.bulk, 0.7f, 1.5f);
+                _prop.torsoDepth = Slider("grosor del torso", _prop.torsoDepth, 0.6f, 1.4f);
+                _prop.limbThickness = Slider("brazos y piernas", _prop.limbThickness, 0.6f, 1.4f);
+                _prop.headSize = Slider("cabeza", _prop.headSize, 0.8f, 1.3f);
+                _prop.armRatio = Slider("largo de brazos", _prop.armRatio, 0.85f, 1.15f);
+                _prop.legRatio = Slider("largo de piernas", _prop.legRatio, 0.44f, 0.56f);
+                if (GUILayout.Button("Aplicar complexión")) { _prop.Validate(); RigVisuals.Rebuild(_rig, ProportionCopy(_prop), RigPalette.Soldier); }
+            }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
@@ -221,6 +238,9 @@ namespace SevenDays.UI
             GUI.Label(new Rect(s.x + 6f, Screen.height - s.y - 10f, width, 20f), text);
             GUI.color = prev;
         }
+
+        private RigProportions _prop;
+        private static RigProportions ProportionCopy(RigProportions p) => JsonUtility.FromJson<RigProportions>(JsonUtility.ToJson(p));
 
         private static Camera Cam() => RigDemoCycle.Current != null && RigDemoCycle.Current.SideCamera != null ? RigDemoCycle.Current.SideCamera : Camera.main;
 

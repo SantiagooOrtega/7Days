@@ -31,7 +31,7 @@ namespace SevenDays.Player
             var rigGo = new GameObject("Rig");
             rigGo.transform.SetParent(visual, false);
             var rig = rigGo.AddComponent<SevenDays.Animation.ProceduralRig>();
-            rig.Build(RigProportions.Soldier());
+            rig.Build(SevenDays.Animation.ProportionSettings.Load());
             SevenDays.Animation.RigVisuals.BuildSoldier(rig, SevenDays.Animation.RigPalette.Soldier);
 
             // Soporte del arma y boca del cañón
