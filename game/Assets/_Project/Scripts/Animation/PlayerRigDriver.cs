@@ -102,6 +102,10 @@ namespace SevenDays.Animation
                 Lean = _cover != null ? _cover.Lean.Value : 0f,
                 LookDirection = _camera.AimForward, DesiredForward = _motor.DesiredFacing,
                 ArmSwing = 1f,
+                // cobertura baja, cubierto y quieto: una rodilla al suelo (la del lado del hombro activo; Q la cambia). Al asomarse se estira desde las rodillas.
+                Kneel = _cover != null && _cover.Active && !_cover.WantsPop && !_cover.IsBlindFiring && _cover.CoverTop <= 1.25f && _motor.HorizontalSpeed < 0.3f ? 1f : 0f,
+                KneelSide = _camera.Shoulder.Side,
+                CoverCollider = _cover != null ? _cover.CoverCollider : null,
             };
 
             // manos al arma según el tipo: derecha en la empuñadura; izquierda en el guardamano si el arma se lleva a dos manos (rifles siempre, pistola al apuntar)
