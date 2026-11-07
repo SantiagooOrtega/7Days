@@ -39,7 +39,7 @@ MonoBehaviour:
     armorPenetration: 0.2
     headshotMultiplier: 1
     knockback: 1.8
-    dataVersion: 2
+    dataVersion: 3
     fireModes:
     - semi
     burstCount: 3
