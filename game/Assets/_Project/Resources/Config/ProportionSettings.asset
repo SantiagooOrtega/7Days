@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc5b985ca467c4b8bbeffb65820191ca, type: 3}
+  m_Name: ProportionSettings
+  m_EditorClassIdentifier: Assembly-CSharp::SevenDays.Animation.ProportionSettings
+  Settings:
+    height: 1.82
+    shoulderWidth: 0.44
+    hipWidth: 0.27
+    bulk: 1
+    legRatio: 0.5
+    armRatio: 1
+    neckRatio: 1
+    headSize: 1
+    hunch: 0
+    torsoDepth: 0.9
+    limbThickness: 0.92

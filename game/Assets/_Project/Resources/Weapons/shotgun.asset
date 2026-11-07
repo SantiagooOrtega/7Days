@@ -39,7 +39,7 @@ MonoBehaviour:
     armorPenetration: 0.05
     headshotMultiplier: 1
     knockback: 2.4
-    dataVersion: 4
+    dataVersion: 5
     fireModes:
     - pump
     burstCount: 3
@@ -69,21 +69,21 @@ MonoBehaviour:
     grip:
       grip:
       - 0
-      - -0.1
-      - 0.045
+      - -0.09
+      - 0.04
       - 15
       - 0
       - 0
       foregrip:
       - 0
-      - -0.07
-      - 0.4
+      - -0.065
+      - 0.28050002
       - 0
       - 0
       - 0
       stock:
       - 0
       - -0.02
-      - -0.2
-      support: cgrip
+      - -0.21
+      support: pump
       shouldered: 1
