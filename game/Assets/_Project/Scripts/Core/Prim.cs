@@ -181,7 +181,7 @@ namespace SevenDays.Core
             {
                 var probe = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 _template = probe.GetComponent<Renderer>().sharedMaterial;
-                Object.Destroy(probe);
+                if (Application.isPlaying) Object.Destroy(probe); else Object.DestroyImmediate(probe);   // fuera de Play (pruebas EditMode) Destroy no está permitido
             }
             var mat = new Material(_template) { enableInstancing = true };
             mat.SetColor("_BaseColor", color); // URP Lit
