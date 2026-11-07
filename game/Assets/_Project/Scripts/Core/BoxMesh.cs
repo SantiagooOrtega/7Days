@@ -38,10 +38,11 @@ namespace SevenDays.Core
                 var p = d.Positions[i]; var nr = d.Normals[i]; var t = d.Tangents[i]; var uv = d.Uvs[i];
                 verts[i] = new Vector3(p.X, p.Y, p.Z);
                 norms[i] = new Vector3(nr.X, nr.Y, nr.Z);
-                tangs[i] = new Vector4(t.X, t.Y, t.Z, d.TangentSign); // -1 con u a la derecha y v arriba (convención de Unity)
+                tangs[i] = new Vector4(t.X, t.Y, t.Z, d.WOf(i)); // -1 con u a la derecha y v arriba (convención de Unity)
                 uvs[i] = new Vector2(uv.X, uv.Y);
             }
             var mesh = new Mesh();
+            if (n > 65000) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.vertices = verts;
             mesh.normals = norms;
             mesh.tangents = tangs;

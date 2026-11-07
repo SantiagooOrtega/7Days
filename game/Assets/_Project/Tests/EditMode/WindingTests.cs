@@ -50,6 +50,11 @@ namespace SevenDays.Tests
             yield return new TestCaseData(FoliageGeometry.Bush(0, 3), 0.2f).SetName("Arbusto de bultos");
             yield return new TestCaseData(LimbGeometry.Segment(0.41f, new[] { 0f, 0.0875f, 0.5f, 0.08f, 0.92f, 0.055f, 1f, 0.052f }, 10, 1.08f), 0.5f).SetName("Muslo (pivote en la cadera)");
             yield return new TestCaseData(LimbGeometry.Segment(0.38f, new[] { 0f, 0.052f, 0.3f, 0.062f, 0.65f, 0.05f, 1f, 0.045f }, 10, 1.05f), 0.5f).SetName("Pantorrilla con gemelo");
+            yield return new TestCaseData(MeshBuilder.LatheData(new[] { -0.1f, 0.03f, 0.1f, 0.03f }, 12, 1f, true, true), 0.5f).SetName("Torno: cilindro con tapas");
+            yield return new TestCaseData(MeshBuilder.LatheData(new[] { -0.2f, 0.12f, 0f, 0.16f, 0.2f, 0.13f }, 14, 0.65f, true, true), 0.3f).SetName("Torno: torso ovalado");
+            yield return new TestCaseData(MeshBuilder.DomeData(new V3(0.12f, 0.11f, 0.13f), lon => -10f, 0.01f, 20, 8), 0.2f).SetName("Cúpula con grosor (casco)");
+            yield return new TestCaseData(MeshBuilder.DomeData(new V3(0.06f, 0.05f, 0.04f), lon => 0f, 0.008f, 12, 5, -90f, 90f), 0.2f).SetName("Media cúpula (rodillera)");
+            yield return new TestCaseData(MeshBuilder.Sheet((u, v, side) => new V3(u * 0.2f - 0.1f, v * 0.15f, side > 0 ? 0.01f * (float)System.Math.Sin(u * 6f) : -0.006f), 12, 10, true), 0.2f).SetName("Lámina con relieve y grosor");
         }
 
         [TestCaseSource(nameof(ClosedMeshes))]
