@@ -185,6 +185,38 @@ namespace SevenDays.Tests.Visual
             Assert.LessOrEqual(maxZ - minZ, 0.3f, "chaleco grueso: debe ser ligero");
         }
 
+        /// <summary>F7 (prueba de humo): arranca el ciclo, recorre TODOS los tramos (piernas, cada arma por pasos, complexión) avanzando el soldado y colocando la cámara.</summary>
+        [Test]
+        public void F7Cycle_RunsEverySegmentWithoutErrors()
+        {
+            var player = new GameObject("Jugador de prueba").transform;
+            var go = new GameObject("F7");
+            var cycleType = T("SevenDays.UI.RigDemoCycle");
+            var cycle = go.AddComponent(cycleType);
+            try
+            {
+                cycleType.GetMethod("Initialize").Invoke(cycle, new object[] { player });
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                cycleType.GetMethod("Begin", flags).Invoke(cycle, null);
+                int count = ((System.Collections.IList)cycleType.GetField("_segments", flags).GetValue(cycle)).Count;
+                Assert.Greater(count, 30, "piernas + 7 armas por pasos + complexión");
+                var weapon = cycleType.GetField("_weapon", flags).GetValue(cycle);
+                for (int i = 0; i < count; i++)
+                {
+                    for (int k = 0; k < 20; k++) weapon.GetType().GetMethod("Tick").Invoke(weapon, new object[] { 1f / 60f });
+                    cycleType.GetMethod("LateUpdate", flags).Invoke(cycle, null);
+                    var rig = (Component)cycleType.GetProperty("Rig").GetValue(cycle);
+                    Assert.IsTrue(rig.gameObject.activeInHierarchy, "el soldado del tramo " + i + " se ve");
+                    cycleType.GetMethod("Next", flags).Invoke(cycle, new object[] { 1 });
+                }
+            }
+            finally
+            {
+                cycleType.GetMethod("End", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(cycle, null);
+                UnityEngine.Object.DestroyImmediate(go); UnityEngine.Object.DestroyImmediate(player.gameObject);
+            }
+        }
+
         [Test]
         public void Report_GripPerWeaponAndStep()
         {

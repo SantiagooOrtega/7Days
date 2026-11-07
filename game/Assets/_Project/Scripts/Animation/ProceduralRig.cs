@@ -86,6 +86,8 @@ namespace SevenDays.Animation
         /// <summary>Rigs activos (para medir el coste total con muchos personajes).</summary>
         public static readonly System.Collections.Generic.List<ProceduralRig> Active = new System.Collections.Generic.List<ProceduralRig>();
         public bool DrawGizmos;
+        /// <summary>true: no se anima solo en LateUpdate; lo avanza quien lo maneja con Tick (escenarios de prueba y ciclo F7).</summary>
+        public bool ManualTick;
         /// <summary>Suelo bajo cada pie, flexión de cada rodilla y si la pelvis se limitó (para el panel F6).</summary>
         public float[] FootGround { get; } = new float[2];
         public float[] KneeFlexion { get; } = new float[2];
@@ -247,7 +249,7 @@ namespace SevenDays.Animation
 
         private void LateUpdate()
         {
-            if (!_built) return;
+            if (!_built || ManualTick) return;
             // LOD: lejos de la cámara se actualiza cada 2, 3 o 6 frames (con el tiempo acumulado, así la animación no se ralentiza) y sin rayos al suelo
             if (_camFrame != Time.frameCount) { _camFrame = Time.frameCount; _cam = Camera.main; }
             _distance = _cam != null ? Vector3.Distance(_cam.transform.position, transform.position) : 0f;
