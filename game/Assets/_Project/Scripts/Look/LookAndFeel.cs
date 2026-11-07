@@ -12,6 +12,21 @@ namespace SevenDays.Look
     /// </summary>
     public static class LookAndFeel
     {
+        private static Bloom _bloom;
+        private static FilmGrain _grain;
+        private static float _grainIntensity;
+
+        /// <summary>Post-procesado por nivel de calidad (QualityDirector): bloom a mitad o a un cuarto (o apagado) y grano.</summary>
+        public static void SetPostQuality(bool bloom, bool bloomQuarter, bool grain)
+        {
+            if (_bloom != null)
+            {
+                _bloom.active = bloom;
+                _bloom.downscale.Override(bloomQuarter ? BloomDownscaleMode.Quarter : BloomDownscaleMode.Half);
+                _bloom.maxIterations.Override(bloomQuarter ? 4 : 5);
+            }
+            if (_grain != null) _grain.active = grain && _grainIntensity > 0f;
+        }
         public static void Apply(Camera cam, LookSettings s = null)
         {
             s ??= new LookSettings();
@@ -28,8 +43,9 @@ namespace SevenDays.Look
             for (int i = 0; i < names.Length; i++)
                 if (names[i] == "Demo") { QualitySettings.SetQualityLevel(i, true); break; }
 
-            // Filtrado anisotrópico: cada textura pide 8x (ver SurfaceLibrary); aquí se fuerza a que se respete.
-            QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
+            // Filtrado anisotrópico por textura (las procedurales piden 4x: el piso se ve nítido sin el coste de forzarlo en todas a 16x)
+            QualitySettings.anisotropicFiltering = AnisotropicFiltering.Enable;
+            // sin vsync y con límite de 60 FPS: coherente (el vsync de una pantalla de 120 Hz duplicaría el trabajo; el límite lo fija targetFrameRate)
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = s.TargetFps;
         }
@@ -99,6 +115,11 @@ namespace SevenDays.Look
             grain.type.Override(FilmGrainLookup.Thin1);
             grain.intensity.Override(s.GrainIntensity);
             grain.response.Override(0.8f);
+
+            _bloom = bloom; _grain = grain;
+            bloom.downscale.Override(BloomDownscaleMode.Half);   // bloom a resolución mitad (barato); en calidad media/baja, a un cuarto
+            bloom.maxIterations.Override(5);
+            _grainIntensity = s.GrainIntensity;
 
             var go = new GameObject("PostProcessVolume");
             var vol = go.AddComponent<Volume>();
