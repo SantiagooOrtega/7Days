@@ -23,6 +23,7 @@ namespace SevenDays.Animation
         private PlayerVault _vault;
         private Health _health;
         private Transform _weaponPose;
+        private WeaponHandling _handling;
 
         public void Initialize(ProceduralRig rig, Transform weaponPose)
         {
@@ -35,6 +36,8 @@ namespace SevenDays.Animation
             _shooting = GetComponent<PlayerShooting>();
             _vault = GetComponent<PlayerVault>();
             _health = GetComponent<Health>();
+            _handling = GetComponent<WeaponHandling>();
+            Rig.BeforeArms += OnBeforeArms;
             _health.Damaged += OnDamaged;
             _motor.Landed += OnLanded;
             if (_shooting != null) _shooting.ShotFired += OnShot;
@@ -42,45 +45,10 @@ namespace SevenDays.Animation
 
         private void OnDestroy()
         {
+            if (Rig != null) Rig.BeforeArms -= OnBeforeArms;
             if (_health != null) _health.Damaged -= OnDamaged;
             if (_motor != null) _motor.Landed -= OnLanded;
             if (_shooting != null) _shooting.ShotFired -= OnShot;
-        }
-
-        /// <summary>Dónde está la mano izquierda en cada momento de la recarga (el rig la lleva con suavidad de un punto a otro).</summary>
-        private Vector3 ReloadHand(ReloadState rl, Vector3 support, SevenDays.Weapons.GunParts parts)
-        {
-            Vector3 magWell = parts != null ? parts.MagWorldRest : support;
-            Vector3 belt = Rig.Bone(BoneId.Hips).TransformPoint(-0.2f, 0.05f, 0.12f);   // bolsillo de cargadores en la cintura izquierda
-            switch (rl.Style)
-            {
-                case ReloadStyle.Shells:
-                {
-                    // cada cartucho: a la cintura y a la ventana de carga
-                    if (rl.Elapsed < ReloadState.ShellLead) return support;
-                    float local = ((rl.Elapsed - ReloadState.ShellLead) % rl.ShellTime) / rl.ShellTime;
-                    Vector3 port = parts != null && parts.Pump != null ? parts.Pump.position + parts.transform.up * -0.04f : support;
-                    return local < 0.45f ? belt : port;
-                }
-                case ReloadStyle.Cylinder:
-                    switch (rl.LastEvent)
-                    {
-                        case ReloadEvent.CylinderOpen: return parts != null && parts.Cylinder != null ? parts.Cylinder.position : support;
-                        case ReloadEvent.HandToBelt: return belt;
-                        case ReloadEvent.MagIn: return parts != null && parts.Cylinder != null ? parts.Cylinder.position : support;
-                        default: return support;
-                    }
-                default:   // cargador (y cerrojo + cargador)
-                    switch (rl.LastEvent)
-                    {
-                        case ReloadEvent.BoltOpen: return parts != null && parts.Bolt != null ? parts.Bolt.position : support;
-                        case ReloadEvent.MagOut: return belt;
-                        case ReloadEvent.HandToBelt: return Vector3.Lerp(belt, magWell + Vector3.down * 0.1f, Mathf.Clamp01(rl.SinceEvent / 0.3f));
-                        case ReloadEvent.MagIn: return magWell;
-                        case ReloadEvent.Slap: return support;
-                        default: return rl.Progress < 0.05f ? support : magWell;   // empieza agarrando el cargador
-                    }
-            }
         }
 
         private void OnShot()
@@ -110,44 +78,21 @@ namespace SevenDays.Animation
                 CoverCollider = _cover != null ? _cover.CoverCollider : null,
             };
 
-            // manos a los puntos de agarre del arma (WeaponData.grip: empuñadura, guardamano/bomba/cargador, culata), orientadas según el tipo de agarre
+            Rig.Inputs = i;   // las manos se colocan en OnBeforeArms, con el pecho y el arma de este frame
+        }
+
+        /// <summary>
+        /// Tras colocar el torso del rig y antes del IK de los brazos: pose final del arma (WeaponHandling), manos a sus puntos de agarre (WeaponGripSolver), manos al
+        /// obstáculo en el vault y dedos. Así las manos y el arma usan el mismo pecho del mismo frame.
+        /// </summary>
+        private void OnBeforeArms(ProceduralRig rig, float dt)
+        {
+            if (_handling != null) _handling.ApplyPose();
+            var i = Rig.Inputs;
             var data = _shooting != null ? _shooting.Current.Data : null;
-            HandGrip rightPose = HandGrip.Relaxed, leftPose = HandGrip.Relaxed;
-            if (data != null && _weaponPose != null)
-            {
-                var hold = WeaponHolds.For(data.kind);
-                var g = data.grip ?? WeaponGrip.For(data.kind, data.length, data.thickness);
-                Vector3 wf = _weaponPose.forward, wu = _weaponPose.up, wr = _weaponPose.right;
-                i.RightHand = _weaponPose.TransformPoint(V(g.GripPos));
-                // empuñadura: dorso hacia fuera, dedos hacia delante-abajo rodeando la empuñadura
-                i.RightHandRot = HandRot(wr, (wf * 0.35f - wu).normalized) * Quaternion.Euler(g.grip[3] * 0.3f, g.grip[4], g.grip[5]);
-                i.RightWeight = 1f;
-                rightPose = data.IsMelee ? HandGrip.Fist : HandGrip.Grip;
-
-                bool inCover = _hooks.IsInCover;
-                bool twoHands = !hold.OneHandedMelee && (_hooks.IsAiming || inCover ? hold.TwoHandsAim : hold.TwoHandsHip);   // en cobertura, también la pistola a dos manos
-                i.LeftHand = _weaponPose.TransformPoint(V(g.ForegripPos));
-                // apoyo: en "C" bajo el cañón (palma arriba), sobre la bomba o el cargador; con pistola, envolviendo la otra mano (palma hacia el arma)
-                i.LeftHandRot = g.support == "pistol" ? HandRot(-wr, (wf * 0.35f - wu).normalized) : HandRot(-wu, (wr + wf * 0.5f).normalized);
-                i.LeftWeight = twoHands ? 1f : 0f;
-                leftPose = twoHands ? (g.support == "pistol" ? HandGrip.Support : g.SupportGrip) : HandGrip.Relaxed;
-
-                // recarga: la mano izquierda suelta el arma, va a la cintura y vuelve (abierta al coger el cargador)
-                var rl = _shooting.Reload;
-                if (rl.Active)
-                {
-                    i.LeftWeight = 1f;
-                    i.LeftHand = ReloadHand(rl, i.LeftHand, _shooting.Parts);
-                    leftPose = rl.LastEvent == ReloadEvent.MagOut ? HandGrip.Open : HandGrip.MagGrip;
-                }
-                // sacando el arma, la mano de apoyo se separa hasta que el arma está lista
-                if (!_shooting.Draw.Ready) { i.LeftWeight *= _shooting.Draw.Value; }
-
-                // postura de perfil y mejilla en la culata al encarar un arma con culata
-                bool shouldered = g.shouldered && _hooks.IsAiming && !data.IsMelee;
-                i.AimTwist = shouldered ? GripLayout.ShoulderedTwist : 0f;
-                i.CheekWeld = shouldered && _camera.FirstPersonBlend < 0.5f ? 1f : 0f;
-            }
+            HandPose rightPose = HandPoses.For(HandGrip.Relaxed), leftPose = rightPose;
+            if (data != null && _weaponPose != null && _handling != null)
+                WeaponGripSolver.Hands(data, _weaponPose, _shooting.Parts, Rig, _handling.State, ref i, out rightPose, out leftPose);
 
             // vault: las dos manos se apoyan en el obstáculo durante la primera mitad
             if (_hooks.IsVaulting && _vault != null)
@@ -163,29 +108,13 @@ namespace SevenDays.Animation
             }
             Rig.Inputs = i;
 
-            // dedos: índice estirado fuera del guardamonte hasta que dispara (en el gatillo al disparar y un momento después); brazo libre medio cerrado al correr
-            float dt = Time.deltaTime;
-            bool triggerOn = _shooting != null && (Time.time - _shooting.LastShotTime < 0.25f || (_hooks.IsAiming && SevenDays.Core.GameInput.FireHeld));
-            if (Rig.RightHandMesh != null) Rig.RightHandMesh.Blend(_health.IsDead ? HandPoses.For(HandGrip.Open) : HandPoses.For(rightPose, triggerOn), dt);
+            // dedos: índice estirado fuera del guardamonte hasta que dispara; brazo libre medio cerrado al correr
+            if (Rig.RightHandMesh != null) Rig.RightHandMesh.Blend(_health.IsDead ? HandPoses.For(HandGrip.Open) : rightPose, dt);
             if (Rig.LeftHandMesh != null)
             {
-                var lp = HandPoses.For(leftPose);
-                if (i.LeftWeight < 0.5f && _motor.IsSprinting) lp = HandPose.Lerp(lp, HandPoses.For(HandGrip.Fist), 0.6f);
-                Rig.LeftHandMesh.Blend(_health.IsDead ? HandPoses.For(HandGrip.Open) : lp, dt);
+                if (i.LeftWeight < 0.5f && _motor.IsSprinting) leftPose = HandPose.Lerp(leftPose, HandPoses.For(HandGrip.Fist), 0.6f);
+                Rig.LeftHandMesh.Blend(_health.IsDead ? HandPoses.For(HandGrip.Open) : leftPose, dt);
             }
-        }
-
-        private static Vector3 V(V3 v) => new Vector3(v.X, v.Y, v.Z);
-
-        /// <summary>Rotación de una mano: "back" = hacia dónde mira el dorso (+X local; la palma mira al contrario), "fingers" = hacia dónde apuntan los dedos (-Y local).</summary>
-        private static Quaternion HandRot(Vector3 back, Vector3 fingers)
-        {
-            Vector3 y = -fingers.normalized;
-            Vector3 x = Vector3.ProjectOnPlane(back, y);
-            if (x.sqrMagnitude < 1e-5f) x = Vector3.Cross(y, Vector3.forward);
-            x.Normalize();
-            Vector3 z = Vector3.Cross(x, y);
-            return Quaternion.LookRotation(z, y);
         }
     }
 }
