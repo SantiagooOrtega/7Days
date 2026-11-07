@@ -362,7 +362,7 @@ namespace SevenDays.Animation
                         float swing = GaitCycle.SwingProgress(fp, StanceFraction);
                         float timeToPlant = (1f - swing) * (1f - StanceFraction) * cycleTime;
                         // dónde aterrizará: bajo la cadera a mitad del próximo apoyo; de lado, el pie que cruza pasa un poco por delante
-                        V3 plant = FootPlacement.PredictPlant(ToV3(hipW), ToV3(vel), timeToPlant, StanceFraction * cycleTime, new V3(0, 0, 0));
+                        V3 plant = FootPlacement.PredictPlant(ToV3(hipW), ToV3(vel), timeToPlant, StanceFraction * cycleTime * 0.84f, new V3(0, 0, 0));   // toca algo más cerca del cuerpo: al despegar, la punta da alcance de más
                         // la altura del suelo donde aterrizará se mide como mucho 10 veces por segundo (no en cada frame)
                         Vector3 landing = plant.ToUnity();
                         if (_landingRayAt[f] < 0f || _time - _landingRayAt[f] > 0.1f) { _landingY[f] = Ground(landing, out _).y; _landingRayAt[f] = _time; }
@@ -455,17 +455,40 @@ namespace SevenDays.Animation
                     float knee = GaitPose.KneeFlexion(Pose, fp, StanceFraction, _runWeight);
                     Vector3 hipW = transform.position + transform.right * side * _hipHalf;
                     float horiz = Flat(FootTargets[f] - hipW).magnitude;
-                    float contact = 1f - Mathf.Clamp01(fp / Mathf.Max(0.01f, StanceFraction * 0.25f));
-                    float hipJ = FootGround[f] + _footHeight + LegSolver.Sole + GaitPose.HipAboveAnkle(knee, horiz, _thigh, _shin) - Pose.absorb * contact;
+                    // la amortiguación llega justo DESPUÉS del contacto (campana en el primer 40 % del apoyo): al tocar, la rodilla está a la de contacto (~15°)
+                    float contact = Mathf.Sin(Mathf.PI * Mathf.Clamp01(fp / Mathf.Max(0.01f, StanceFraction * 0.4f)));
+                    // tobillo a la altura real de la bota inclinada (al despegar rueda sobre la bola y el tobillo sube): el pie de atrás no hunde la cadera
+                    float footPitch = GaitPose.FootPitch(Pose, fp, StanceFraction);
+                    float ankleUp = FootGeometry.MinAnkleHeight(_footShape, footPitch, FootGeometry.FlatToeBend(footPitch));
+                    // corriendo, la amortiguación ya la da la rodilla del apoyo medio: "absorb" es para caminar
+                    float hipJ = FootGround[f] + ankleUp + GaitPose.HipAboveAnkle(knee, horiz, _thigh, _shin) - Pose.absorb * contact * (1f - _runWeight);
                     gaitH = Mathf.Min(gaitH, hipJ - transform.position.y + _hipJointDrop);
                 }
             // en el vuelo (ningún pie apoyado) la cadera vuelve arriba; nunca más alta que de pie ni más baja que lo que permite el apoyo (sin hundirse al correr)
+            if (gaitH == float.MaxValue && moving > 0.05f && I.Grounded && !I.Vaulting && !I.Dead)
+            {
+                // vuelo: la cadera sube y baja en parábola; al final ya está a la altura con la que la pierna que aterriza toca con la rodilla de contacto (~15°)
+                // donde va a caer el pie (el muelle de la pelvis tarda 1-2 frames: si llegara al tocar, la pierna aterrizaría estirada)
+                float fd = GaitPose.FlightDrop(Pose, _gait.Phase, StanceFraction);
+                gaitH = stand - (fd > 0f ? fd : 0f);
+                int land = _gait.FootPhase(0) > _gait.FootPhase(1) ? 0 : 1;
+                float swing = GaitCycle.SwingProgress(_gait.FootPhase(land), StanceFraction);
+                if (swing > 0.6f)
+                {
+                    // delante de la cadera en el primer frame de apoyo (aterriza para quedar bajo ella a ~mitad del apoyo; corriendo, el cuerpo avanza 11 cm por
+                    // frame y en ese primer frame el pie ya está a ~70 % de la distancia prevista: medido en las pruebas visuales)
+                    float horiz = StanceFraction * CycleLength * 0.42f * 0.7f;
+                    float hipLand = _landingY[land] + FootGeometry.MinAnkleHeight(_footShape, -Pose.heelStrikePitch, 0f) + GaitPose.HipAboveAnkle(Pose.contactKnee, horiz, _thigh, _shin)
+                                    - transform.position.y + _hipJointDrop;
+                    gaitH = Mathf.Min(gaitH, Mathf.Lerp(gaitH, hipLand, (swing - 0.6f) / 0.4f));
+                }
+            }
             if (gaitH == float.MaxValue) gaitH = stand;
             gaitH = Mathf.Clamp(gaitH, stand - Pose.stanceDrop - 0.03f, stand);
             float gaitWeight = moving * (1f - crouch) * (1f - kneel) * (I.Grounded ? 1f : 0f);
             float walkHeight = Mathf.Lerp(baseHeight, gaitH, gaitWeight);
             float targetHeight = walkHeight + bob * (1f - gaitWeight) + terrain + breath * idle - air * 0.04f;
-            float h = _pelvisHeight.Step(targetHeight, Smoothing.pelvis, dt);
+            float h = _pelvisHeight.Step(targetHeight, Smoothing.pelvis / (1f + speed * 0.5f), dt);   // corriendo el apoyo dura ~80 ms: un muelle lento aplanaría el rebote
             float landing = _landing.Step(0f, 0.12f, dt);
             h += Mathf.Max(-0.35f, landing * 0.1f);
             // regla dura: la pelvis no baja más de lo que las piernas permiten (rodilla <= 150°) con los pies en el suelo; en vez de hundir el pie, se queda
