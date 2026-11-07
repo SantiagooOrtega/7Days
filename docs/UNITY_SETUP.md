@@ -601,3 +601,12 @@ Causa: `CameraSettings` y `CameraRunSettings` estaban en un mismo archivo (`Came
 1. Abre Unity y espera a que compile: la Console debe decir `Reparado Assets/_Project/Resources/Config/CameraRunSettings.asset ... (valores conservados)` (o usa **7Days > Reparar scripts de los ajustes**).
 2. Selecciona `Resources/Config/CameraRunSettings.asset`: el Inspector muestra el script y sus valores (fovBoost 6, swayMeters 0.045...).
 3. Play: el aviso de script desvinculado ya no aparece. Corre 5 s: balanceo y fatiga como antes; cambia `swayMeters` en el asset y comprueba que se nota (antes no se leía).
+
+### Estadísticas de cobertura y fatiga guardadas (backend + director)
+Requiere el backend en marcha (`cd backend && npm run dev`, puerto 3001) y haber entrado desde la escena Login (sin sesión no se guarda nada).
+1. Entra con tu cuenta y da Play. Juega un rato: escóndete tras una caja unos 40 s sin asomarte y corre más de 5 s con **Shift**.
+2. **F4**: "cobertura: cubierto N s asomado N s a ciegas N s" y "corriendo N s fatiga X %".
+3. Pulsa **N** (fin de día): en la Console no debe haber avisos de guardado. Comprueba el guardado: `curl -H "Authorization: Bearer <token>" http://localhost:3001/api/progress` debe incluir `coverSeconds`, `poppedOutSeconds`, `blindFireSeconds`, `sprintSeconds` y `maxFatigue` en `stats`.
+4. Con más del 85 % del tiempo escondido (≥ 20 s), al pulsar **N** la Console dice `[7Days] Director: abuso de cobertura ...` (también en F4) y salen más lanzadores. Con fatiga ≥ 80 % y ≥ 30 s corriendo: "corres hasta agotarte": más corredores.
+5. Cierra Unity, vuelve a entrar con la misma cuenta: la Console dice `Estadísticas guardadas cargadas ...` y la regla de abuso sigue usando lo acumulado.
+Nota: por ahora el guardado envía el inventario vacío (el guardado del inventario llega en la Fase 6), así que sobrescribe el inventario guardado.

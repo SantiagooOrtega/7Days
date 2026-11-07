@@ -101,6 +101,8 @@ namespace SevenDays.Combat
             Rig.SetHitboxesEnabled(true);
             _sm.Reset(); _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
             _brain = type.projectile != "none" ? SpitterBrain.For(type) : null;
+            // si el jugador abusa de la cobertura (reglas del director sobre las estadísticas guardadas), los lanzadores flanquean antes (hasta la mitad del tiempo)
+            if (_brain != null && ZombieManager.Instance != null) _brain.FlankAfterSeconds *= 1f - 0.5f * ZombieManager.Instance.Tuning.coverPressure;
             _fuse = type.explosionRadius > 0f ? FuseBrain.For(type) : null;
             _exploded = false; StopHiss();
             FirstHitTime = -1f;
