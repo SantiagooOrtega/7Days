@@ -18,7 +18,10 @@ namespace SevenDays.UI
         private PlayerInteract _interact;
         private PlayerHealing _healing;
         private float _hitUntil;
-        private bool _showHelp = true;
+        private bool _showHelp = true, _helpPinned;
+        private float _helpHideAt = -1f;
+        /// <summary>La ayuda larga de controles se oculta sola tras estos segundos (F1 la vuelve a mostrar y ya no se oculta).</summary>
+        public const float HelpSeconds = 10f;
         private float _fps = 60f;
         private GUIStyle _label, _big, _center;
 
@@ -36,7 +39,9 @@ namespace SevenDays.UI
 
         private void Update()
         {
-            if (GameInput.HelpPressed) _showHelp = !_showHelp;
+            if (_helpHideAt < 0f) _helpHideAt = Time.unscaledTime + HelpSeconds;
+            if (GameInput.HelpPressed) { _showHelp = !_showHelp; _helpPinned = true; }
+            else if (_showHelp && !_helpPinned && Time.unscaledTime > _helpHideAt) _showHelp = false;   // el texto largo de IMGUI cuesta: fuera tras 10 s
             _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime), 0.05f);
             if (_health != null && _health.IsDead && GameInput.ReloadPressed)
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
@@ -119,7 +124,9 @@ namespace SevenDays.UI
             // FPS (objetivo: 60)
             Color prevColor = GUI.color;
             GUI.color = _fps >= 55f ? new Color(0.5f, 1f, 0.5f) : (_fps >= 40f ? Color.yellow : new Color(1f, 0.4f, 0.4f));
-            GUI.Label(new Rect(w - 520, 20, 490, 40), "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)  ambiente " + (3 - SevenDays.Look.AtmosphereBudget.Level) + "/3",
+            var qd = SevenDays.Look.QualityDirector.Instance;
+            GUI.Label(new Rect(w - 620, 20, 590, 40), "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)  ambiente " + (3 - SevenDays.Look.AtmosphereBudget.Level) + "/3" +
+                (qd != null ? "  calidad " + SevenDays.Procedural.QualityProfile.For(qd.Level).Name + " · escala " + qd.RenderScale.ToString("0.00") : ""),
                 new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
             GUI.color = prevColor;
 
