@@ -60,7 +60,9 @@ namespace SevenDays.Animation
                 Part(rig, la, PrimitiveType.Sphere, Vector3.zero, Vector3.one * 0.11f * k, cloth);                                                                  // codo
                 Part(rig, la, PrimitiveType.Capsule, new Vector3(0f, -L(la) * 0.5f, 0f), new Vector3(0.11f, L(la) * 0.55f, 0.11f) * k, cloth);
                 Part(rig, la, PrimitiveType.Cube, new Vector3(0f, -L(la) * 0.62f, 0f), new Vector3(0.12f, L(la) * 0.45f, 0.12f) * k, armor);                         // protector de antebrazo
-                Part(rig, hand, PrimitiveType.Cube, new Vector3(0f, -0.04f, 0.01f), new Vector3(0.085f, 0.1f, 0.1f) * k, boots);                                    // guante
+                // mano con dedos (pulgar + 4 dedos de 2 falanges): agarra el arma con poses (empuñadura, guardamano, bomba, puño)
+                var rh = RigHand.Build(rig.Bone(hand), !left, boots, k);
+                if (left) rig.LeftHandMesh = rh; else rig.RightHandMesh = rh;
 
                 // pierna: muslo, rodillera, espinillera, bota
                 Part(rig, ul, PrimitiveType.Capsule, new Vector3(0f, -L(ul) * 0.5f, 0f), new Vector3(0.18f, L(ul) * 0.56f, 0.18f) * k, cloth);

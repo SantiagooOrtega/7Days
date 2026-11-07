@@ -54,6 +54,8 @@ namespace SevenDays.Animation
         public RigSmoothing Smoothing = new RigSmoothing();
         /// <summary>Pose de locomoción (flexión de rodilla por fase, rodar del pie...). Editable en F6.</summary>
         public LocomotionPoseData Pose = new LocomotionPoseData();
+        /// <summary>Manos con dedos (las crea RigVisuals); el driver elige su pose.</summary>
+        public RigHand LeftHandMesh, RightHandMesh;
         /// <summary>Flexión de codo de cada brazo (F6).</summary>
         public float[] ElbowFlexion { get; } = new float[2];
         public LayerMask GroundMask = ~((1 << 2) | (1 << 31));
