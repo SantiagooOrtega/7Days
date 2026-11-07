@@ -65,7 +65,7 @@ namespace SevenDays.Procedural
         public float fireShake = 0.05f;        // impulso de cámara por disparo
         public bool ejectsCasings = true;
 
-        public const int CurrentDataVersion = 2;
+        public const int CurrentDataVersion = 3;
 
         public bool IsMelee => kind == WeaponKind.Melee;
         public bool HasScope => scopeFovs != null && scopeFovs.Length > 0;
@@ -176,9 +176,10 @@ namespace SevenDays.Procedural
                     case "assault_rifle":
                         Set(w, new[] { FireModes.Auto, FireModes.Burst, FireModes.Semi }, rh: 0.3f, rr: 10f, rmax: 7f, sps: 0.18f, smax: 5.5f, srec: 8f, smove: 1.4f, fov: 40f, dist: 1.6f, sens: 0.55f, ads: 0.2f, sway: 1.1f, bob: 1.1f, kb: 0.04f, kbp: 3.5f, shake: 0.035f); break;
                     case "sniper":
+                        w.range = 400f; w.falloffStart = 0.8f; w.minDamageFraction = 1f;   // más alcance real y sin caída de daño
                         Set(w, new[] { FireModes.Bolt }, rh: 0.4f, rr: 5f, rmax: 10f, sps: 1.5f, smax: 8f, srec: 3f, smove: 3f, fov: 30f, dist: 1.4f, sens: 0.35f, ads: 0.28f, sway: 1.4f, bob: 1.3f, kb: 0.1f, kbp: 9f, shake: 0.12f);
                         w.aimFirstPerson = true;
-                        w.scopeFovs = new[] { 20f, 12f, 7f };     // zoom variable (rueda del ratón mientras apuntas)
+                        w.scopeFovs = new[] { 20f, 12f, 7.5f, 5f };   // x3, x5, x8, x12 (rueda del ratón mientras apuntas)
                         w.spreadAir = 6f;
                         break;
                     case "bar":
@@ -189,6 +190,24 @@ namespace SevenDays.Procedural
                 w.spreadMax = Math.Max(w.spreadMax, w.spreadHip);
             }
             return list;
+        }
+
+        /// <summary>
+        /// Actualiza los datos de un asset de una versión anterior SIN perder lo que se editó a mano: solo cambia lo que trae la versión nueva.
+        /// v2 -> v3: francotirador con alcance 400 m, sin caída de daño y zoom x3/x5/x8/x12. Devuelve false si es demasiado viejo (v0-1: usar los valores por defecto).
+        /// </summary>
+        public static bool Migrate(WeaponData w)
+        {
+            if (w == null || w.dataVersion < 2) return false;
+            if (w.dataVersion < 3 && w.id == "sniper")
+            {
+                w.range = Math.Max(w.range, 400f);
+                w.falloffStart = Math.Max(w.falloffStart, 0.8f);
+                w.minDamageFraction = 1f;
+                w.scopeFovs = new[] { 20f, 12f, 7.5f, 5f };
+            }
+            w.dataVersion = WeaponData.CurrentDataVersion;
+            return true;
         }
 
         private static void Set(WeaponData w, string[] modes, float rh, float rr, float rmax, float sps, float smax, float srec, float smove, float fov, float dist, float sens, float ads,

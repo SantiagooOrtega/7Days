@@ -17,7 +17,7 @@ namespace SevenDays.Tests
         [Test] public void Shotgun_OneOrTwoShotsCloseUp() { Assert.That(Shots("shotgun", HitZone.Torso, 3f), Is.InRange(1, 2)); Assert.That(Shots("shotgun", HitZone.Head, 3f), Is.InRange(1, 2)); }
         [Test] public void Shotgun_UselessFarAway() => Assert.Greater(Shots("shotgun", HitZone.Torso, 28f), 6);
         [Test] public void AssaultRifle_TwoOrThreeBodyShots() => Assert.That(Shots("assault_rifle", HitZone.Torso, 10f), Is.InRange(2, 3));
-        [Test] public void Sniper_OneHeadshotAtAnyRange() { foreach (float d in new[] { 5f, 60f, 130f, 260f }) Assert.AreEqual(1, Shots("sniper", HitZone.Head, d), "d=" + d); }
+        [Test] public void Sniper_OneHeadshotAtAnyRange() { foreach (float d in new[] { 5f, 60f, 130f, 260f, 400f }) Assert.AreEqual(1, Shots("sniper", HitZone.Head, d), "d=" + d); }
 
         [Test]
         public void HeadIsAlwaysBetterThanBody()

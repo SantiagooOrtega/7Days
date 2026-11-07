@@ -30,6 +30,13 @@ namespace SevenDays.Procedural
         public float blindExposure = 0.35f;        // exposición parcial mientras se dispara a ciegas
         public float blindHold = 0.45f;            // segundos que dura esa exposición tras cada disparo
         public float coveredDamageFloor = 0.35f;   // fracción del daño cuerpo a cuerpo que pasa estando completamente cubierto
+        // --- apuntado y francotirador
+        public bool aimToggle;                     // false: mantener clic derecho; true: un clic apunta y otro deja de apuntar (ajustes de Esc)
+        public float breathHoldSeconds = 3f;       // Shift con la mira: contener la respiración
+        public float breathRecoverSeconds = 2.5f;  // tras agotarse (jadeo), cuánto tarda en poder volver a contenerla
+        public float holdSwayMultiplier = 0.15f;   // vaivén de la mira conteniendo la respiración
+        public float gaspSwayMultiplier = 2f;      // vaivén mientras jadea
+        public float scopeSway = 0.35f;            // grados de vaivén de la mira por unidad de swayAmount del arma
         public float motionScale = 1f;           // accesibilidad "Movimiento de cámara" (0..1); se guarda en PlayerPrefs
 
         public void Validate()
@@ -47,6 +54,9 @@ namespace SevenDays.Procedural
             blindMinSpread = CameraMath.Clamp(blindMinSpread, 2f, 20f); blindMaxSpread = CameraMath.Clamp(blindMaxSpread, blindMinSpread, 30f);
             blindExposure = CameraMath.Clamp(blindExposure, 0.1f, 0.8f); blindHold = CameraMath.Clamp(blindHold, 0.1f, 2f); coveredDamageFloor = CameraMath.Clamp(coveredDamageFloor, 0f, 1f);
             motionScale = CameraMath.Clamp(motionScale, 0f, 1f);
+            breathHoldSeconds = CameraMath.Clamp(breathHoldSeconds, 1f, 6f); breathRecoverSeconds = CameraMath.Clamp(breathRecoverSeconds, 0.5f, 6f);
+            holdSwayMultiplier = CameraMath.Clamp(holdSwayMultiplier, 0f, 1f); gaspSwayMultiplier = CameraMath.Clamp(gaspSwayMultiplier, 1f, 4f);
+            scopeSway = CameraMath.Clamp(scopeSway, 0f, 2f);
         }
     }
 
@@ -322,5 +332,53 @@ namespace SevenDays.Procedural
         /// <summary>Desplazamiento lateral de la cámara (metros) y roll del cuerpo (grados) para este lean.</summary>
         public float CameraOffset(float maxMeters = 0.4f) => Math.Abs(Value) * maxMeters;
         public float BodyRoll(float maxDegrees = 14f) => -Value * maxDegrees;
+    }
+
+    public enum BreathState { Ready, Holding, Exhausted }
+
+    /// <summary>
+    /// Contener la respiración con la mira (Shift): el vaivén baja mucho durante unos segundos; si se agota, jadeo (más vaivén) y hay que esperar a recuperarse.
+    /// Soltar antes recupera el aire en proporción a lo usado.
+    /// </summary>
+    public class BreathHold
+    {
+        public BreathState State { get; private set; } = BreathState.Ready;
+        public float Air { get; private set; } = 1f;          // 1 lleno .. 0 agotado
+        public float RecoverLeft { get; private set; }
+        /// <summary>true el tick en que se agotó (para el sonido del jadeo).</summary>
+        public bool JustExhausted { get; private set; }
+
+        public float SwayMultiplier(CameraSettingsData c) => State == BreathState.Holding ? c.holdSwayMultiplier : (State == BreathState.Exhausted ? c.gaspSwayMultiplier : 1f);
+
+        public void Tick(float dt, bool wantHold, bool scoped, CameraSettingsData c)
+        {
+            JustExhausted = false;
+            switch (State)
+            {
+                case BreathState.Ready:
+                    Air = Math.Min(1f, Air + dt / c.breathRecoverSeconds);
+                    if (wantHold && scoped && Air > 0.2f) State = BreathState.Holding;
+                    break;
+                case BreathState.Holding:
+                    Air -= dt / c.breathHoldSeconds;
+                    if (Air <= 0f) { Air = 0f; State = BreathState.Exhausted; RecoverLeft = c.breathRecoverSeconds; JustExhausted = true; }
+                    else if (!wantHold || !scoped) State = BreathState.Ready;
+                    break;
+                case BreathState.Exhausted:
+                    RecoverLeft -= dt;
+                    if (RecoverLeft <= 0f) { RecoverLeft = 0f; State = BreathState.Ready; Air = 0.25f; }
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Vaivén lento de la mira (figura de ocho con dos senos inconmensurables), en grados.</summary>
+    public static class ScopeSway
+    {
+        public static void Offset(float time, float amplitude, out float pitch, out float yaw)
+        {
+            yaw = amplitude * (float)(Math.Sin(time * 0.9) * 0.7 + Math.Sin(time * 1.7 + 0.5) * 0.3);
+            pitch = amplitude * (float)(Math.Sin(time * 1.8 + 1.1) * 0.5 + Math.Sin(time * 0.6) * 0.3);
+        }
     }
 }
