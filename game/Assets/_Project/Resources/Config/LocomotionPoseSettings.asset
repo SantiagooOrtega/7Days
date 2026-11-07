@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9530589c104f4db6a5196cf8a5c2176, type: 3}
+  m_Name: LocomotionPoseSettings
+  m_EditorClassIdentifier: Assembly-CSharp::SevenDays.Animation.LocomotionPoseSettings
+  Settings:
+    contactKnee: 15
+    midStanceKnee: 5
+    toeOffKnee: 32
+    walkSwingKnee: 62
+    runSwingKnee: 112
+    walkThigh: 30
+    runThigh: 55
+    backThigh: -14
+    heelStrikePitch: 12
+    toeOffPitch: 28
+    absorb: 0.035
+    walkLean: 3
+    runLean: 14
+    walkPelvisTilt: 3
+    runPelvisTilt: 6
+    walkHipYaw: 6
+    runHipYaw: 12
+    swingBlend: 0.62
+    kneelTorsoLean: 30
