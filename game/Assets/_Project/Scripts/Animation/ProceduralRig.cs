@@ -26,6 +26,9 @@ namespace SevenDays.Animation
         public Collider CoverCollider;      // los pies no pueden entrar en la cobertura
         public float AimTwist;              // grados: postura de perfil al encarar un arma con culata
         public float CheekWeld;             // 0..1: la cabeza se pega a la culata (apuntando con rifle)
+        public Vector3 RightHandGrip, LeftHandGrip;   // punto de agarre del arma que sujeta cada mano (mundo): para medir y depurar
+        public float WeaponWeight;          // 0..1: armas pesadas bajan un poco el hombro y llevan más inercia
+        public Transform HandSpace;         // las manos se suavizan en este espacio (el arma): al moverse el arma no se quedan atrás
     }
 
     /// <summary>Suavizados de cada capa (segundos). Se pueden tocar en vivo desde el panel F6.</summary>
@@ -33,6 +36,8 @@ namespace SevenDays.Animation
     public class RigSmoothing
     {
         public float pelvis = 0.06f, footPlanted = 0.02f, footSwing = 0.05f, torso = 0.12f, head = 0.06f, hands = 0.05f, weights = 0.15f, velocity = 0.08f;
+        /// <summary>Velocidad máxima de una mano yendo a otro objetivo (m/s) y giro máximo (°/s): como una mano real recargando, sin saltos.</summary>
+        public float handSpeed = 2.6f, handTurn = 540f;
     }
 
     /// <summary>
@@ -110,6 +115,11 @@ namespace SevenDays.Animation
         private CriticalSpring3 _hit;
         private readonly CriticalSpring3[] _foot = new CriticalSpring3[2];
         private readonly CriticalSpring3[] _hand = new CriticalSpring3[2];
+        private readonly Quaternion[] _handRot = { Quaternion.identity, Quaternion.identity };
+        private readonly Vector3[] _handGoal = new Vector3[2];
+        private Transform _handSpace;
+        private bool _handSpaceSet;
+        private CriticalSpring _shoulderDrop;
         private readonly Vector3[] _plant = new Vector3[2], _liftFrom = new Vector3[2];
         private readonly bool[] _wasStance = { true, true };
         private readonly float[] _idleStep = { -1f, -1f };
@@ -170,6 +180,20 @@ namespace SevenDays.Animation
             _built = true;
         }
 
+        /// <summary>Vuelve a crear el esqueleto con otras proporciones (F6: "Aplicar complexión"). Las mallas las vuelve a colgar RigVisuals.Rebuild.</summary>
+        public void Rebuild(RigProportions p)
+        {
+            if (Bones != null && Bones.Length > 0 && Bones[0] != null)
+            {
+                var old = Bones[0].gameObject;
+                old.transform.SetParent(null, false);
+                if (Application.isPlaying) Destroy(old); else DestroyImmediate(old);
+            }
+            _built = false; _handSpaceSet = false;
+            LeftHandMesh = RightHandMesh = null;
+            Build(p);
+        }
+
         /// <summary>Coloca los pies bajo el cuerpo y pone los muelles en reposo (al aparecer o reutilizarse desde un pool).</summary>
         public void ResetPose()
         {
@@ -186,6 +210,7 @@ namespace SevenDays.Animation
                 _foot[f].Reset(ToV3(_plant[f]));
                 _wasStance[f] = true; _idleStep[f] = -1f;
                 _hand[f].Reset(ToV3(transform.position + Vector3.up * _hipHeight));
+                _handSpaceSet = false;
             }
             _gait.Reset();
         }
@@ -634,6 +659,21 @@ namespace SevenDays.Animation
             float phase = _gait.Phase * Mathf.PI * 2f;
             float rw = _rightW.Step(I.Dead ? 0f : I.RightWeight, Smoothing.weights, dt);
             float lw = _leftW.Step(I.Dead ? 0f : I.LeftWeight, Smoothing.weights, dt);
+            // espacio de las manos: el del arma (sus objetivos se quedan quietos ahí aunque el arma se mueva con el cuerpo). Si cambia, se re-expresa sin salto.
+            if (!_handSpaceSet || I.HandSpace != _handSpace)
+            {
+                Vector3 w0 = _handSpaceSet ? FromHandSpace(_hand[0].Value.ToUnity()) : _hand[0].Value.ToUnity(), w1 = _handSpaceSet ? FromHandSpace(_hand[1].Value.ToUnity()) : _hand[1].Value.ToUnity();
+                Quaternion r0 = _handSpaceSet ? HandSpaceRot() * _handRot[0] : Bone(BoneId.LeftHand).rotation, r1 = _handSpaceSet ? HandSpaceRot() * _handRot[1] : Bone(BoneId.RightHand).rotation;
+                _handSpace = I.HandSpace; _handSpaceSet = true;
+                _hand[0].Reset(ToV3(ToHandSpace(w0))); _hand[1].Reset(ToV3(ToHandSpace(w1)));
+                _handGoal[0] = ToHandSpace(w0); _handGoal[1] = ToHandSpace(w1);
+                _handRot[0] = Quaternion.Inverse(HandSpaceRot()) * r0; _handRot[1] = Quaternion.Inverse(HandSpaceRot()) * r1;
+            }
+            // armas pesadas: los hombros bajan un poco
+            float drop = _shoulderDrop.Step(I.Dead ? 0f : I.WeaponWeight * Mathf.Max(rw, lw), 0.2f, dt);
+            var rs = Spec[(int)BoneId.RightShoulder].LocalPosition; var ls = Spec[(int)BoneId.LeftShoulder].LocalPosition;
+            Bone(BoneId.RightShoulder).localPosition = new Vector3(rs.X, rs.Y - 0.022f * drop, rs.Z);
+            Bone(BoneId.LeftShoulder).localPosition = new Vector3(ls.X, ls.Y - 0.012f * drop, ls.Z);
             for (int a = 0; a < 2; a++)
             {
                 bool left = a == 0;
@@ -657,12 +697,22 @@ namespace SevenDays.Animation
 
                 float w = left ? lw : rw;
                 Vector3 goal = Vector3.Lerp(free, left ? I.LeftHand : I.RightHand, w);
-                V3 g = _hand[a].Step(ToV3(goal), Smoothing.hands, dt);
-                Vector3 target = g.ToUnity();
+                // el objetivo avanza como mucho a la velocidad de una mano real (al cambiar de agarre o recargar no salta) y el muelle quita los tirones
+                _handGoal[a] = Vector3.MoveTowards(_handGoal[a], ToHandSpace(goal), Smoothing.handSpeed * dt);
+                V3 g = _hand[a].Step(ToV3(_handGoal[a]), Smoothing.hands, dt);
+                Vector3 target = FromHandSpace(g.ToUnity());
                 HandTargets[a] = target;
+                // alcance: si la mano no llega, el hombro se adelanta hacia ella (protracción de la clavícula, hasta 8 cm), como un brazo real que estira
+                float deficit = Vector3.Distance(shoulder, target) - armLen * 0.92f;   // empieza antes del tope: el codo no queda bloqueado
+                if (deficit > 0f)
+                {
+                    var clavicle = Bone(left ? BoneId.LeftShoulder : BoneId.RightShoulder);
+                    clavicle.position += (target - shoulder).normalized * Mathf.Min(deficit, 0.12f) * Mathf.Max(w, 0f);
+                    shoulder = upper.position;
+                }
 
                 // codos: con el arma en las manos, hacia abajo y un poco hacia dentro (nunca hacia fuera); brazo libre, hacia atrás
-                Vector3 holdPole = shoulder - up * 0.5f - chestRight * side * 0.15f - chestFwd * 0.1f;
+                Vector3 holdPole = shoulder + Vector3.down * 0.5f - chestRight * side * 0.15f - chestFwd * 0.1f;   // codos abajo (mundo) y algo hacia dentro
                 Vector3 freePole = shoulder - chestFwd * 0.5f - up * 0.3f + chestRight * side * 0.05f;
                 Vector3 pole = Vector3.Lerp(freePole, holdPole, left ? lw : rw);
                 TwoBoneIK.Solve(ToV3(shoulder), ToV3(target), ToV3(pole), _upperArm, _lowerArm, out V3 mid, out V3 end);
@@ -673,7 +723,11 @@ namespace SevenDays.Animation
                 upper.rotation = SegmentRotation(shoulder, elbow, bendDir);
                 lower.rotation = SegmentRotation(elbow, wrist, bendDir);
                 Quaternion freeRot = Quaternion.LookRotation(chestFwd, elbow - wrist);
-                hand.rotation = Quaternion.Slerp(freeRot, left ? I.LeftHandRot : I.RightHandRot, w);
+                // el giro de la mano también se suaviza (en el espacio del arma): al cambiar de agarre no salta
+                Quaternion goalRot = Quaternion.Inverse(HandSpaceRot()) * Quaternion.Slerp(freeRot, left ? I.LeftHandRot : I.RightHandRot, w);
+                Quaternion smoothRot = Quaternion.Slerp(_handRot[a], goalRot, 1f - Mathf.Exp(-dt / Mathf.Max(0.005f, Smoothing.hands)));
+                _handRot[a] = Quaternion.RotateTowards(_handRot[a], smoothRot, Smoothing.handTurn * dt);
+                hand.rotation = HandSpaceRot() * _handRot[a];
             }
         }
 
@@ -707,6 +761,10 @@ namespace SevenDays.Animation
             float total = a + b + c + d;
             return total > 1e-4f ? Mathf.Max(0.3f, (b * spineShare + c * (spineShare + chestShare) + d) / total) : 1f;
         }
+
+        private Vector3 ToHandSpace(Vector3 world) => _handSpace != null ? _handSpace.InverseTransformPoint(world) : transform.InverseTransformPoint(world);
+        private Vector3 FromHandSpace(Vector3 local) => _handSpace != null ? _handSpace.TransformPoint(local) : transform.TransformPoint(local);
+        private Quaternion HandSpaceRot() => _handSpace != null ? _handSpace.rotation : transform.rotation;
 
         private static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
         private static V3 ToV3(Vector3 v) => new V3(v.x, v.y, v.z);
