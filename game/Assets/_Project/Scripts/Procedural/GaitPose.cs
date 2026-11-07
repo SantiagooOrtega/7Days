@@ -139,12 +139,30 @@ namespace SevenDays.Procedural
         /// </summary>
         public static float ReachStance(float baseStance, float cycleLength, float standHipJoint, float ankleAtContact, float ballLever, LocomotionPoseData d, float thigh, float shin)
         {
-            float v = standHipJoint - d.stanceDrop - ankleAtContact;
+            // al contactar la pelvis aún viene alta (del vuelo): la rodilla de contacto se consigue con poca caída; la caída entera llega en el apoyo medio
+            float v = standHipJoint - FlightDip(d) - ankleAtContact;
             float dist = LegSolver.Distance(thigh, shin, d.contactKnee);
             float h2 = dist * dist - v * v;
             float travel = 2f * (h2 > 0f ? (float)Math.Sqrt(h2) : 0f) + ballLever;
             float s = cycleLength > 1e-3f ? travel / cycleLength : baseStance;
-            return Math.Max(0.22f, Math.Min(baseStance, s));
+            // caminando siempre hay doble apoyo (> 50 %); trotando y corriendo, vuelo
+            float floor = baseStance >= 0.58f ? 0.53f : 0.17f;
+            return Math.Max(Math.Min(floor, baseStance), Math.Min(baseStance, s));
+        }
+
+        /// <summary>Cuánto baja la cadera al final del vuelo (al contactar) respecto a lo más alto: el vuelo es una parábola, no una meseta.</summary>
+        public static float FlightDip(LocomotionPoseData d) => d.stanceDrop * 0.6f;
+
+        /// <summary>
+        /// Altura de la cadera en el vuelo (los dos pies en el aire): sube desde el despegue hasta la altura de pie y baja hacia el contacto. Devuelve la caída
+        /// respecto a "de pie" (0..FlightDip). gaitPhase = fase del ciclo (0..1); stance = fracción de apoyo de cada pie. -1 si no hay vuelo en esa fase.
+        /// </summary>
+        public static float FlightDrop(LocomotionPoseData d, float gaitPhase, float stance)
+        {
+            float half = gaitPhase % 0.5f;
+            if (stance >= 0.5f || half < stance) return -1f;
+            float u = (half - stance) / (0.5f - stance);
+            return FlightDip(d) * (1f - (float)Math.Sin(Math.PI * u));
         }
 
         /// <summary>Altura de la articulación de la cadera de pie (sobre el suelo) con la rodilla a "kneeDeg" y el tobillo a "ankleHeight" (suela incluida).</summary>
