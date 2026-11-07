@@ -63,3 +63,60 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class LocomotionShapeTests
+    {
+        private static readonly LocomotionPoseData D = new LocomotionPoseData();
+        private const float Thigh = 0.4117f, Shin = 0.38f;
+
+        [Test]
+        public void StandHip_KneeAlmostStraight()
+        {
+            float h = GaitPose.StandHipJoint(0.097f, Thigh, Shin, D.standKnee);
+            Assert.AreEqual(0.097f + LegSolver.Distance(Thigh, Shin, D.standKnee), h, 1e-5f);
+            Assert.Greater(h, 0.097f + (Thigh + Shin) * 0.995f, "de pie con la rodilla a ~6°: casi recta (antes 41° sin que se viera)");
+        }
+
+        [Test]
+        public void ReachStance_RunHasFlight_WalkHasDoubleSupport()
+        {
+            float hip = GaitPose.StandHipJoint(0.097f, Thigh, Shin, D.standKnee);
+            float run = GaitPose.ReachStance(GaitCycle.StanceFraction(6.8f), GaitCycle.CycleLength(6.8f, 0.92f), hip, 0.108f, 0.08f, D, Thigh, Shin);
+            float walk = GaitPose.ReachStance(GaitCycle.StanceFraction(1.6f), GaitCycle.CycleLength(1.6f, 0.92f), hip, 0.108f, 0.08f, D, Thigh, Shin);
+            Assert.That(run, Is.InRange(0.17f, 0.35f), "corriendo: vuelo largo, apoyo corto");
+            Assert.Greater(walk, 0.5f, "caminando siempre hay doble apoyo");
+        }
+
+        [Test]
+        public void FlightDrop_HighInTheMiddle_LowerAtTheEnds()
+        {
+            float s = 0.25f;
+            Assert.AreEqual(-1f, GaitPose.FlightDrop(D, 0.1f, s), "en apoyo no hay vuelo");
+            Assert.AreEqual(0f, GaitPose.FlightDrop(D, 0.375f, s), 1e-4f, "a mitad del vuelo, lo más alto");
+            Assert.AreEqual(GaitPose.FlightDip(D), GaitPose.FlightDrop(D, 0.4999f, s), 1e-3f, "al llegar al contacto, baja");
+        }
+
+        [Test]
+        public void MoveLean_Ranges_AndWeaponLowers_AndNeverOver15()
+        {
+            Assert.That(GaitPose.MoveLean(D, 0f, 1f, 0f, 0f), Is.InRange(5f, 8f), "trotar");
+            Assert.That(GaitPose.MoveLean(D, 0f, 0f, 1f, 0f), Is.InRange(8f, 12f), "correr");
+            Assert.That(GaitPose.MoveLean(D, 0f, 0f, 1f, 1f), Is.InRange(3f, 6f), "con arma");
+            var big = new LocomotionPoseData { runLean = 40f }; big.Validate();
+            Assert.LessOrEqual(GaitPose.MoveLean(big, 0f, 0f, 1f, 0f), 15f);
+            Assert.That(GaitPose.PelvisLean(D, GaitPose.MoveLean(D, 0f, 0f, 1f, 0f)), Is.InRange(2f, 4f), "la pelvis pone 2-4°");
+        }
+
+        [Test]
+        public void Migrate_OldAssetGetsNewRunLean_KeepsOtherEdits()
+        {
+            var old = new LocomotionPoseData { runLean = 14f, contactKnee = 18f, poseVersion = 0 };
+            Assert.IsTrue(old.Migrate());
+            Assert.AreEqual(new LocomotionPoseData().runLean, old.runLean);
+            Assert.AreEqual(18f, old.contactKnee, "lo demás se respeta");
+            Assert.IsFalse(old.Migrate(), "solo una vez");
+        }
+    }
+}
