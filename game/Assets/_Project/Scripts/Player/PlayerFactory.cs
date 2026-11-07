@@ -32,7 +32,8 @@ namespace SevenDays.Player
             rigGo.transform.SetParent(visual, false);
             var rig = rigGo.AddComponent<SevenDays.Animation.ProceduralRig>();
             rig.Build(SevenDays.Animation.ProportionSettings.Load());
-            SevenDays.Animation.RigVisuals.BuildSoldier(rig, SevenDays.Animation.RigPalette.Soldier);
+            var variant = SevenDays.Animation.CharacterVariantLibrary.Current;   // Calavera, Explorador, Médico o Francotirador (F6 la cambia)
+            SevenDays.Animation.RigVisuals.BuildSoldier(rig, variant);
 
             // Soporte del arma y boca del cañón
             var holder = new GameObject("WeaponHolder").transform;
@@ -75,6 +76,7 @@ namespace SevenDays.Player
             motor.HolderCrouchHeight = 0.9f;                                    // el arma sigue al pecho agachado (antes quedaba a la altura de la tripa)
             root.AddComponent<SevenDays.Animation.PlayerRigDriver>().Initialize(rig, pose);
             healing.Initialize(inventory);
+            PlayerVariantStats.Apply(root, variant);   // vida, velocidad, curación y balanceo del arma de la variante
             interact.Initialize(inventory);
 
             root.AddComponent<RimLight>().Initialize(root.transform, cam.transform);

@@ -35,6 +35,9 @@ namespace SevenDays.Player
         private bool _ready;
         private readonly SevenDays.Animation.GripInertia _inertia = new SevenDays.Animation.GripInertia();
 
+        /// <summary>Multiplicador del balanceo del arma de la variante jugable (PlayerVariantStats).</summary>
+        public float SwayMultiplier = 1f;
+
         /// <summary>Lo que el arma retrocede ahora mismo (0..1), para el panel de depuración.</summary>
         public float Kick => _kick;
         public Vector2 Sway => _sway;
@@ -63,7 +66,7 @@ namespace SevenDays.Player
 
             // --- sway: muelle amortiguado que persigue al contrario del giro del ratón (limitado)
             Vector2 look = Cursor.lockState == CursorLockMode.Locked ? GameInput.Look : Vector2.zero;
-            Vector2 target = Vector2.ClampMagnitude(-look * 0.05f * w.swayAmount * calm, 4f);
+            Vector2 target = Vector2.ClampMagnitude(-look * 0.05f * w.swayAmount * SwayMultiplier * calm, 4f);
             _sway = Vector2.SmoothDamp(_sway, target, ref _swayVel, 0.08f, Mathf.Infinity, dt);
 
             // --- kickback con muelle

@@ -82,7 +82,7 @@ namespace SevenDays.Animation
             {
                 hip = new Hold { Anchor = At(cp, 0.16f, -0.22f, 0.28f), Euler = new Vector3(-50f, -30f, 0f) };     // en diagonal delante del cuerpo, a dos manos
                 sprint = new Hold { Anchor = At(cp, 0.18f, -0.26f, 0.2f), Euler = new Vector3(-30f, -20f, 0f) };
-                cover = new Hold { Anchor = At(cp, 0.06f, -0.12f, 0.24f), Euler = new Vector3(-62f, -22f, 0f) };
+                cover = new Hold { Anchor = At(cp, 0.1f, -0.17f, 0.28f), Euler = new Vector3(-62f, -22f, 0f) };
                 aim = hip;
             }
             else
