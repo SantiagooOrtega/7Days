@@ -24,6 +24,10 @@ namespace SevenDays.Player
         public ShoulderState Shoulder { get; } = new ShoulderState();
         public AimTransition Aim { get; } = new AimTransition();
         public RecoilState Recoil { get; } = new RecoilState();
+        /// <summary>Contener la respiración con la mira (Shift).</summary>
+        public BreathHold Breath { get; } = new BreathHold();
+        /// <summary>Vaivén actual de la mira (grados), para el panel F5.</summary>
+        public Vector2 ScopeSwayOffset { get; private set; }
 
         public float Yaw { get; private set; }
         public float Pitch { get; private set; }
@@ -60,7 +64,8 @@ namespace SevenDays.Player
         private PlayerImpulse _impulse;
         private float _pivotSmoothed = 1.55f, _smYaw, _smPitch;
         private readonly List<Renderer> _bodyRenderers = new List<Renderer>();
-        private bool _bodyHidden;
+        private bool _bodyHidden, _aimToggled;
+        private AudioSource _gasp;
         private static readonly WeaponData Fallback = new WeaponData();
 
         public void Initialize(Transform player, Camera cam, float startYaw)
@@ -162,7 +167,10 @@ namespace SevenDays.Player
             if (locked && GameInput.ShoulderSwapPressed) Shoulder.Toggle();
             Shoulder.Tick(dt, Settings.shoulderSwapTime);
 
-            Aiming = locked && GameInput.AimHeld && (CanAim == null || CanAim());
+            // mantener o alternar (opción "Apuntar" en los ajustes de Esc); si no se puede apuntar (vault, cuerpo a cuerpo) se suelta
+            bool canAim = CanAim == null || CanAim();
+            if (Settings.aimToggle) { if (locked && GameInput.AimPressed) _aimToggled = !_aimToggled; if (!canAim) _aimToggled = false; }
+            Aiming = locked && canAim && (Settings.aimToggle ? _aimToggled : GameInput.AimHeld);
             Aim.Tick(dt, Aiming, w.adsTime, w.adsTime * 0.85f);
 
             // zoom variable de la mira telescópica con la rueda (mientras apuntas)
@@ -191,6 +199,14 @@ namespace SevenDays.Player
             }
 
             Recoil.Tick(dt, GameInput.FireHeld, w);
+
+            // con la mira en primera persona: vaivén lento (más con fatiga), que Shift reduce conteniendo la respiración
+            bool scoped = w.aimFirstPerson && FirstPersonBlend > 0.5f;
+            Breath.Tick(dt, GameInput.SprintHeld, scoped, Settings);
+            if (Breath.JustExhausted) Gasp();
+            float swayAmp = scoped ? Settings.scopeSway * w.swayAmount * Breath.SwayMultiplier(Settings) * (1f + (RunCam != null ? RunCam.Fatigue : 0f)) * FirstPersonBlend : 0f;
+            ScopeSway.Offset(Time.time, swayAmp, out float swayPitch, out float swayYaw);
+            ScopeSwayOffset = new Vector2(swayYaw, swayPitch);
             UpdateRunCam(dt);
 
             // cámara principal: distancia, hombro (+ lean) y FOV con ease in/out
@@ -247,10 +263,19 @@ namespace SevenDays.Player
 
             _pivotSmoothed = Mathf.Lerp(_pivotSmoothed, PivotHeight, 1f - Mathf.Exp(-12f * dt));
             _target.SetPositionAndRotation(_player.position + Vector3.up * (_pivotSmoothed + RunOutput.HeightDelta),
-                Quaternion.Euler(_smPitch - Recoil.Pitch, _smYaw + Recoil.Yaw, 0f));
+                Quaternion.Euler(_smPitch - Recoil.Pitch + ScopeSwayOffset.y, _smYaw + Recoil.Yaw + ScopeSwayOffset.x, 0f));
 
             if (SightPoint != null) _sightAnchor.SetPositionAndRotation(SightPoint.position, _target.rotation);
             else _sightAnchor.SetPositionAndRotation(_target.position, _target.rotation);
+        }
+
+        /// <summary>Se agotó el aire: jadeo audible y un pequeño cabeceo.</summary>
+        private void Gasp()
+        {
+            if (_gasp == null) { _gasp = gameObject.AddComponent<AudioSource>(); _gasp.playOnAwake = false; _gasp.spatialBlend = 0f; }
+            _gasp.pitch = 1.3f;
+            _gasp.PlayOneShot(SevenDays.Weapons.ProceduralAudio.Breath(), 0.9f);
+            _impulse?.Shake(0.12f);
         }
 
         private void SetBodyHidden(bool hidden)

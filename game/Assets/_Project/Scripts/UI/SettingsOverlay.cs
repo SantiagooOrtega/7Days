@@ -20,7 +20,7 @@ namespace SevenDays.UI
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 18, normal = { textColor = Color.white } };
             _title ??= new GUIStyle(_label) { fontSize = 22, fontStyle = FontStyle.Bold };
             var s = _camera.Settings;
-            var r = new Rect(Screen.width - 430, Screen.height * 0.5f - 110, 400, 200);
+            var r = new Rect(Screen.width - 430, Screen.height * 0.5f - 110, 400, 240);
             if (r.Contains(Event.current.mousePosition)) PlayerCamera.UiHoverUntil = Time.unscaledTime + 0.15f;
             GUI.Box(r, GUIContent.none);
             GUI.Label(new Rect(r.x + 16, r.y + 10, 380, 30), "Ajustes (clic en el juego para volver)", _title);
@@ -30,6 +30,8 @@ namespace SevenDays.UI
             GUI.Label(new Rect(r.x + 16, r.y + 110, 380, 26), "Sensibilidad: " + s.sensitivity.ToString("0.000"), _label);
             float sens = GUI.HorizontalSlider(new Rect(r.x + 16, r.y + 142, 368, 20), s.sensitivity, 0.02f, 0.4f);
 
+            bool toggle = GUI.Toggle(new Rect(r.x + 16, r.y + 180, 368, 26), s.aimToggle, s.aimToggle ? " Apuntar: alternar (un clic apunta, otro suelta)" : " Apuntar: mantener clic derecho");
+            if (toggle != s.aimToggle) { s.aimToggle = toggle; PlayerPrefs.SetInt(CameraSettings.AimTogglePrefKey, toggle ? 1 : 0); }
             if (!Mathf.Approximately(motion, s.motionScale)) { s.motionScale = Mathf.Round(motion * 20f) / 20f; PlayerPrefs.SetFloat(CameraSettings.MotionPrefKey, s.motionScale); }
             if (!Mathf.Approximately(sens, s.sensitivity)) { s.sensitivity = sens; PlayerPrefs.SetFloat(CameraSettings.SensitivityPrefKey, s.sensitivity); }
         }
