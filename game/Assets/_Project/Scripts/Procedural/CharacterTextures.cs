@@ -8,7 +8,7 @@ namespace SevenDays.Procedural
     /// <summary>Mapas de un atlas: color (RGBA, se comprime a BC), normales (RGBA, sin comprimir) y máscara (R metal, G oclusión, A suavidad: URP Lit los lee así).</summary>
     public sealed class AtlasMaps
     {
-        public int Size;
+        public int Size, NormalSize;   // las normales van a la mitad de resolución (sin comprimir ocupan 4 veces más que el color en BC)
         public byte[] Albedo, Normal, Mask;
     }
 
@@ -73,7 +73,17 @@ namespace SevenDays.Procedural
                     mask[i * 4] = B(o.Metal); mask[i * 4 + 1] = B(o.Ao); mask[i * 4 + 2] = 0; mask[i * 4 + 3] = B(o.Smooth);
                 }
             });
-            return new AtlasMaps { Size = n, Albedo = albedo, Mask = mask, Normal = Normals(height, n, 3f * n / 1024f) };
+            // normales a media resolución (media de 2x2 alturas): mismo relieve, la cuarta parte de memoria
+            int nn = n > 256 ? n / 2 : n;
+            float[] h2 = height;
+            if (nn != n)
+            {
+                h2 = new float[nn * nn];
+                for (int y = 0; y < nn; y++)
+                    for (int x = 0; x < nn; x++)
+                        h2[y * nn + x] = (height[(2 * y) * n + 2 * x] + height[(2 * y) * n + 2 * x + 1] + height[(2 * y + 1) * n + 2 * x] + height[(2 * y + 1) * n + 2 * x + 1]) * 0.25f;
+            }
+            return new AtlasMaps { Size = n, NormalSize = nn, Albedo = albedo, Mask = mask, Normal = Normals(h2, nn, 3f * nn / 1024f) };
         }
 
         /// <summary>Normales desde la altura (bordes sin envolver: las celdas no se repiten). strength escala la pendiente.</summary>

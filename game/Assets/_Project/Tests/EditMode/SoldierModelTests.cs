@@ -101,7 +101,7 @@ namespace SevenDays.Tests
             var v = CharacterVariants.Defaults()[0];
             var a = CharacterTextures.Generate(kind, v, 128);
             var b = CharacterTextures.Generate(kind, v, 128);
-            Assert.AreEqual(128 * 128 * 4, a.Albedo.Length); Assert.AreEqual(a.Albedo.Length, a.Normal.Length); Assert.AreEqual(a.Albedo.Length, a.Mask.Length);
+            Assert.AreEqual(128 * 128 * 4, a.Albedo.Length); Assert.AreEqual(a.NormalSize * a.NormalSize * 4, a.Normal.Length); Assert.AreEqual(a.Albedo.Length, a.Mask.Length);
             CollectionAssert.AreEqual(a.Albedo, b.Albedo, "misma semilla, mismo resultado");
             // las normales apuntan hacia fuera de la superficie (z > 0.5 en el mapa)
             for (int i = 2; i < a.Normal.Length; i += 4) Assert.Greater(a.Normal[i], 127);
