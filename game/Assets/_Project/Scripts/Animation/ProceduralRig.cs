@@ -512,8 +512,8 @@ namespace SevenDays.Animation
                 IkKnees[f] = knee; IkAnkles[f] = ank;
                 Vector3 bendDir = Vector3.ProjectOnPlane(knee - (hip + ank) * 0.5f, (ank - hip).normalized);
                 if (bendDir.sqrMagnitude < 1e-6f) bendDir = fwd;
-                upper.rotation = Quaternion.LookRotation(bendDir.normalized, hip - knee);
-                lower.rotation = Quaternion.LookRotation(bendDir.normalized, knee - ank);
+                upper.rotation = SegmentRotation(hip, knee, bendDir);
+                lower.rotation = SegmentRotation(knee, ank, bendDir);
                 // pie plano; punta arriba al despegar; talón arriba en sentadilla profunda; arrodillado, el pie de atrás apoya la punta
                 Vector3 footFwd = Vector3.ProjectOnPlane(fwd, Vector3.up).normalized;
                 float pitch = walkingLegs ? gaitPitch : (FootPlanted[f] ? heel : -18f);
@@ -603,8 +603,8 @@ namespace SevenDays.Animation
                 ElbowFlexion[a] = LegSolver.KneeFlexion(ToV3(shoulder), mid, end);
                 Vector3 bendDir = Vector3.ProjectOnPlane(elbow - (shoulder + wrist) * 0.5f, (wrist - shoulder).normalized);
                 if (bendDir.sqrMagnitude < 1e-6f) bendDir = -chestFwd;
-                upper.rotation = Quaternion.LookRotation(bendDir.normalized, shoulder - elbow);
-                lower.rotation = Quaternion.LookRotation(bendDir.normalized, elbow - wrist);
+                upper.rotation = SegmentRotation(shoulder, elbow, bendDir);
+                lower.rotation = SegmentRotation(elbow, wrist, bendDir);
                 Quaternion freeRot = Quaternion.LookRotation(chestFwd, elbow - wrist);
                 hand.rotation = Quaternion.Slerp(freeRot, left ? I.LeftHandRot : I.RightHandRot, w);
             }
@@ -617,6 +617,19 @@ namespace SevenDays.Animation
             float fall = _deathTime < 0f ? 0f : Mathf.SmoothStep(0f, 1f, (_time - _deathTime - 0.35f) / 0.6f);
             var hips = Bone(BoneId.Hips);
             if (fall > 0f) hips.localRotation = hips.localRotation * Quaternion.Euler(-80f * fall, 0f, 10f * fall);
+        }
+
+        /// <summary>
+        /// Rotación de un hueso de extremidad que va de "from" a "to" (su -Y local apunta al hijo) con su +Z hacia el lado al que se dobla la articulación.
+        /// El EJE del hueso manda: Quaternion.LookRotation conserva exacto el primer vector y proyecta el segundo, así que se pasa primero la dirección de doblado
+        /// ya perpendicular al hueso. (Antes se pasaba al revés: el eje se proyectaba sobre la línea cadera-tobillo, la pierna quedaba recta y el pie se hundía.)
+        /// </summary>
+        private static Quaternion SegmentRotation(Vector3 from, Vector3 to, Vector3 bendDir)
+        {
+            Vector3 up = from - to;
+            Vector3 fwd = Vector3.ProjectOnPlane(bendDir, up.normalized);
+            if (fwd.sqrMagnitude < 1e-8f) fwd = Vector3.ProjectOnPlane(Vector3.forward, up.normalized);
+            return Quaternion.LookRotation(fwd.normalized, up);
         }
 
         private static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
