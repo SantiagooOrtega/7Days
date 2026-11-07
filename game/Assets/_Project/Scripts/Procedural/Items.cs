@@ -67,7 +67,7 @@ namespace SevenDays.Procedural
         // --- agarre (puntos para las manos y la culata; ver WeaponGrip)
         public WeaponGrip grip;
 
-        public const int CurrentDataVersion = 4;
+        public const int CurrentDataVersion = 5;
 
         public bool IsMelee => kind == WeaponKind.Melee;
         public bool HasScope => scopeFovs != null && scopeFovs.Length > 0;
@@ -212,6 +212,8 @@ namespace SevenDays.Procedural
             }
             // v3 -> v4: puntos de agarre (empuñadura, guardamano, culata) según el tipo de arma
             if (w.dataVersion < 4 && (w.grip == null || w.grip.grip == null || w.grip.grip.Length < 6)) w.grip = WeaponGrip.For(w.kind, w.length, w.thickness);
+            // v4 -> v5: los puntos de agarre pasan a ser el eje del mango (la palma se coloca a su alrededor) y el guardamano/bomba se acercan al cuerpo
+            if (w.dataVersion < 5) w.grip = WeaponGrip.For(w.kind, w.length, w.thickness);
             w.dataVersion = WeaponData.CurrentDataVersion;
             return true;
         }

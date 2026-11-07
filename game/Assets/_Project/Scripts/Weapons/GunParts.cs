@@ -50,16 +50,17 @@ namespace SevenDays.Weapons
                         P(root.transform, PrimitiveType.Cylinder, "Barrel", new Vector3(0f, 0.025f, len * 0.75f), new Vector3(0.03f, len * 0.25f, 0.03f), main).localRotation = Quaternion.Euler(90f, 0f, 0f);
                         break;
                     case WeaponKind.Shotgun:
-                        g.Pump = P(root.transform, PrimitiveType.Cube, "Pump", new Vector3(0f, -0.065f, len * 0.42f), new Vector3(th * 1.15f, 0.055f, len * 0.24f), new Color(0.32f, 0.22f, 0.14f));
+                        g.Pump = P(root.transform, PrimitiveType.Cube, "Pump", new Vector3(0f, -0.065f, len * WeaponGrip.PumpAt), new Vector3(th * 1.15f, 0.055f, len * 0.24f), new Color(0.32f, 0.22f, 0.14f));
                         P(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.1f), new Vector3(th * 0.9f, 0.11f, 0.22f), new Color(0.32f, 0.22f, 0.14f));
                         break;
                     case WeaponKind.SniperRifle:
-                        g.Mag = P(root.transform, PrimitiveType.Cube, "Mag", new Vector3(0f, -0.09f, len * 0.36f), new Vector3(th * 0.8f, 0.07f, 0.09f), dark);
-                        g.Bolt = P(root.transform, PrimitiveType.Cube, "Bolt", new Vector3(th * 0.75f, 0.03f, len * 0.3f), new Vector3(0.05f, 0.02f, 0.02f), light);
+                        // cargador justo delante del guardamonte y palanca del cerrojo sobre la empuñadura (donde la alcanza la mano derecha al ciclar)
+                        g.Mag = P(root.transform, PrimitiveType.Cube, "Mag", new Vector3(0f, -0.09f, 0.17f), new Vector3(th * 0.8f, 0.07f, 0.09f), dark);
+                        g.Bolt = P(root.transform, PrimitiveType.Cube, "Bolt", new Vector3(th * 0.75f, 0.03f, 0.1f), new Vector3(0.05f, 0.02f, 0.02f), light);
                         P(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.12f), new Vector3(th * 0.9f, 0.11f, 0.24f), dark);
                         break;
                     default:   // subfusil y fusil de asalto
-                        g.Mag = P(root.transform, PrimitiveType.Cube, "Mag", new Vector3(0f, -0.13f, len * 0.42f), new Vector3(th * 0.75f, 0.16f, 0.06f), dark, -12f);
+                        g.Mag = P(root.transform, PrimitiveType.Cube, "Mag", new Vector3(0f, -0.13f, len * (d.kind == WeaponKind.AssaultRifle ? WeaponGrip.RifleMagAt : 0.42f)), new Vector3(th * 0.75f, 0.16f, 0.06f), dark, -12f);
                         g.Slide = P(root.transform, PrimitiveType.Cube, "ChargingHandle", new Vector3(th * 0.6f, 0.03f, len * 0.38f), new Vector3(0.04f, 0.02f, 0.03f), light);
                         if (d.kind == WeaponKind.AssaultRifle) P(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.11f), new Vector3(th * 0.85f, 0.1f, 0.2f), dark);
                         break;

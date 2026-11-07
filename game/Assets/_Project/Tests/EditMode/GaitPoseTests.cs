@@ -170,7 +170,7 @@ namespace SevenDays.Tests
         public void Melee_RightHandOnTheBar()
         {
             var g = WeaponGrip.For(WeaponKind.Melee, 0.9f, 0.05f);
-            Assert.AreEqual("none", g.support); Assert.IsFalse(g.shouldered);
+            Assert.AreEqual("melee", g.support, "a dos manos: agarre bajo y alto (MeleeGrips)"); Assert.IsFalse(g.shouldered);
             V3 rs = Shoulder(true);
             CheckArm(rs, rs + new V3(0f, -0.35f, 0.25f) + g.GripPos, true, "barra");
         }
