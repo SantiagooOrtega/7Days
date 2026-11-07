@@ -21,7 +21,7 @@ namespace SevenDays.Look
             Ash(atm, player, a);
             SmokeColumns(atm, a);
             GodRays(atm, look, a);
-            atm.gameObject.AddComponent<AtmosphereGovernor>();
+            atm.gameObject.AddComponent<QualityDirector>();   // gobernador de calidad unificado (atmósfera, sombras, post, resolución dinámica)
         }
 
         // ---------------------------------------------------------------- helpers
@@ -36,6 +36,9 @@ namespace SevenDays.Look
             r.sharedMaterial = mat;
             r.shadowCastingMode = ShadowCastingMode.Off;
             r.receiveShadows = false;
+            // ninguna partícula de atmósfera ocupa más del 30 % de la pantalla (por defecto 50 %): una niebla grande junto a la cámara era overdraw a pantalla
+            // completa, y su coste crece con la resolución
+            r.maxParticleSize = MaxScreenSize;
             return ps;
         }
 
@@ -50,6 +53,7 @@ namespace SevenDays.Look
         }
 
         private static int Max(int n) => Mathf.Max(1, n);
+        public const float MaxScreenSize = 0.3f;
 
         // ---------------------------------------------------------------- niebla baja
         private static void GroundFog(Transform parent, LookSettings look, AtmosphereSettings a)

@@ -80,7 +80,7 @@ namespace SevenDays.Look
         }
     }
 
-    /// <summary>Vigila el FPS: si baja de 55 sostenidamente recorta la densidad atmosférica. F3 cambia el nivel a mano.</summary>
+    /// <summary>Gobernador antiguo (solo atmósfera). Sustituido por QualityDirector, que además ajusta sombras, post-procesado y resolución dinámica.</summary>
     public class AtmosphereGovernor : MonoBehaviour
     {
         private readonly QualityGovernor _gov = new QualityGovernor();
