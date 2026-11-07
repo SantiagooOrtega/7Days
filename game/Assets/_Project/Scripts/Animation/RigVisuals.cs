@@ -23,6 +23,9 @@ namespace SevenDays.Animation
     /// </summary>
     public static class RigVisuals
     {
+        /// <summary>Piezas creadas en total (para el informe de rendimiento).</summary>
+        public static int PartCount;
+
         public static void BuildSoldier(ProceduralRig rig, RigPalette pal)
         {
             var spec = rig.Spec; float k = rig.Proportions.bulk;
@@ -71,6 +74,9 @@ namespace SevenDays.Animation
         private static void Part(ProceduralRig rig, BoneId bone, PrimitiveType type, Vector3 localPos, Vector3 scale, Material m, float roll = 0f)
         {
             var go = Prim.Create(type, bone + " mesh", localPos, scale, m, rig.Bone(bone), false);
+            // las piezas pequeñas (rótulas, visera, cinturón, guantes, franjas) no proyectan sombra: no se nota y ahorra la mitad de las llamadas de sombra
+            if (Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z)) < 0.16f || scale.y < 0.06f) go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            PartCount++;
             if (roll != 0f) go.transform.localRotation = Quaternion.Euler(0f, 0f, roll);
         }
     }
