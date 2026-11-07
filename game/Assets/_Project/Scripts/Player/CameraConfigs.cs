@@ -20,12 +20,13 @@ namespace SevenDays.Player
             var s = a != null ? JsonUtility.FromJson<CameraSettingsData>(JsonUtility.ToJson(a.Settings)) : new CameraSettingsData();
             s.motionScale = PlayerPrefs.GetFloat(MotionPrefKey, s.motionScale);
             s.sensitivity = PlayerPrefs.GetFloat(SensitivityPrefKey, s.sensitivity);
+            s.aimToggle = PlayerPrefs.GetInt(AimTogglePrefKey, s.aimToggle ? 1 : 0) == 1;
             s.Validate();
             return s;
         }
 
         /// <summary>Opción de accesibilidad "Movimiento de cámara" (0..1) y sensibilidad, guardadas por jugador.</summary>
-        public const string MotionPrefKey = "7days.cameraMotion", SensitivityPrefKey = "7days.sensitivity";
+        public const string MotionPrefKey = "7days.cameraMotion", SensitivityPrefKey = "7days.sensitivity", AimTogglePrefKey = "7days.aimToggle";
     }
 
     /// <summary>

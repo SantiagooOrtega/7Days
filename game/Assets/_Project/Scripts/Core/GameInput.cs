@@ -27,6 +27,7 @@ namespace SevenDays.Core
 
         public static bool FireHeld => Mouse.current != null && Mouse.current.leftButton.isPressed;
         public static bool FirePressed => Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
+        public static bool AimPressed => Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
         public static bool AimHeld => Mouse.current != null && Mouse.current.rightButton.isPressed;
 
         public static bool SprintHeld => Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed;

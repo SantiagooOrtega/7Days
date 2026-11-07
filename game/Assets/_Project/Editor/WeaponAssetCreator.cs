@@ -36,7 +36,8 @@ namespace SevenDays.EditorTools
                     var existing = AssetDatabase.LoadAssetAtPath<WeaponAsset>(path);
                     if (existing != null && (existing.Data == null || existing.Data.dataVersion < WeaponData.CurrentDataVersion))
                     {
-                        existing.Data = data;
+                        // versión reciente: se migra conservando lo editado a mano; muy antigua: valores por defecto
+                        if (existing.Data == null || !WeaponCatalog.Migrate(existing.Data)) existing.Data = data;
                         EditorUtility.SetDirty(existing);
                         upgraded++;
                     }

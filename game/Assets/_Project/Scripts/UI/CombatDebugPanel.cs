@@ -58,6 +58,7 @@ namespace SevenDays.UI
             GUILayout.Label("Retroceso: pitch " + _camera.Recoil.Pitch.ToString("0.00") + "°  yaw " + _camera.Recoil.Yaw.ToString("0.00") + "°   kick " + (_handling != null ? _handling.Kick.ToString("0.00") : "-"), _label);
             GUILayout.Label("Dispersión: " + _shooting.CurrentSpread.ToString("0.00") + "°  (bloom " + _shooting.Spread.Bloom.ToString("0.00") + "°)", _label);
             GUILayout.Label("FOV " + _camera.CurrentFov.ToString("0.0") + "   apuntado " + (_camera.Aim.Eased * 100f).ToString("0") + "%   sensibilidad " + _camera.CurrentSensitivity.ToString("0.000"), _label);
+            GUILayout.Label("Mira: zoom nivel " + _camera.ScopeLevel + "  respiración " + _camera.Breath.State + " aire " + (_camera.Breath.Air * 100f).ToString("0") + "%  vaivén " + _camera.ScopeSwayOffset.ToString("F2"), _label);
             GUILayout.Label("Hombro " + (_camera.Shoulder.Side > 0 ? "derecho" : "izquierdo") + "  lean " + _camera.LeanOffset.ToString("0.00") + " m  primera persona " + (_camera.FirstPersonBlend * 100f).ToString("0") + "%", _label);
             var cv = _cover;
             if (cv != null && cv.Active) GUILayout.Label("  " + cv.WhyNoPop(), _label);

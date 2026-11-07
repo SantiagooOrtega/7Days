@@ -588,3 +588,10 @@ Indicador en pantalla: **CUBIERTO** (azul), **ASOMADO** (rojo) y **A CIEGAS** (n
 - **R** tras disparar: vuelve a cubrirse y recarga en cuanto está cubierto.
 - Depuración: **F5** > "Logs de cada disparo en cobertura": la Console escribe estado, lado, origen, collider golpeado y por qué no se asomó.
 Pasos: 1) pégate a un muro bajo (C) y haz clic izquierdo sin apuntar: te levantas, el tiro pasa por encima y el indicador muestra ASOMADO; 2) suelta: a los ~0.4 s vuelves a CUBIERTO; 3) Ctrl + clic: A CIEGAS; 4) junto al borde de un muro alto, clic: te asomas por el lado.
+
+### Apuntado y francotirador
+1. Con cada arma de fuego (pistola, revólver, subfusil, escopeta, fusil, francotirador), clic derecho: la retícula se cierra, el FOV baja, el arma se centra y los disparos se agrupan. En cobertura también (te asomas). Con la barra no se apunta.
+2. Esc > **Apuntar: mantener / alternar**: en "alternar" un clic derecho apunta y otro deja de apuntar (se guarda). Si haces un vault o cambias a la barra, deja de apuntar solo.
+3. Francotirador apuntando: la lente es más clara (borde negro fino, viñeta suave). La rueda cambia x3 → x5 → x8 → x12 (se ve en la etiqueta) y la sensibilidad baja con cada nivel.
+4. La mira se mece despacio. Mantén **Shift**: el vaivén casi desaparece ("CONTENIENDO 100%" baja hasta 0 en ~3 s). Al agotarse: jadeo audible, pequeño cabeceo y la mira se mueve más ("JADEANDO") durante ~2.5 s.
+5. Dispara a un zombi a más de 260 m (si el mapa lo permite) o a 100–200 m: el daño es el mismo que de cerca (un tiro a la cabeza).

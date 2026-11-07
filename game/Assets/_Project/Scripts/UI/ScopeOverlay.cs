@@ -43,8 +43,12 @@ namespace SevenDays.UI
             GUI.color = new Color(0.9f, 0.1f, 0.1f, a);
             GUI.DrawTexture(new Rect(cx - 1.5f, cy - 1.5f, 3f, 3f), Texture2D.whiteTexture);
             GUI.color = prev;
-            float zoom = 60f / Mathf.Max(1f, _camera.CurrentFov);
-            GUI.Label(new Rect(cx - 150, y + d * 0.88f, 300, 30), "x" + zoom.ToString("0.0") + "   (rueda: zoom)", _label);
+            // zoom nominal del nivel actual (x3, x5, x8, x12) y estado de la respiración
+            var wpn = _camera.Weapon;
+            float zoom = wpn != null && wpn.HasScope ? 60f / wpn.scopeFovs[Mathf.Clamp(_camera.ScopeLevel, 0, wpn.scopeFovs.Length - 1)] : 60f / Mathf.Max(1f, _camera.CurrentFov);
+            string breath = _camera.Breath.State == SevenDays.Procedural.BreathState.Holding ? "   CONTENIENDO " + Mathf.CeilToInt(_camera.Breath.Air * 100f) + "%"
+                : (_camera.Breath.State == SevenDays.Procedural.BreathState.Exhausted ? "   JADEANDO" : "   Shift: contener la respiración");
+            GUI.Label(new Rect(cx - 250, y + d * 0.88f, 500, 30), "x" + Mathf.RoundToInt(zoom) + "   (rueda: zoom)" + breath, _label);
         }
 
         /// <summary>Máscara circular: transparente dentro, negra fuera, con borde suave y un anillo oscuro.</summary>
@@ -58,7 +62,7 @@ namespace SevenDays.UI
                 {
                     float d = Mathf.Sqrt((i + 0.5f - r) * (i + 0.5f - r) + (j + 0.5f - r) * (j + 0.5f - r)) / r;
                     float alpha = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.9f, 0.97f, d));
-                    alpha = Mathf.Max(alpha, Mathf.InverseLerp(0.75f, 0.92f, d) * 0.35f);   // viñeta interior de la lente
+                    alpha = Mathf.Max(alpha, Mathf.InverseLerp(0.86f, 0.95f, d) * 0.18f);   // viñeta interior suave: la lente se ve más clara
                     px[j * size + i] = new Color32(0, 0, 0, (byte)(alpha * 255));
                 }
             t.SetPixels32(px);
