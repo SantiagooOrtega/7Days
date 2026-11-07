@@ -31,6 +31,8 @@ namespace SevenDays.Animation
             float k = Mathf.Clamp(bulk, 0.8f, 1.4f);
             h.Scale = k;
             Part(root, PrimitiveType.Cube, new Vector3(0f, -PalmLength * 0.5f, 0f), new Vector3(PalmThickness, PalmLength, PalmWidth) * k, glove);
+            // nudillos reforzados en el dorso (+X: la palma mira a -X), lejos de lo que agarra
+            Part(root, PrimitiveType.Cube, new Vector3((PalmThickness * 0.5f + 0.004f) * k, -PalmLength * 0.84f * k, 0f), new Vector3(0.008f, 0.02f, PalmWidth * 0.92f) * k, glove, CharacterTextures.GKnuckle);
             float thumbSide = right ? 1f : -1f;
             // dedos: índice junto al pulgar
             float[] z = HandWrap.Z, l1 = HandWrap.L1, l2 = HandWrap.L2;
@@ -83,10 +85,28 @@ namespace SevenDays.Animation
             return t;
         }
 
-        private static void Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 scale, Material m)
+        private static readonly System.Collections.Generic.Dictionary<string, Mesh> Meshes = new System.Collections.Generic.Dictionary<string, Mesh>();
+
+        /// <summary>Pieza del guante: caja con bisel del tamaño pedido (escala 1) con sus UV en la celda de guante (o de nudillos) del atlas de equipo.</summary>
+        private static void Part(Transform parent, PrimitiveType type, Vector3 pos, Vector3 size, Material m, int cell = CharacterTextures.GGlove)
         {
-            var go = Prim.Create(type, "finger", pos, scale, m, parent, false);
-            go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            string key = size.x.ToString("0.####") + "|" + size.y.ToString("0.####") + "|" + size.z.ToString("0.####") + "|" + cell;
+            if (!Meshes.TryGetValue(key, out var mesh) || mesh == null)
+            {
+                var mb = new MeshBuilder();
+                mb.Box(new V3(0f, 0f, 0f), new V3(size.x, size.y, size.z), new V3(0f, 0f, 0f), Mathf.Min(size.x, Mathf.Min(size.y, size.z)) * 0.22f,
+                    CharacterTextures.Cell(AtlasKind.Gear, cell), 0.1f);
+                mesh = BoxMesh.ToMesh(mb.Data);
+                mesh.name = "Guante " + key;
+                Meshes[key] = mesh;
+            }
+            var go = new GameObject("finger");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
     }
 }
