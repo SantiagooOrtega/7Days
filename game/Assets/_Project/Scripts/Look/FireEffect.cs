@@ -58,6 +58,7 @@ namespace SevenDays.Look
             r.sharedMaterial = mat;
             r.shadowCastingMode = ShadowCastingMode.Off;
             r.receiveShadows = false;
+            r.maxParticleSize = Atmosphere.MaxScreenSize;   // el humo de un fuego cercano tampoco cubre la pantalla entera
             return ps;
         }
 
