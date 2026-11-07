@@ -189,3 +189,60 @@ namespace SevenDays.Tests
         }
     }
 }
+
+namespace SevenDays.Tests
+{
+    public class CrouchPoseTests
+    {
+        [Test]
+        public void Crouch_PelvisDownAndBack_FeetWiderAndUnderTheKnees()
+        {
+            float hip = 0.91f, half = 0.15f;
+            Assert.AreEqual(hip - CrouchPose.StandBend, CrouchPose.PelvisHeight(hip, 0f), 1e-5f, "de pie, rodillas algo flexionadas");
+            Assert.Less(CrouchPose.PelvisHeight(hip, 1f), hip * 0.7f);
+            Assert.Less(CrouchPose.PelvisBack(1f), -0.1f, "la pelvis se va atrás");
+            Assert.Greater(CrouchPose.FootSide(half, 1f), CrouchPose.FootSide(half, 0f));
+            Assert.Greater(CrouchPose.FootAhead(1f), 0f);
+            Assert.AreEqual(CrouchPose.PelvisHeight(hip, 2f), CrouchPose.PelvisHeight(hip, 1f), 1e-5f, "valores fuera de rango se limitan");
+        }
+
+        [Test]
+        public void CrouchedLegs_KneesBendForwardAndNeverCross()
+        {
+            var b = HumanoidRigSpec.Build(RigProportions.Soldier());
+            float thigh = b[(int)BoneId.LeftUpperLeg].Length, shin = b[(int)BoneId.LeftLowerLeg].Length, hipH = b[(int)BoneId.Hips].LocalPosition.Y;
+            float half = Math.Abs(b[(int)BoneId.LeftUpperLeg].LocalPosition.X), ankleH = b[(int)BoneId.LeftFoot].Length;
+            var fwd = new V3(0, 0, 1); var right = new V3(1, 0, 0);
+            for (float c = 0f; c <= 1f; c += 0.25f)
+            {
+                float pelvisY = CrouchPose.PelvisHeight(hipH, c) - hipH * 0.02f, pelvisZ = CrouchPose.PelvisBack(c);
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    var hip = new V3(side * half, pelvisY, pelvisZ);
+                    var ankle = new V3(side * CrouchPose.FootSide(half, c), ankleH, CrouchPose.FootAhead(c));
+                    TwoBoneIK.Solve(hip, ankle, CrouchPose.KneePole(hip, fwd, right, side), thigh, shin, out V3 knee, out V3 end);
+                    Assert.AreEqual(0f, (end - ankle).Length, 1e-3f, "el pie llega al suelo (bien plantado) con c=" + c);
+                    Assert.Greater(knee.Z, Math.Max(hip.Z, ankle.Z) - 1e-3f, "rodilla hacia delante (c=" + c + ")");
+                    Assert.Greater(knee.X * side, 0f, "cada rodilla se queda en su lado: no se cruzan (c=" + c + ")");
+                }
+            }
+        }
+
+        [Test]
+        public void CrouchedWalking_KeepsAShortStride()
+        {
+            float stand = GaitCycle.CycleLength(2.2f), crouched = GaitCycle.CycleLength(2.2f) * 0.75f;
+            Assert.Less(crouched, stand);
+            var g = new GaitCycle(); g.Advance(0.3f, crouched);
+            var h = new GaitCycle(); h.Advance(0.3f, stand);
+            Assert.Greater(g.Phase, h.Phase, "a la misma distancia, más pasos (más cortos) agachado: sin patinar");
+        }
+
+        [Test]
+        public void Lod_UpdatesLessOftenFarAway()
+        {
+            Assert.AreEqual(1, RigLod.Interval(5f)); Assert.AreEqual(2, RigLod.Interval(25f)); Assert.AreEqual(3, RigLod.Interval(50f)); Assert.AreEqual(6, RigLod.Interval(100f));
+            Assert.IsTrue(RigLod.FootRaycasts(10f)); Assert.IsFalse(RigLod.FootRaycasts(40f));
+        }
+    }
+}

@@ -72,6 +72,7 @@ namespace SevenDays.Player
             shooting.Initialize(playerCamera, motor, pose, muzzle, inventory);
             handling.Initialize(pose, null, playerCamera, motor, shooting);   // el torso lo inclina ahora el rig (aim offset y lean)
             motor.ScaleVisualOnCrouch = false;                                  // agacharse es una pose del rig, no aplastar el modelo
+            motor.HolderCrouchHeight = 0.9f;                                    // el arma sigue al pecho agachado (antes quedaba a la altura de la tripa)
             root.AddComponent<SevenDays.Animation.PlayerRigDriver>().Initialize(rig, pose);
             healing.Initialize(inventory);
             interact.Initialize(inventory);

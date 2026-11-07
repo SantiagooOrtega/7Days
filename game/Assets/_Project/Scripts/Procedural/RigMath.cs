@@ -302,3 +302,37 @@ namespace SevenDays.Procedural
         public static float ArmLength(BoneDef[] b) => b[(int)BoneId.LeftUpperArm].Length + b[(int)BoneId.LeftLowerArm].Length;
     }
 }
+
+namespace SevenDays.Procedural
+{
+    /// <summary>
+    /// Pose de agachado (pura): la pelvis baja y se va atrás, los pies se abren un poco y quedan bajo las rodillas, el torso se inclina. Las mismas medidas sirven
+    /// quieto y caminando (así no hay saltos al pasar de uno a otro). crouch 0..1.
+    /// </summary>
+    public static class CrouchPose
+    {
+        public const float Drop = 0.36f, Back = 0.12f, FootForward = 0.07f, FootWiden = 0.3f, TorsoLean = 18f, PelvisTilt = 12f;
+
+        /// <summary>De pie las rodillas no se bloquean: la pelvis baja unos centímetros (piernas algo flexionadas, pies siempre apoyados, nada rígido).</summary>
+        public const float StandBend = 0.035f;
+
+        public static float PelvisHeight(float hipHeight, float crouch) => hipHeight * (1f - Drop * CameraMath.Clamp01(crouch)) - StandBend;
+        public static float PelvisBack(float crouch) => -Back * CameraMath.Clamp01(crouch);
+        /// <summary>Separación lateral de cada pie desde el centro.</summary>
+        public static float FootSide(float hipHalf, float crouch) => hipHalf * (1.05f + FootWiden * CameraMath.Clamp01(crouch));
+        public static float FootAhead(float crouch) => FootForward * CameraMath.Clamp01(crouch);
+
+        /// <summary>Polo de la rodilla: delante y un poco hacia fuera de su cadera, para que las rodillas se doblen hacia delante y nunca se crucen.</summary>
+        public static V3 KneePole(V3 hip, V3 forward, V3 right, float side) => hip + forward * 1.2f + right * (side * 0.25f) + new V3(0f, -0.4f, 0f);
+    }
+
+    /// <summary>LOD de animación: cada cuántos frames se actualiza un rig según su distancia a la cámara (cerca, cada frame).</summary>
+    public static class RigLod
+    {
+        public const float Near = 18f, Mid = 35f, Far = 60f;
+
+        public static int Interval(float distance) => distance < Near ? 1 : (distance < Mid ? 2 : (distance < Far ? 3 : 6));
+        /// <summary>A partir de esta distancia los pies no lanzan rayos al suelo (usa la altura del cuerpo): no se nota y ahorra física.</summary>
+        public static bool FootRaycasts(float distance) => distance < Mid;
+    }
+}
