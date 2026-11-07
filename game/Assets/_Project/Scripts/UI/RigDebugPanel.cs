@@ -12,7 +12,7 @@ namespace SevenDays.UI
     public class RigDebugPanel : MonoBehaviour
     {
         private ProceduralRig _rig;
-        private bool _open, _bones, _ground, _angles;
+        private bool _open, _bones, _ground, _angles, _skeleton;
         private readonly float[] _kneeHistL = new float[150], _kneeHistR = new float[150];
         private int _histIndex;
         private SevenDays.Player.PlayerShooting _shooting;
@@ -42,6 +42,8 @@ namespace SevenDays.UI
             _totalMs = total;
             if (_rig != null) { _kneeHistL[_histIndex] = _rig.KneeFlexion[0]; _kneeHistR[_histIndex] = _rig.KneeFlexion[1]; _histIndex = (_histIndex + 1) % _kneeHistL.Length; }
             _frameMs = Mathf.Lerp(_frameMs, Time.unscaledDeltaTime * 1000f, 0.05f);
+            // una línea por frame: pie (hueso, IK, malla) frente al suelo y rodilla (IK, hueso, malla) de cada pierna
+            if (_skeleton && _rig != null && _rig.Bones != null) Debug.Log(RigProbe.LogLine(_rig));
         }
 
         private void OnGUI()
@@ -50,6 +52,7 @@ namespace SevenDays.UI
             if (_bones && Event.current.type == EventType.Repaint) DrawBones();
             if (_ground && Event.current.type == EventType.Repaint) DrawGround();
             if (_angles && Event.current.type == EventType.Repaint) DrawAngles();
+            if (_skeleton && Event.current.type == EventType.Repaint) DrawSkeletonVsMesh();
             if (!_open) return;
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 13, normal = { textColor = Color.white } };
             _head ??= new GUIStyle(_label) { fontSize = 15, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.5f, 1f, 0.8f) } };
@@ -72,6 +75,7 @@ namespace SevenDays.UI
             _bones = GUILayout.Toggle(_bones, " Dibujar huesos y objetivos IK");
             _ground = GUILayout.Toggle(_ground, " Mostrar altura de suelo y mínimo de pies");
             _angles = GUILayout.Toggle(_angles, " Mostrar ángulos y objetivos de agarre");
+            _skeleton = GUILayout.Toggle(_skeleton, " Esqueleto vs malla (y una línea por frame en la consola)");
             GUILayout.Label("Codos: izq " + _rig.ElbowFlexion[0].ToString("0") + "°  der " + _rig.ElbowFlexion[1].ToString("0") + "°", _label);
             GUILayout.Label("Flexión de rodilla (últimos 2.5 s; azul izq, naranja der, línea gris = 150°)", _label);
             Rect graph = GUILayoutUtility.GetRect(400f, 90f);
@@ -169,12 +173,42 @@ namespace SevenDays.UI
             for (int h = 0; h < 2; h++) Dot(cam, _rig.HandTargets[h], Color.yellow, 6f);
         }
 
-        private static void Label(Camera cam, Vector3 p, string text, Color c)
+        /// <summary>
+        /// Esqueleto vs malla: huesos reales (cian), cadena que calculó el IK (magenta: cadera, rodilla y tobillo), eje de cada malla de la pierna (blanco) y, junto
+        /// a la rodilla, la flexión según el IK, los huesos y las mallas (deben coincidir). Bajo el pie, cuánto queda el vértice más bajo sobre el suelo (rojo si está debajo).
+        /// </summary>
+        private void DrawSkeletonVsMesh()
+        {
+            var cam = Camera.main;
+            if (cam == null || _rig.Bones == null) return;
+            for (int b = 0; b < _rig.Bones.Length; b++)
+            {
+                int parent = _rig.Spec[b].Parent;
+                if (parent >= 0) Line(cam, _rig.Bones[parent].position, _rig.Bones[b].position, new Color(0.3f, 1f, 1f));
+            }
+            for (int f = 0; f < 2; f++)
+            {
+                bool left = f == 0;
+                Transform hip = _rig.Bone(left ? BoneId.LeftUpperLeg : BoneId.RightUpperLeg), knee = _rig.Bone(left ? BoneId.LeftLowerLeg : BoneId.RightLowerLeg);
+                Line(cam, hip.position, _rig.IkKnees[f], Color.magenta); Line(cam, _rig.IkKnees[f], _rig.IkAnkles[f], Color.magenta);
+                var thigh = RigProbe.Limb(hip); var shin = RigProbe.Limb(knee);
+                if (thigh != null) Line(cam, hip.position, hip.position + (RigProbe.Centroid(thigh) - hip.position) * 2f, Color.white);
+                if (shin != null) Line(cam, knee.position, knee.position + (RigProbe.Centroid(shin) - knee.position) * 2f, Color.white);
+                var r = RigProbe.Leg(_rig, f);
+                bool match = Mathf.Abs(r.IkKnee - r.BoneKnee) < 3f && Mathf.Abs(r.IkKnee - r.MeshKnee) < 3f;
+                Label(cam, knee.position, "IK " + r.IkKnee.ToString("0") + "° hueso " + r.BoneKnee.ToString("0") + "° malla " + r.MeshKnee.ToString("0") + "°", match ? Color.green : Color.red, 230f);
+                float clearance = (r.LowestMeshY - r.GroundY) * 100f;
+                if (r.GroundY > _rig.transform.position.y - 5f)
+                    Label(cam, _rig.Bone(left ? BoneId.LeftFoot : BoneId.RightFoot).position, "pie " + clearance.ToString("+0.0;-0.0") + " cm", clearance < -0.2f ? Color.red : Color.green, 120f);
+            }
+        }
+
+        private static void Label(Camera cam, Vector3 p, string text, Color c, float width = 60f)
         {
             Vector3 s = cam.WorldToScreenPoint(p);
             if (s.z <= 0f) return;
             var prev = GUI.color; GUI.color = c;
-            GUI.Label(new Rect(s.x + 6f, Screen.height - s.y - 10f, 60f, 20f), text);
+            GUI.Label(new Rect(s.x + 6f, Screen.height - s.y - 10f, width, 20f), text);
             GUI.color = prev;
         }
 

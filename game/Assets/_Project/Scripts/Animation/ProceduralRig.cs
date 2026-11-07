@@ -62,6 +62,8 @@ namespace SevenDays.Animation
 
         // --- datos públicos para la cámara, el sonido y el panel F6
         public float GaitPhase => _gait.Phase;
+        /// <summary>Fase propia de un pie: 0 = contacto, hasta StanceFraction apoyado, después en el aire.</summary>
+        public float FootPhase(int foot) => _gait.FootPhase(foot);
         public float CycleLength { get; private set; }
         public float StanceFraction { get; private set; }
         public float MeasuredSpeed { get; private set; }
@@ -82,6 +84,9 @@ namespace SevenDays.Animation
         /// <summary>Suelo bajo cada pie, flexión de cada rodilla y si la pelvis se limitó (para el panel F6).</summary>
         public float[] FootGround { get; } = new float[2];
         public float[] KneeFlexion { get; } = new float[2];
+        /// <summary>Dónde puso el IK cada rodilla y tobillo (mundo). El panel "Esqueleto vs malla" lo compara con los huesos y las mallas.</summary>
+        public Vector3[] IkKnees { get; } = new Vector3[2];
+        public Vector3[] IkAnkles { get; } = new Vector3[2];
         public bool PelvisLimited { get; private set; }
         public float KneelWeight => _kneel.Value;
         /// <summary>Desplazamiento del pecho respecto a su reposo (espacio del cuerpo): el arma lo sigue con retraso elástico.</summary>
@@ -210,11 +215,17 @@ namespace SevenDays.Animation
             _footRays = RigLod.FootRaycasts(_distance);
             _pendingDt += Time.deltaTime;
             if (UpdateInterval > 1 && (Time.frameCount + _frameOffset) % UpdateInterval != 0) return;
-            Watch.Restart();
-            _rays = 0;
             float dt = Mathf.Min(_pendingDt, 0.1f);
             _pendingDt = 0f;
-            if (dt <= 0f) return;
+            Tick(dt);
+        }
+
+        /// <summary>Avanza la animación "dt" segundos con las entradas actuales (lo llama LateUpdate; las pruebas y el ciclo F7 lo llaman directamente).</summary>
+        public void Tick(float dt)
+        {
+            if (!_built || dt <= 0f) return;
+            Watch.Restart();
+            _rays = 0;
             _time += dt;
             var I = Inputs;
             var s = Smoothing;
@@ -498,6 +509,7 @@ namespace SevenDays.Animation
                 KneeFlexion[f] = r.KneeFlexion;
 
                 Vector3 knee = r.Knee.ToUnity(), ank = r.Ankle.ToUnity();
+                IkKnees[f] = knee; IkAnkles[f] = ank;
                 Vector3 bendDir = Vector3.ProjectOnPlane(knee - (hip + ank) * 0.5f, (ank - hip).normalized);
                 if (bendDir.sqrMagnitude < 1e-6f) bendDir = fwd;
                 upper.rotation = Quaternion.LookRotation(bendDir.normalized, hip - knee);
