@@ -96,7 +96,8 @@ namespace SevenDays.World
             hud.gameObject.AddComponent<SettingsOverlay>().Initialize(player.GetComponent<PlayerCamera>());
             hud.gameObject.AddComponent<CombatDebugPanel>().Initialize(player);
             hud.gameObject.AddComponent<RigDebugPanel>().Initialize(player.GetComponentInChildren<SevenDays.Animation.ProceduralRig>());
-            hud.gameObject.AddComponent<RigDemoCycle>().Initialize(player.transform);   // F7: ciclo automático de piernas con cámara lateral
+            hud.gameObject.AddComponent<RigDemoCycle>().Initialize(player.transform);
+            hud.gameObject.AddComponent<RenderDebugPanel>();   // F6: panel Render (resolución, ms de CPU/GPU, draw calls, luces, calidad)   // F7: ciclo automático de piernas con cámara lateral
             hud.gameObject.AddComponent<ScopeOverlay>().Initialize(player.GetComponent<PlayerCamera>());
         }
 
