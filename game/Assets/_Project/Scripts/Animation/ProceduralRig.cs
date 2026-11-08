@@ -696,7 +696,7 @@ namespace SevenDays.Animation
                 float bend = Mathf.Lerp(0.95f, ArmSwingMath.RunningReach, run + jog * 0.4f);
                 float swing = ArmSwingMath.Offset(_gait.Phase, left) * (0.12f * walk + 0.2f * jog + 0.3f * run) * I.ArmSwing;
                 float idleSway = Mathf.Sin(_time * 0.9f + side) * 0.015f;
-                Vector3 free = shoulder - up * armLen * bend + chestFwd * (swing + 0.04f + run * 0.12f) + chestRight * side * (0.05f + idleSway) + up * run * 0.12f;
+                Vector3 free = shoulder - up * armLen * bend + chestFwd * (swing + 0.04f + run * 0.12f) + chestRight * side * (-0.02f + idleSway) + up * run * 0.12f;
                 if (dead > 0.01f) free = Vector3.Lerp(free, shoulder - up * armLen * 0.98f + chestRight * side * 0.15f, dead);
 
                 float w = left ? lw : rw;
@@ -711,7 +711,7 @@ namespace SevenDays.Animation
                 if (deficit > 0f)
                 {
                     var clavicle = Bone(left ? BoneId.LeftShoulder : BoneId.RightShoulder);
-                    clavicle.position += (target - shoulder).normalized * Mathf.Min(deficit, 0.12f) * Mathf.Max(w, 0f);
+                    clavicle.position += (target - shoulder).normalized * Mathf.Min(deficit, 0.16f) * Mathf.Max(w, 0f);
                     shoulder = upper.position;
                 }
 

@@ -217,7 +217,7 @@ namespace SevenDays.Procedural
             var bolt = b.Part("Bolt", new V3(th * 0.75f, 0.03f, 0.1f));
             bolt.Box(Z0, new V3(0.05f, 0.012f, 0.012f), Z0, 0.003f, W(CharacterTextures.WBlued), 0.05f);
             bolt.Lathe(new V3(0.028f, 0f, 0f), Z0, SoldierModel.Sphere(0.011f, 4), 8, 1f, true, true, W(CharacterTextures.WPolyBlack), 0.03f);   // bola de la palanca
-            var mag = b.Part("Mag", new V3(0f, -0.09f, 0.17f));
+            var mag = b.Part("Mag", new V3(0f, -0.09f, 0.16f));
             mag.Box(Z0, new V3(th * 0.8f, 0.07f, 0.09f), Z0, 0.006f, W(CharacterTextures.WPolyBlack), 0.1f);
             var stock = b.Part("Stock", new V3(0f, -0.02f, -0.12f));
             stock.Box(Z0, new V3(th * 0.9f, 0.11f, 0.24f), Z0, 0.016f, W(CharacterTextures.WPolyTan), 0.3f);

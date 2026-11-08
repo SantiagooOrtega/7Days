@@ -75,14 +75,14 @@ namespace SevenDays.Animation
                 aim = new Hold { Anchor = pocket, Euler = Vector3.zero };
                 hip = smg ? new Hold { Anchor = At(pocket, -0.03f, -0.07f, 0.02f), Euler = new Vector3(8f, -6f, 0f) }       // subfusil al pecho
                           : new Hold { Anchor = At(pocket, 0.01f, -0.03f, 0f), Euler = new Vector3(10f, -3f, 0f) };         // culata en el hombro, boca algo abajo
-                sprint = new Hold { Anchor = At(pocket, -0.02f, -0.06f, smg ? 0.06f : 0.05f), Euler = new Vector3(38f, -35f, 12f) };   // low ready: cruzada y abajo
+                sprint = new Hold { Anchor = At(pocket, -0.02f, -0.06f, smg ? 0.085f : 0.06f), Euler = new Vector3(38f, -35f, 12f) };   // low ready: cruzada y abajo
                 cover = new Hold { Anchor = At(pocket, -0.03f, -0.06f, 0.02f), Euler = new Vector3(14f, -8f, 0f) };         // pegada al pecho
             }
             else if (w.IsMelee)
             {
                 hip = new Hold { Anchor = At(cp, 0.16f, -0.22f, 0.28f), Euler = new Vector3(-50f, -30f, 0f) };     // en diagonal delante del cuerpo, a dos manos
                 sprint = new Hold { Anchor = At(cp, 0.18f, -0.26f, 0.2f), Euler = new Vector3(-30f, -20f, 0f) };
-                cover = new Hold { Anchor = At(cp, 0.1f, -0.17f, 0.28f), Euler = new Vector3(-62f, -22f, 0f) };
+                cover = new Hold { Anchor = At(cp, 0.12f, -0.2f, 0.31f), Euler = new Vector3(-62f, -22f, 0f) };
                 aim = hip;
             }
             else
@@ -94,7 +94,7 @@ namespace SevenDays.Animation
                 aim = new Hold { Anchor = At(cp, 0.02f, 0.1f, 0.4f), Euler = Vector3.zero };
             }
             // recargando: el arma viene al centro del pecho, inclinada hacia la mano de apoyo (a una mano, la izquierda no llegaría al costado derecho)
-            Hold reload = shouldered ? new Hold { Anchor = At(hip.Anchor, -0.02f, -0.03f, 0.02f), Euler = hip.Euler } : new Hold { Anchor = At(cp, 0.04f, -0.1f, 0.3f), Euler = new Vector3(22f, -18f, 8f) };
+            Hold reload = shouldered ? new Hold { Anchor = At(hip.Anchor, -0.02f, -0.03f, 0.085f), Euler = hip.Euler } : new Hold { Anchor = At(cp, 0.04f, -0.1f, 0.3f), Euler = new Vector3(22f, -18f, 8f) };
             hip = new Hold { Anchor = Vector3.Lerp(hip.Anchor, reload.Anchor, s.Reload), Euler = Vector3.Lerp(hip.Euler, reload.Euler, s.Reload) };
             Vector3 a = Vector3.Lerp(hip.Anchor, sprint.Anchor, s.Sprint), e = Vector3.Lerp(hip.Euler, sprint.Euler, s.Sprint);
             a = Vector3.Lerp(a, cover.Anchor, s.Cover); e = Vector3.Lerp(e, cover.Euler, s.Cover);
