@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using SevenDays.Core;
 using SevenDays.Look;
@@ -6,69 +7,62 @@ using SevenDays.Procedural;
 namespace SevenDays.Weapons
 {
     /// <summary>
-    /// Arma armada por piezas separadas (cuerpo, empuñadura, cargador, corredera o cerrojo, bomba, tambor) para poder animarlas: la corredera retrocede al disparar,
-    /// la bomba y el cerrojo ciclan, el cargador sale y entra al recargar y el tambor se abre. Puntos de referencia: Tip (boca/punta), CasingPoint (expulsión).
-    /// Provisional con primitivas; las mallas detalladas y texturas llegan en el Bloque 4 con los mismos nombres de piezas.
+    /// Arma armada por piezas separadas con mallas detalladas (WeaponModel: cuerpo, cañón, mira, cargador, empuñadura, guardamano, culata, guardamonte,
+    /// serie y acento de rareza) sobre un atlas compartido de materiales (CharacterArt). Las piezas que se animan conservan nombre y reposo: la corredera
+    /// retrocede al disparar, la bomba y el cerrojo ciclan, el cargador sale y entra al recargar y el tambor se abre. Puntos: Tip (boca), CasingPoint
+    /// (expulsión) y Sight (punto de mira real: centro de la óptica o línea de alza y guion).
     /// </summary>
     public class GunParts : MonoBehaviour
     {
-        public Transform Body, Mag, Slide, Pump, Cylinder, Bolt, Tip, CasingPoint;
+        public Transform Body, Mag, Slide, Pump, Cylinder, Bolt, Tip, CasingPoint, Sight;
         public TrailRenderer Trail;
+        public bool HasOptic;
+        public int Triangles;
         private Vector3 _magRest, _slideRest, _pumpRest, _boltRest;
         private Quaternion _cylRest, _boltRotRest;
-        private Renderer _magRenderer;
+        private Renderer[] _magRenderers;
+
+        private static readonly Dictionary<string, WeaponModelData> Models = new Dictionary<string, WeaponModelData>();
+        private static readonly Dictionary<string, Mesh> Meshes = new Dictionary<string, Mesh>();
 
         public static GunParts Build(WeaponData d, Transform parent)
         {
             var root = new GameObject("Gun");
             root.transform.SetParent(parent, false);
             var g = root.AddComponent<GunParts>();
-            var c = d.color;
-            Color main = new Color(c[0], c[1], c[2]), dark = main * 0.55f, light = Color.Lerp(main, Color.white, 0.25f);
-            dark.a = light.a = 1f;
+            string key = d.id + "|" + d.kind + "|" + d.length.ToString("0.###") + "|" + d.thickness.ToString("0.###");
+            if (!Models.TryGetValue(key, out var model)) { model = WeaponModel.Build(d); Models[key] = model; }
+            Material atlas = SevenDays.Animation.CharacterArt.WeaponMaterial, accent = SevenDays.Animation.CharacterArt.Accent(d.rarity);
+            Material dot = Prim.GetEmissive(new Color(1f, 0.12f, 0.05f), 6f);
+            var made = new Dictionary<string, Transform>();
+            foreach (var part in model.Parts)
+            {
+                var go = new GameObject(part.Name);
+                Transform parentT = part.Parent != null && made.TryGetValue(part.Parent, out var pt) ? pt : root.transform;
+                go.transform.SetParent(parentT, false);
+                go.transform.localPosition = new Vector3(part.Position.X, part.Position.Y, part.Position.Z);
+                go.transform.localRotation = Quaternion.Euler(part.Euler.X, part.Euler.Y, part.Euler.Z);
+                string mk = key + "|" + part.Name;
+                if (!Meshes.TryGetValue(mk, out var mesh) || mesh == null) { mesh = BoxMesh.ToMesh(part.Mesh); mesh.name = d.id + " " + part.Name; Meshes[mk] = mesh; }
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var r = go.AddComponent<MeshRenderer>();
+                r.sharedMaterial = part.Slot == WeaponModel.SlotAccent ? accent : part.Slot == WeaponModel.SlotDot ? dot : atlas;
+                r.shadowCastingMode = mesh.bounds.size.magnitude < 0.12f ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
+                made[part.Name] = go.transform;
+            }
+            made.TryGetValue("Body", out g.Body); made.TryGetValue("Mag", out g.Mag); made.TryGetValue("Slide", out g.Slide);
+            made.TryGetValue("Pump", out g.Pump); made.TryGetValue("Cylinder", out g.Cylinder); made.TryGetValue("Bolt", out g.Bolt);
+            g.Triangles = model.Triangles;
+            g.HasOptic = model.HasOptic;
             float len = d.length, th = d.thickness;
-
-            if (d.IsMelee)
-            {
-                g.Body = P(root.transform, PrimitiveType.Cube, "Body", new Vector3(0f, 0f, len * 0.5f), new Vector3(th, th, len), main);
-                P(root.transform, PrimitiveType.Cube, "Grip", new Vector3(0f, 0f, 0.08f), new Vector3(th * 1.5f, th * 1.5f, 0.16f), new Color(0.15f, 0.12f, 0.1f));
-            }
-            else
-            {
-                float h = 0.1f;
-                g.Body = P(root.transform, PrimitiveType.Cube, "Body", new Vector3(0f, 0f, len * 0.5f), new Vector3(th, h, len), main);
-                P(root.transform, PrimitiveType.Cube, "Grip", new Vector3(0f, -0.09f, 0.04f), new Vector3(th * 0.85f, 0.12f, 0.055f), dark, 15f);
-                switch (d.kind)
-                {
-                    case WeaponKind.Pistol:
-                        g.Slide = P(root.transform, PrimitiveType.Cube, "Slide", new Vector3(0f, 0.055f, len * 0.5f), new Vector3(th * 1.05f, 0.04f, len * 0.98f), light);
-                        g.Mag = P(root.transform, PrimitiveType.Cube, "Mag", new Vector3(0f, -0.12f, 0.045f), new Vector3(th * 0.7f, 0.08f, 0.04f), dark, 15f);
-                        break;
-                    case WeaponKind.Revolver:
-                        g.Cylinder = P(root.transform, PrimitiveType.Cylinder, "Cylinder", new Vector3(0f, 0.01f, len * 0.32f), new Vector3(0.075f, 0.04f, 0.075f), dark);
-                        g.Cylinder.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                        P(root.transform, PrimitiveType.Cylinder, "Barrel", new Vector3(0f, 0.025f, len * 0.75f), new Vector3(0.03f, len * 0.25f, 0.03f), main).localRotation = Quaternion.Euler(90f, 0f, 0f);
-                        break;
-                    case WeaponKind.Shotgun:
-                        g.Pump = P(root.transform, PrimitiveType.Cube, "Pump", new Vector3(0f, -0.065f, len * WeaponGrip.PumpAt), new Vector3(th * 1.15f, 0.055f, len * 0.24f), new Color(0.32f, 0.22f, 0.14f));
-                        P(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.1f), new Vector3(th * 0.9f, 0.11f, 0.22f), new Color(0.32f, 0.22f, 0.14f));
-                        break;
-                    case WeaponKind.SniperRifle:
-                        // cargador justo delante del guardamonte y palanca del cerrojo sobre la empuñadura (donde la alcanza la mano derecha al ciclar)
-                        g.Mag = P(root.transform, PrimitiveType.Cube, "Mag", new Vector3(0f, -0.09f, 0.17f), new Vector3(th * 0.8f, 0.07f, 0.09f), dark);
-                        g.Bolt = P(root.transform, PrimitiveType.Cube, "Bolt", new Vector3(th * 0.75f, 0.03f, 0.1f), new Vector3(0.05f, 0.02f, 0.02f), light);
-                        P(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.12f), new Vector3(th * 0.9f, 0.11f, 0.24f), dark);
-                        break;
-                    default:   // subfusil y fusil de asalto
-                        g.Mag = P(root.transform, PrimitiveType.Cube, "Mag", new Vector3(0f, -0.13f, len * (d.kind == WeaponKind.AssaultRifle ? WeaponGrip.RifleMagAt : 0.42f)), new Vector3(th * 0.75f, 0.16f, 0.06f), dark, -12f);
-                        g.Slide = P(root.transform, PrimitiveType.Cube, "ChargingHandle", new Vector3(th * 0.6f, 0.03f, len * 0.38f), new Vector3(0.04f, 0.02f, 0.03f), light);
-                        if (d.kind == WeaponKind.AssaultRifle) P(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.11f), new Vector3(th * 0.85f, 0.1f, 0.2f), dark);
-                        break;
-                }
-            }
             g.Tip = new GameObject("Tip").transform; g.Tip.SetParent(root.transform, false); g.Tip.localPosition = new Vector3(0f, 0f, len);
             g.CasingPoint = new GameObject("CasingPoint").transform; g.CasingPoint.SetParent(root.transform, false); g.CasingPoint.localPosition = new Vector3(th * 0.6f, 0.04f, len * 0.35f);
-            if (d.IsMelee)
+            if (!d.IsMelee)
+            {
+                g.Sight = new GameObject("Sight").transform; g.Sight.SetParent(root.transform, false);
+                g.Sight.localPosition = new Vector3(model.Sight.X, model.Sight.Y, model.Sight.Z);
+            }
+            else
             {
                 g.Trail = g.Tip.gameObject.AddComponent<TrailRenderer>();
                 g.Trail.time = 0.12f; g.Trail.startWidth = 0.08f; g.Trail.endWidth = 0f; g.Trail.minVertexDistance = 0.03f;
@@ -77,7 +71,7 @@ namespace SevenDays.Weapons
                 g.Trail.emitting = false;
                 g.Trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            if (g.Mag != null) { g._magRest = g.Mag.localPosition; g._magRenderer = g.Mag.GetComponent<Renderer>(); }
+            if (g.Mag != null) { g._magRest = g.Mag.localPosition; g._magRenderers = g.Mag.GetComponentsInChildren<Renderer>(); }
             if (g.Slide != null) g._slideRest = g.Slide.localPosition;
             if (g.Pump != null) g._pumpRest = g.Pump.localPosition;
             if (g.Bolt != null) { g._boltRest = g.Bolt.localPosition; g._boltRotRest = g.Bolt.localRotation; }
@@ -86,12 +80,12 @@ namespace SevenDays.Weapons
             return g;
         }
 
-        private static Transform P(Transform parent, PrimitiveType type, string name, Vector3 pos, Vector3 scale, Color color, float pitch = 0f)
+        /// <summary>Tamaño real de una pieza en el mundo (caja de su malla por su escala): las piezas ya no son cubos escalados.</summary>
+        public static Vector3 SizeOf(Transform t)
         {
-            var go = Prim.Create(type, name, pos, scale, Prim.GetMaterial(color), parent, false);
-            if (pitch != 0f) go.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
-            go.GetComponent<Renderer>().shadowCastingMode = scale.magnitude < 0.12f ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
-            return go.transform;
+            var mf = t != null ? t.GetComponent<MeshFilter>() : null;
+            if (mf == null || mf.sharedMesh == null) return t != null ? t.lossyScale : Vector3.zero;
+            return Vector3.Scale(mf.sharedMesh.bounds.size, t.lossyScale);
         }
 
         /// <summary>Corredera / palanca de carga: 0 en su sitio, 1 atrás del todo.</summary>
@@ -113,7 +107,7 @@ namespace SevenDays.Weapons
         {
             if (Mag == null) return;
             Mag.localPosition = _magRest + Vector3.down * down;
-            if (_magRenderer != null) _magRenderer.enabled = visible;
+            if (_magRenderers != null) foreach (var r in _magRenderers) if (r != null) r.enabled = visible;
         }
         public Vector3 MagWorldRest => Mag != null ? transform.TransformPoint(_magRest) : transform.position;
         public void SetTrail(bool on) { if (Trail != null) Trail.emitting = on; }

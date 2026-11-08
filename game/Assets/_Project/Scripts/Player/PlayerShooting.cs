@@ -466,14 +466,8 @@ namespace SevenDays.Player
             Parts = GunParts.Build(data, _weaponPose);   // piezas separadas: corredera, cargador, bomba, cerrojo, tambor...
             _gunVisual = Parts.gameObject;
             _muzzle.localPosition = new Vector3(0f, 0f, data.length + 0.05f);
-            // mira provisional: sobre el arma, a un cuarto de su largo (cámara de primera persona al apuntar con aimFirstPerson)
-            SightPoint.localPosition = new Vector3(0f, (data.IsMelee ? data.thickness : 0.14f) * 0.5f + 0.05f, data.length * 0.25f);
-            if (data.HasScope)
-            {
-                var scope = Prim.Create(PrimitiveType.Cylinder, "Scope", new Vector3(0f, 0.11f, data.length * 0.4f), new Vector3(0.05f, 0.14f, 0.05f), new Color(0.08f, 0.08f, 0.09f), _gunVisual.transform, false);
-                scope.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                scope.layer = 2;
-            }
+            // punto de mira real del modelo (centro de la óptica, o línea de alza y guion); cuerpo a cuerpo: sobre el arma
+            SightPoint.localPosition = Parts.Sight != null ? Parts.Sight.localPosition : new Vector3(0f, data.thickness * 0.5f + 0.05f, data.length * 0.25f);
             _camera.SightPoint = SightPoint;
             _camera.RefreshBodyRenderers();
         }
