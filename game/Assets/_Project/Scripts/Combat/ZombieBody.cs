@@ -49,6 +49,8 @@ namespace SevenDays.Combat
         private int _attackIndex = -1;
         private float _lastAttackT = -1f;
         private ZombieMotionFrame _frame;
+        private AudioSource _voice;
+        private float _nextMoan;
         private ZombieAnimState _state;
         private readonly ZombieDamageLayer _damage = new ZombieDamageLayer();
         private readonly List<KeyValuePair<HitZone, int>> _revealed = new List<KeyValuePair<HitZone, int>>(4);
@@ -140,12 +142,24 @@ namespace SevenDays.Combat
             var sc = hgo.AddComponent<SphereCollider>(); sc.center = new Vector3(0f, 0.106f * hs, 0.01f * hs); sc.radius = 0.112f * hs;
             Add(Rig.Bone(BoneId.Head), HitZone.Head, sc);
             // torso: pecho y vientre en una cápsula sobre el pecho, y la pelvis aparte
-            float tr = 0.155f * k * s * (1f - 0.1f * Anatomy.Emaciation);
+            float tr = 0.155f * k * s * (1f - 0.1f * Anatomy.Emaciation) * (Anatomy.ScarPlates ? 1.15f : 1f);
             float bottom = -L(BoneId.Spine) * 0.85f, top = L(BoneId.Chest) + L(BoneId.UpperChest) * 0.8f;
             Add(Rig.Bone(BoneId.Chest), HitZone.Torso, Capsule(Rig.Bone(BoneId.Chest), new Vector3(0f, (bottom + top) * 0.5f, 0.005f * s), tr, top - bottom));
             var pgo = new GameObject("hb"); pgo.transform.SetParent(Rig.Bone(BoneId.Hips), false);
             var ps = pgo.AddComponent<SphereCollider>(); ps.center = new Vector3(0f, 0.01f * s, 0f); ps.radius = 0.15f * k * s;
             Add(Rig.Bone(BoneId.Hips), HitZone.Torso, ps);
+            // cuello (cuenta como torso) y hombros: una cápsula horizontal sobre el pecho alto, del ancho de los hombros
+            float neckLen = L(BoneId.Neck);
+            Add(Rig.Bone(BoneId.Neck), HitZone.Torso, Capsule(Rig.Bone(BoneId.Neck), new Vector3(0f, neckLen * 0.5f, 0f), 0.058f * k * s, neckLen + 0.05f * s));
+            float uc = L(BoneId.UpperChest);
+            Add(Rig.Bone(BoneId.UpperChest), HitZone.Torso, Capsule(Rig.Bone(BoneId.UpperChest), new Vector3(0f, uc * 0.78f, 0f), 0.075f * s * Mathf.Max(0.9f, k), pr.shoulderWidth * 1.05f, 0));
+            // vientre hinchado del explosivo: esfera sobre su hueso extra (crece con el inflado)
+            if (_belly != null)
+            {
+                var bgo = new GameObject("hb"); bgo.transform.SetParent(_belly, false);
+                var bs = bgo.AddComponent<SphereCollider>(); bs.radius = 0.215f * k * s * 1.05f;
+                Add(_belly, HitZone.Torso, bs);
+            }
             // brazos (más gruesos el grande del tanque) y piernas, cada segmento en su hueso
             float f = k * pr.limbThickness * s / SoldierModel.ReferenceKt * (1f - 0.2f * Anatomy.Emaciation);
             foreach (bool left in new[] { true, false })
@@ -154,19 +168,29 @@ namespace SevenDays.Combat
                 BoneId ua = left ? BoneId.LeftUpperArm : BoneId.RightUpperArm, la = left ? BoneId.LeftLowerArm : BoneId.RightLowerArm;
                 float lu = L(ua), ll = L(la), ex = (Anatomy.LongArmExtra > 0f && !left) ? Anatomy.LongArmExtra * s : 0f;
                 Add(Rig.Bone(ua), HitZone.Arms, Capsule(Rig.Bone(ua), new Vector3(0f, -lu * 0.5f, 0f), 0.062f * f * g, lu + 0.04f * f * g));
-                float hand = 0.1f * s * Mathf.Max(1f, g * 0.8f) + ex;
-                Add(Rig.Bone(la), HitZone.Arms, Capsule(Rig.Bone(la), new Vector3(0f, -(ll + hand) * 0.5f, 0f), 0.05f * f * g, ll + hand));
+                Add(Rig.Bone(la), HitZone.Arms, Capsule(Rig.Bone(la), new Vector3(0f, -(ll + ex) * 0.5f - 0.01f * s, 0f), 0.05f * f * g, ll + ex + 0.02f * s));
+                // mano: esfera sobre el hueso de la mano (los dedos largos quedaban fuera del antebrazo)
+                float hk = Mathf.Max(1f, g * 0.9f);
+                var hgo2 = new GameObject("hb"); hgo2.transform.SetParent(Rig.Bone(left ? BoneId.LeftHand : BoneId.RightHand), false);
+                var hs2 = hgo2.AddComponent<SphereCollider>(); hs2.center = new Vector3(0f, -(0.055f * s * hk + ex), 0f); hs2.radius = 0.07f * s * hk;
+                Add(Rig.Bone(left ? BoneId.LeftHand : BoneId.RightHand), HitZone.Arms, hs2);
                 BoneId ul = left ? BoneId.LeftUpperLeg : BoneId.RightUpperLeg, lo = left ? BoneId.LeftLowerLeg : BoneId.RightLowerLeg;
                 float th = L(ul), sh = L(lo) + L(left ? BoneId.LeftFoot : BoneId.RightFoot);
                 Add(Rig.Bone(ul), HitZone.Legs, Capsule(Rig.Bone(ul), new Vector3(0f, -th * 0.5f, 0f), 0.085f * f, th + 0.02f));
-                Add(Rig.Bone(lo), HitZone.Legs, Capsule(Rig.Bone(lo), new Vector3(0f, -sh * 0.5f, 0f), 0.06f * f, sh));
+                Add(Rig.Bone(lo), HitZone.Legs, Capsule(Rig.Bone(lo), new Vector3(0f, -L(lo) * 0.5f, 0f), 0.06f * f, L(lo) + 0.02f));
+                // pie: caja sobre el hueso del pie (del talón a la punta)
+                var fb = left ? BoneId.LeftFoot : BoneId.RightFoot; var tb = left ? BoneId.LeftToes : BoneId.RightToes;
+                float drop = L(fb), ball = spec[(int)tb].LocalPosition.Z + 0.075f * s;
+                var fgo = new GameObject("hb"); fgo.transform.SetParent(Rig.Bone(fb), false);
+                var fbox = fgo.AddComponent<BoxCollider>(); fbox.center = new Vector3(0f, -drop * 0.45f, (ball - 0.07f * s) * 0.5f); fbox.size = new Vector3(0.12f * s * (0.8f + 0.2f * k), drop * 1.1f, ball + 0.07f * s);
+                Add(Rig.Bone(fb), HitZone.Legs, fbox);
             }
             Hitboxes = list.ToArray();
         }
 
         private void BuildDecals(ZombieMeshBundle bundle)
         {
-            var spots = ZombieWounds.Spots();
+            var spots = ZombieWounds.All;
             _decals = new Renderer[spots.Count]; _decalWanted = new bool[spots.Count]; _decalPatch = new WoundPatch[spots.Count];
             var mat = ZombieArt.Wounds;
             for (int i = 0; i < spots.Count; i++)
@@ -207,15 +231,14 @@ namespace SevenDays.Combat
             Rig.Inputs = default; Rig.Inputs.Grounded = true;
             Rig.ResetPose();
             // heridas: las del individuo desde el principio, las de daño apagadas
-            var meshOf = new Dictionary<string, (WoundPatch, Mesh)>();
-            foreach (var w in Bundle.Wounds) meshOf[w.patch.Spot.Id + "|" + w.patch.Spot.Stage] = w;
-            var spots = ZombieWounds.Spots();
+            var spots = ZombieWounds.All;
             for (int i = 0; i < spots.Count; i++)
             {
                 _decalWanted[i] = false; _decals[i].enabled = false;
-                if (meshOf.TryGetValue(spots[i].Id + "|" + spots[i].Stage, out var w))
+                var w = Bundle.WoundBySpot[i];
+                if (w.patch != null)
                 {
-                    _decalPatch[i] = w.Item1; _decals[i].GetComponent<MeshFilter>().sharedMesh = w.Item2;
+                    _decalPatch[i] = w.patch; _decals[i].GetComponent<MeshFilter>().sharedMesh = w.mesh;
                     if (spots[i].Stage == 0 && Individual.HasWound(spots[i].Slot)) _decalWanted[i] = true;
                 }
                 else _decalPatch[i] = null;
@@ -223,6 +246,7 @@ namespace SevenDays.Combat
             _fTorsoX = _fTorsoY = _fTorsoZ = _fHeadX = _fHeadY = _fHeadZ = _fPelvisY = _fPelvisRoll = _fArmL = _fArmR = default;
             _time = Random.value * 10f; _pendingDt = 0f; _inflate = 1f; _glow = 0f; _shake = 0f; _impactPending = false; _attackIndex = -1; _lastAttackT = -1f;
             _emerge = emerge ? 0f : EmergeSeconds;
+            _nextMoan = Time.time + 2f + Random.value * 6f;
             SetHitboxesEnabled(true);
             ApplyDecalVisibility();
         }
@@ -305,7 +329,7 @@ namespace SevenDays.Combat
 
         private void RevealWound(HitZone zone, int stage)
         {
-            var spots = ZombieWounds.Spots();
+            var spots = ZombieWounds.All;
             for (int i = 0; i < spots.Count; i++)
                 if (spots[i].Stage == stage && spots[i].Zone == zone && _decalPatch[i] != null) { _decalWanted[i] = true; break; }
             ApplyDecalVisibility();
@@ -354,6 +378,7 @@ namespace SevenDays.Combat
             float dist = s.DistanceToCamera;
             UpdateLod(dist);
             if (_dead) { UpdateDeath(s.Dt); return; }
+            UpdateVoice(dist);
             _pendingDt += s.Dt;
             _time += s.Dt;
             // animación lejana o fuera de pantalla: se congela (lo que se salta se acumula y no se nota al volver)
@@ -363,6 +388,24 @@ namespace SevenDays.Combat
             if (interval > 1 && (Time.frameCount + _frameOffset) % interval != 0) return;
             float dt = Mathf.Min(_pendingDt, 0.1f); _pendingDt = 0f;
             Step(dt, s);
+        }
+
+        // gruñido de relleno cada pocos segundos si el jugador está cerca (con tope de voces simultáneas)
+        private void UpdateVoice(float dist)
+        {
+            if (Time.time < _nextMoan || Emerging) return;
+            _nextMoan = Time.time + 4f + Random.value * 7f;
+            if (dist > 26f || !ZombieVoice.TryReserve(1.2f)) return;
+            if (_voice == null)
+            {
+                _voice = _root.gameObject.AddComponent<AudioSource>();
+                _voice.spatialBlend = 1f; _voice.maxDistance = 30f; _voice.minDistance = 2f; _voice.rolloffMode = AudioRolloffMode.Linear; _voice.playOnAwake = false;
+            }
+            float typePitch = TypeId == ZombieIds.Tank ? 0.6f : (TypeId == ZombieIds.Runner ? 1.25f : (TypeId == ZombieIds.Explosive ? 1.1f : 1f));
+            _voice.pitch = typePitch * (0.85f + 0.3f * Individual.Phase);
+            _voice.volume = 0.5f;
+            _voice.clip = ZombieVoice.Clip(Individual.MoanSeed);
+            _voice.Play();
         }
 
         private void UpdateLod(float dist)
@@ -408,12 +451,12 @@ namespace SevenDays.Combat
             if (!attacking && !Emerging && !s.Stunned)
             {
                 bool engaged = s.Chasing;
-                float w = engaged ? 1f : 0.3f + 0.15f * ind.Aggression;
+                float w = engaged ? 1f : 0.4f + 0.2f * ind.Aggression;
                 f.LeftHand = _armGuardL; f.RightHand = _armGuardR; f.LeftWeight = w; f.RightWeight = w;
                 // cabeza que cuelga y balanceo lento
                 float breath = Mathf.Sin(_time * 0.9f + ind.Phase * 6.28f);
                 f.Head = new V3(12f + 5f * breath + (engaged ? -8f : 0f), 4f * Mathf.Sin(_time * 0.55f + ind.Phase * 3f), ind.HeadTilt);
-                f.Torso = new V3(0f, 3f * Mathf.Sin(_time * 0.7f + ind.Phase), 2.5f * Mathf.Sin(_time * 0.6f + ind.Phase * 2f));
+                f.Torso = new V3(0f, 3f * Mathf.Sin(_time * 0.7f + ind.Phase) + (ind.Phase - 0.5f) * 14f, 2.5f * Mathf.Sin(_time * 0.6f + ind.Phase * 2f) + (ind.ShoulderDrop - 0.5f) * 10f);   // hombros desiguales y torso algo girado
                 // carga con la cabeza baja (tanque) y torso adelantado (corredor)
                 if (engaged && TypeId == ZombieIds.Tank) { f.Head = new V3(f.Head.X + 26f, f.Head.Y, f.Head.Z); f.Torso = new V3(14f, f.Torso.Y, f.Torso.Z); }
                 if (engaged && TypeId == ZombieIds.Runner) f.Torso = new V3(f.Torso.X + 8f, f.Torso.Y, f.Torso.Z);

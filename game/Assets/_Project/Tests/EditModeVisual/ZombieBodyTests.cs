@@ -101,16 +101,18 @@ namespace SevenDays.Tests.Visual
             var cols = new List<Collider>();
             foreach (var h in (Array)b.Prop("Hitboxes")) cols.Add(((Component)h).GetComponent<Collider>());
             int covered = 0, total = 0;
-            var verts = m.vertices;
+            var verts = m.vertices; var bw = b.Smr.sharedMesh.boneWeights; var miss = new Dictionary<string, int>();
             for (int i = 0; i < verts.Length; i += 6)
             {
                 var w = b.Smr.transform.TransformPoint(verts[i]);
                 float best = float.MaxValue;
                 foreach (var c in cols) best = Mathf.Min(best, Vector3.Distance(c.ClosestPoint(w), w));
-                total++; if (best < 0.05f) covered++;
+                total++; if (best < 0.05f) covered++; else { string bn = b.Smr.bones[bw[i].boneIndex0].name; miss[bn] = (miss.TryGetValue(bn, out int c0) ? c0 : 0) + 1; }
             }
             UnityEngine.Object.DestroyImmediate(m);
             float frac = covered / (float)total;
+            var sbm = new System.Text.StringBuilder(); foreach (var kv in miss) sbm.Append(' ').Append(kv.Key).Append('=').Append(kv.Value);
+            TestContext.WriteLine(type + " sin cubrir por hueso:" + sbm);
             TestContext.WriteLine(type + ": " + (frac * 100f).ToString("0") + " % de la malla a menos de 5 cm de un hitbox");
             Assert.Greater(frac, 0.8f, type + ": hitboxes demasiado lejos de la malla");
             // cada collider cuelga de un hueso del rig (no de la raíz) y sigue a la malla: su centro queda dentro de los límites del cuerpo

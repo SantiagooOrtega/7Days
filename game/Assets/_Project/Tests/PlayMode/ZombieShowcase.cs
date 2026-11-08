@@ -102,6 +102,29 @@ namespace SevenDays.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Types_Chasing()
+        {
+            Stage();
+            T("SevenDays.Animation.ZombieArt").GetMethod("PrewarmAll").Invoke(null, null); T("SevenDays.Animation.ZombieArt").GetMethod("WaitAll").Invoke(null, null);
+            foreach (var id in ZombieAnatomies.Types)
+            {
+                var body = Make(id, 4, 1, new Vector3(0, 0, -6f), 0f, out var root);
+                float speed = id == ZombieIds.Runner ? 5.2f : (id == ZombieIds.Tank ? 1.5f : 2.4f);
+                for (int i = 0; i < 100; i++)
+                {
+                    root.transform.position += root.transform.forward * speed / 60f;
+                    var st = State(1f / 60f, true, false, -1f, ZombieAttackKind.Swipe); st.GetType().GetField("MoveAmount").SetValue(st, Mathf.Clamp01(speed / 5.2f));
+                    Animate(body, st); yield return null;
+                }
+                float h = ZombieAnatomies.For(id).Proportions.height;
+                var p = root.transform.position;
+                yield return Shoot(id + "_chase", p + new Vector3(0, h * 0.5f, 0), p + new Vector3(h * 1.1f, h * 0.65f, h * 1.5f));
+                UnityEngine.Object.Destroy(root);
+                yield return null;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Common_ThreeVariants_AndDamageLayer()
         {
             Stage();

@@ -18,6 +18,8 @@ namespace SevenDays.Animation
         public Bounds Bounds;
         public FootShape Foot;
         public readonly List<(WoundPatch patch, Mesh mesh)> Wounds = new List<(WoundPatch, Mesh)>();
+        /// <summary>Herida de cada posición de ZombieWounds.All (null si no se pudo proyectar).</summary>
+        public (WoundPatch patch, Mesh mesh)[] WoundBySpot;
         public ZombiePose[] Lying = new ZombiePose[3];     // por ZombieDeathForm, con la altura de la cadera ya ajustada al suelo
     }
 
@@ -35,6 +37,7 @@ namespace SevenDays.Animation
 
         private static readonly Dictionary<string, Task<Pure>> PureCache = new Dictionary<string, Task<Pure>>();
         private static readonly Dictionary<string, ZombieMeshBundle> Bundles = new Dictionary<string, ZombieMeshBundle>();
+        private static readonly List<(string key, string typeId, string variantId, int bucket)> Pending = new List<(string, string, string, int)>();
         private static List<ZombieVariantData> _variants;
         public static long MeshBytes { get; private set; }
 
@@ -81,9 +84,31 @@ namespace SevenDays.Animation
             foreach (var v in ForType(typeId))
             {
                 string k = Key(typeId, v.id, bucket);
-                if (PureCache.ContainsKey(k)) continue;
+                if (PureCache.ContainsKey(k) || Bundles.ContainsKey(k)) continue;
                 var variant = v.Clone();
                 PureCache[k] = Task.Run(() => BuildPure(variant, bucket));
+                Pending.Add((k, typeId, v.id, bucket));
+            }
+        }
+
+        /// <summary>Todos los tipos y los 3 cubos de altura, en hilos de fondo (se llama una vez al crear el gestor de zombis).</summary>
+        public static void PrewarmAll()
+        {
+            foreach (string t in ZombieAnatomies.Types)
+                for (int b = 0; b < ZombieAnatomies.ScaleBuckets.Length; b++) Prewarm(t, b);
+        }
+
+        /// <summary>Convierte en mallas de Unity, de una en una por frame, las variantes que los hilos ya terminaron (así los datos puros se liberan y no hay tirones).</summary>
+        public static void Pump()
+        {
+            for (int i = 0; i < Pending.Count; i++)
+            {
+                var p = Pending[i];
+                if (Bundles.ContainsKey(p.key)) { Pending.RemoveAt(i); i--; continue; }
+                if (!PureCache.TryGetValue(p.key, out var task) || !task.IsCompleted) continue;
+                Pending.RemoveAt(i);
+                Get(p.typeId, p.variantId, p.bucket);
+                return;   // una por frame
             }
         }
 
@@ -94,7 +119,10 @@ namespace SevenDays.Animation
             var variant = ForType(typeId).Find(x => x.id == variantId) ?? ForType(typeId)[0];
             if (!PureCache.TryGetValue(key, out var task)) { var vc = variant.Clone(); task = Task.FromResult(BuildPure(vc, bucket)); PureCache[key] = task; }
             var pure = task.Result;   // espera si el hilo de fondo aún no terminó
-            b = new ZombieMeshBundle { TypeId = typeId, VariantId = variant.id, Bucket = bucket, Anatomy = pure.Anatomy, Model = pure.Models[0], Lying = pure.Lying };
+            // el modelo se guarda sin sus piezas (solo esqueleto y huesos extra): lo pesado se libera al terminar
+            var light = new ZombieModelResult { Spec = pure.Models[0].Spec, Foot = pure.Models[0].Foot };
+            light.Extras.AddRange(pure.Models[0].Extras);
+            b = new ZombieMeshBundle { TypeId = typeId, VariantId = variant.id, Bucket = bucket, Anatomy = pure.Anatomy, Model = light, Lying = pure.Lying };
             var skel = pure.Models[0];
             int bones = HumanoidRigSpec.BoneCount + skel.Extras.Count;
             b.BindPoses = new Matrix4x4[bones];
@@ -108,13 +136,17 @@ namespace SevenDays.Animation
             }
             float h = pure.Anatomy.Proportions.height;
             b.Bounds = new Bounds(new Vector3(0f, h * 0.5f, 0.1f), new Vector3(h * 0.95f, h * 1.15f, h * 0.95f));
-            b.Foot = MeasureFoot(skel);
+            b.Foot = MeasureFoot(pure.Models[0]);
             foreach (var w in pure.Wounds)
             {
                 var m = BoxMesh.ToMesh(w.Mesh); m.name = "Herida " + w.Spot.Id;
                 b.Wounds.Add((w, m));
             }
+            b.WoundBySpot = new (WoundPatch, Mesh)[ZombieWounds.All.Count];
+            for (int i = 0; i < ZombieWounds.All.Count; i++)
+                foreach (var w in b.Wounds) if (w.patch.Spot.Id == ZombieWounds.All[i].Id && w.patch.Spot.Stage == ZombieWounds.All[i].Stage) { b.WoundBySpot[i] = w; break; }
             Bundles[key] = b;
+            PureCache.Remove(key);
             return b;
         }
 
@@ -166,6 +198,6 @@ namespace SevenDays.Animation
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { PureCache.Clear(); Bundles.Clear(); _variants = null; MeshBytes = 0; }
+        private static void ResetStatics() { PureCache.Clear(); Bundles.Clear(); Pending.Clear(); _variants = null; MeshBytes = 0; }
     }
 }
