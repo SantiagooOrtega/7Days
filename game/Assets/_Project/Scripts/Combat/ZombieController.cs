@@ -17,7 +17,10 @@ namespace SevenDays.Combat
     {
         public ZombieTypeData Type { get; private set; }
         public Health Health { get; private set; }
-        public ZombieRig Rig { get; private set; }
+        public IZombieRig Rig { get; private set; }
+        /// <summary>Cuerpo con el que se construyó: el id del tipo (cuerpo procedural) o "legacy" (jefes, hasta el bloque D). El pool reutiliza zombis del mismo cuerpo.</summary>
+        public string BodyKey { get; private set; }
+        public bool Procedural => Rig is ZombieBody;
         public ZombieState State => _sm.State;
         public bool InUse { get; private set; }
         public bool DiedByHeadshot => Health.KilledByHeadshot;
@@ -57,8 +60,15 @@ namespace SevenDays.Combat
         private Vector3 _flankTarget;
         private float _nextFlank, _nextReposition;
         private int _agentTypeId;
+        private int _attackCount;
+        private ZombieAttackKind _attackKind;
+        private HitZone _lastHitZone = HitZone.Torso;
+        private Vector3 _lastHitDir;
+        private static Camera _animCam;
 
-        public void Build()
+        public static string KeyFor(ZombieTypeData type) => !type.isBoss && ZombieAnatomies.Has(type.id) ? type.id : "legacy";
+
+        public void Build(ZombieTypeData type)
         {
             Health = GetComponent<Health>();
             _flashMat = Prim.GetMaterial(Color.white);
@@ -73,7 +83,7 @@ namespace SevenDays.Combat
             _body.center = new Vector3(0f, 0.9f, 0f); _body.radius = 0.32f; _body.height = 1.8f;
             gameObject.layer = 2; // "Ignore Raycast": las balas ignoran el cuerpo de movimiento; solo cuentan los hitboxes
             HitboxLayer.ConfigureCollisions();
-            Rig = ZombieRig.Build(transform, Health);
+            MakeBody(type);
             Health.Damaged += OnDamaged;
             Health.Hit += OnHit;
             Health.Died += OnDied;
@@ -84,18 +94,29 @@ namespace SevenDays.Combat
             gameObject.SetActive(false);
         }
 
+        private void MakeBody(ZombieTypeData type)
+        {
+            BodyKey = KeyFor(type);
+            // cada cuerpo del pool nace con una altura (-6 %, 0 o +6 %) al azar: la población no es toda igual
+            Rig = BodyKey == "legacy" ? (IZombieRig)ZombieRig.Build(transform, Health) : ZombieBody.Build(transform, Health, type, UnityEngine.Random.Range(0, ZombieAnatomies.ScaleBuckets.Length));
+        }
+
+        /// <summary>Cambia el cuerpo de un zombi libre del pool por el de otro tipo (cuando el pool está lleno de otros tipos).</summary>
+        public void Rebuild(ZombieTypeData type)
+        {
+            if (Rig != null && Rig.Visual != null) Destroy(Rig.Visual.gameObject);
+            MakeBody(type);
+        }
+
         public void SetPlayer(Transform player, Health health) { _player = player; _playerHealth = health; }
 
-        public void Activate(ZombieTypeData type, Vector3 position, float healthMultiplier = 1f, float speedMultiplier = 1f, float damageMultiplier = 1f)
+        public void Activate(ZombieTypeData type, Vector3 position, float healthMultiplier = 1f, float speedMultiplier = 1f, float damageMultiplier = 1f, bool ignoreEmerge = false)
         {
             Type = type;
             SpeedMultiplier = speedMultiplier; DamageMultiplier = damageMultiplier;
             transform.SetPositionAndRotation(position, Quaternion.Euler(0f, UnityEngine.Random.Range(0f, 360f), 0f));
             _home = position;
-            Rig.Visual.localScale = Vector3.one * type.scale;
-            Rig.Visual.localPosition = Vector3.zero; Rig.Visual.localRotation = Quaternion.identity;
             BodyColor = new Color(type.color[0], type.color[1], type.color[2]);
-            Rig.SetColor(BodyColor);
             _body.radius = 0.32f * type.scale; _body.height = 1.8f * type.scale; _body.center = new Vector3(0f, 0.9f * type.scale, 0f);
             Health.Configure(type.maxHealth * healthMultiplier, type.resistance, type.stunResistance, type.zones.Clone());
             Rig.SetHitboxesEnabled(true);
@@ -107,7 +128,6 @@ namespace SevenDays.Combat
             _exploded = false; StopHiss();
             FirstHitTime = -1f;
             HeadDestroyed = false; _knock = Vector3.zero; _puddle.gameObject.SetActive(false);
-            Rig.HeadPivot.localScale = Vector3.one;
             Bar.Suppressed = type.isBoss; Bar.ResetBar(2.25f * type.scale);
             _stagger = 0f; _flashUntil = 0f; _damageDone = true; _attackStart = -10f;
             _nextAttack = Time.time + 0.5f; _nextSight = 0f; _nextPath = 0f; _nextPatrol = Time.time + UnityEngine.Random.Range(0.5f, 2.5f);
@@ -139,6 +159,9 @@ namespace SevenDays.Combat
                 _useAgent = _agent.isOnNavMesh;
             }
             if (_useAgent) { _agent.speed = type.patrolSpeed * speedMultiplier; _agent.isStopped = false; }
+            _attackCount = UnityEngine.Random.Range(0, 3); _attackKind = ZombieMotion.KindFor(type.id, _attackCount);
+            // aparece: elige variante y rasgos propios y sale del suelo (los jefes y los invocados no esperan)
+            Rig.Setup(type, UnityEngine.Random.Range(1, int.MaxValue), !type.isBoss && !ignoreEmerge);
         }
 
         public void Deactivate()
@@ -160,6 +183,8 @@ namespace SevenDays.Combat
         /// <summary>Reacción al impacto: sangre, empujón y aturdimiento ligero (más con la escopeta y en la cabeza; los jefes casi no se inmutan).</summary>
         private void OnHit(DamageInfo info, HitReport report)
         {
+            _lastHitZone = report.Zone; _lastHitDir = info.Direction;
+            Rig.OnHit(report.Zone, info.Direction, Mathf.Clamp(report.FinalDamage / 25f, 0.4f, 3f), Health.Fraction);
             if (BloodFx.Instance != null)
                 BloodFx.Instance.Spray(info.Point, info.Direction, report.Headshot ? 14 : 7);
             if (report.Killed) return;
@@ -173,11 +198,10 @@ namespace SevenDays.Combat
         {
             _deadAt = Time.time;
             if (Boss != null) Boss.OnDeath();
-            if (Health.KilledByHeadshot)
-            {
-                HeadDestroyed = true;
-                Rig.HeadPivot.localScale = Vector3.zero;   // la cabeza vuela
-            }
+            if (Health.KilledByHeadshot) HeadDestroyed = true;   // la cabeza desaparece (el cuerpo lo hace en OnDeath)
+            Vector3 shot = _lastHitDir.sqrMagnitude > 0.01f ? _lastHitDir : (_player != null ? transform.position - _player.position : transform.forward);
+            shot.y = 0f;
+            Rig.OnDeath(_lastHitZone, shot.sqrMagnitude > 0.001f ? shot.normalized : transform.forward, Health.KilledByHeadshot);
             if (BloodFx.Instance != null)
                 BloodFx.Instance.Spray(transform.position + Vector3.up * (Health.KilledByHeadshot ? 1.7f : 1.2f) * Type.scale, Vector3.up + (_player != null ? (transform.position - _player.position).normalized : Vector3.zero), Health.KilledByHeadshot ? 40 : 24);
             _puddle.gameObject.SetActive(true);
@@ -201,6 +225,12 @@ namespace SevenDays.Combat
 
             if (Health.IsDead) { UpdateDead(); return; }
             if (_player == null) return;
+            if (Rig.Emerging)
+            {
+                Stop();
+                AnimateBody(dt, 0f, -1f, 0f);
+                return;
+            }
 
             if (_knock.sqrMagnitude > 0.0004f)
             {
@@ -242,12 +272,39 @@ namespace SevenDays.Combat
 
             _walkPhase += dt * (3f + moveAmount * 4f);
             _stagger = Mathf.MoveTowards(_stagger, Health.IsStunned ? 1f : 0f, dt * 6f);
-            float attackT = PoseAttackOverride >= 0f ? PoseAttackOverride : (_attackStart > 0f ? Mathf.Clamp01((Time.time - _attackStart) / 0.7f) : 0f);
+            float attackT = PoseAttackOverride >= 0f ? PoseAttackOverride : (_attackStart > 0f ? Mathf.Clamp01((Time.time - _attackStart) / ZombieMotion.AttackSeconds) : -1f);
             float amount = Mathf.Clamp01(moveAmount);
             if (_cam == null) _cam = Camera.main;
             Bar.Tick(dist, _cam);
-            // lejos del jugador la animación se salta: nadie la ve y son 24 zombis
-            if (dist < 70f) Rig.Pose(_walkPhase, amount, attackT, _stagger, Time.time + GetInstanceID() * 0.01f, _sm.State == ZombieState.Chase ? 1f : 0f);
+            AnimateBody(dt, amount, attackT, dist);
+            // golpe de suelo del tanque: onda de polvo y sacudida en el instante exacto del impacto visual
+            if (Rig.ConsumeImpact()) GroundImpact(dist);
+        }
+
+        private void AnimateBodyDead(float dt)
+        {
+            if (_animCam == null) _animCam = Camera.main;
+            Rig.Animate(new ZombieAnimState { Dt = dt, Dead = true, AttackT = -1f, DistanceToCamera = _animCam != null ? Vector3.Distance(_animCam.transform.position, transform.position) : 0f });
+        }
+
+        private void AnimateBody(float dt, float amount, float attackT, float dist)
+        {
+            if (_animCam == null) _animCam = Camera.main;
+            var s = new ZombieAnimState
+            {
+                Dt = dt, WalkPhase = _walkPhase, MoveAmount = amount, Time = Time.time + GetInstanceID() * 0.01f, Lunge = _sm.State == ZombieState.Chase ? 1f : 0f,
+                Chasing = _sm.State == ZombieState.Chase, Stunned = Health.IsStunned, Dead = false, AttackT = attackT, AttackKind = _attackKind,
+                DistanceToCamera = _animCam != null ? Vector3.Distance(_animCam.transform.position, transform.position) : 0f,
+            };
+            Rig.Animate(s);
+        }
+
+        private void GroundImpact(float dist)
+        {
+            Vector3 p = transform.position + transform.forward * (1.1f * Type.scale) + Vector3.up * 0.1f;
+            if (BloodFx.Instance != null) BloodFx.Instance.Spray(p, Vector3.up, 18, new Color(0.6f, 0.55f, 0.5f), 1.4f);
+            var imp = _player != null ? _player.GetComponent<SevenDays.Player.PlayerImpulse>() : null;
+            if (imp != null) imp.Shake(0.3f * Mathf.Clamp01(1f - dist / 18f));
         }
 
         // ------------------------------------------------------------------ comportamientos
@@ -284,6 +341,7 @@ namespace SevenDays.Combat
                 _nextAttack = Time.time + Type.attackCooldown;
                 _attackStart = Time.time;
                 _damageDone = false;
+                _attackKind = ZombieMotion.KindFor(Type.id, ++_attackCount);
             }
             // el golpe cae a mitad de la animación; si el jugador se alejó, falla
             if (!_damageDone && _attackStart > 0f && Time.time - _attackStart >= 0.35f)
@@ -319,7 +377,8 @@ namespace SevenDays.Combat
                 case SpitterAction.Aim:
                     Stop();
                     FacePlayer(toPlayer, dt);
-                    _attackStart = Time.time - Mathf.Clamp01(1f - _brain.AimRemaining / 0.9f) * 0.35f; // alza los brazos mientras apunta
+                    _attackKind = ZombieAttackKind.Throw;
+                    _attackStart = Time.time - Mathf.Clamp01(1f - _brain.AimRemaining / 0.9f) * 0.35f; // arma el brazo mientras apunta (t llega a 0.5 al soltar)
                     return 0f;
                 case SpitterAction.Throw:
                     Stop();
@@ -340,8 +399,10 @@ namespace SevenDays.Combat
 
         private void ThrowProjectile()
         {
-            _attackStart = Time.time;
+            _attackKind = ZombieAttackKind.Throw;
+            _attackStart = Time.time - 0.35f;   // el proyectil sale justo en t = 0.5 de la animación de lanzar: la mano está delante
             Vector3 hand = transform.position + Vector3.up * (1.4f * Type.scale) + transform.forward * 0.4f;
+            if (Rig is ZombieBody zb) hand = zb.Rig.Bone(BoneId.RightHand).position + transform.forward * 0.1f;
             bool arc = _brain.Mode == ProjectileMode.Arc;
             Vector3 target = arc ? _player.position : _player.position + Vector3.up * 1.1f;
             Projectile.Launch(_brain.Mode, hand, target, Type.projectileSpeed, Type.projectileDamage * DamageMultiplier, Type.areaRadius, Type.projectileKind, _player, _playerHealth, gameObject);
@@ -386,10 +447,19 @@ namespace SevenDays.Combat
             if (_fuse.State != FuseState.Burning) return false;
             Stop();
             FacePlayer(toPlayer, dt);
-            Rig.Visual.localScale = Vector3.one * Type.scale * _fuse.Inflate(Time.time);
-            _fuseRed ??= Prim.GetEmissive(new Color(1f, 0.1f, 0.05f), 2.5f);
-            _fuseWhite ??= Prim.GetEmissive(Color.white, 3.5f);
-            Rig.SetFlash(true, _fuse.FlashWhite(Time.time) ? _fuseWhite : _fuseRed);
+            if (Procedural)
+            {
+                // venas y pústulas que pulsan cada vez más rápido (la frecuencia sube de 4 a 16 Hz con la mecha), vientre que se infla y cuerpo que tiembla
+                bool on = _fuse.FlashWhite(Time.time);
+                Rig.SetFuse(_fuse.Inflate(Time.time), Mathf.Lerp(0.35f, 1f, _fuse.Progress) * (on ? 1f : 0.4f), _fuse.Progress);
+            }
+            else
+            {
+                Rig.Visual.localScale = Vector3.one * Type.scale * _fuse.Inflate(Time.time);
+                _fuseRed ??= Prim.GetEmissive(new Color(1f, 0.1f, 0.05f), 2.5f);
+                _fuseWhite ??= Prim.GetEmissive(Color.white, 3.5f);
+                Rig.SetFlash(true, _fuse.FlashWhite(Time.time) ? _fuseWhite : _fuseRed);
+            }
             _flashUntil = 0f;   // el parpadeo de la mecha manda sobre el destello de impacto
             return true;
         }
@@ -409,7 +479,8 @@ namespace SevenDays.Combat
 
         private void RestoreFuseVisuals()
         {
-            Rig.Visual.localScale = Vector3.one * Type.scale;
+            if (Procedural) Rig.SetFuse(1f, 0f, 0f);
+            else Rig.Visual.localScale = Vector3.one * Type.scale;
             Rig.SetColor(BodyColor);
         }
 
@@ -549,6 +620,7 @@ namespace SevenDays.Combat
                 _nextAttack = Time.time + Type.attackCooldown * 1.2f;
                 _attackStart = Time.time;
                 _damageDone = false;
+                _attackKind = ZombieAttackKind.Smash;
             }
             if (!_damageDone && _attackStart > 0f && Time.time - _attackStart >= 0.35f)
             {
@@ -640,10 +712,19 @@ namespace SevenDays.Combat
         private void UpdateDead()
         {
             float t = Time.time - _deadAt;
-            // cae hacia atrás en 0.45 s, se queda en el suelo y se hunde antes de volver al pool
             float fall = Mathf.SmoothStep(0f, 1f, t / 0.45f);
-            Rig.Visual.localRotation = Quaternion.Euler(-88f * fall, 0f, 0f);
-            Rig.Visual.localPosition = new Vector3(0f, 0.12f * fall - Mathf.Max(0f, t - 4f) * 0.25f, 0f);
+            if (Procedural)
+            {
+                // el cuerpo cae solo (poses finales ajustadas al suelo); aquí solo se hunde al final antes de volver al pool
+                AnimateBodyDead(Time.deltaTime);
+                Rig.Visual.localPosition = new Vector3(0f, -Mathf.Max(0f, t - 4f) * 0.25f, 0f);
+            }
+            else
+            {
+                // cae hacia atrás en 0.45 s, se queda en el suelo y se hunde antes de volver al pool
+                Rig.Visual.localRotation = Quaternion.Euler(-88f * fall, 0f, 0f);
+                Rig.Visual.localPosition = new Vector3(0f, 0.12f * fall - Mathf.Max(0f, t - 4f) * 0.25f, 0f);
+            }
             float grow = Mathf.Clamp01(t / 1.5f);
             _puddle.localPosition = new Vector3(0f, 0.02f, 0f);
             _puddle.localScale = new Vector3(Mathf.Lerp(0.1f, 1.3f, grow) * Type.scale, 0.005f, Mathf.Lerp(0.1f, 1.3f, grow) * Type.scale);

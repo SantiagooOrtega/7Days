@@ -144,6 +144,9 @@ namespace SevenDays.Animation
 
         public Transform Bone(BoneId id) => Bones[(int)id];
 
+        /// <summary>LOD puesto desde fuera (zombis con ManualTick): distancia a la cámara -> intervalo de actualización y rayos al suelo.</summary>
+        public void ApplyLod(float distance) { _distance = distance; UpdateInterval = RigLod.Interval(distance); _footRays = RigLod.FootRaycasts(distance); }
+
         /// <summary>Se llama tras colocar torso y cabeza y antes del IK de los brazos: aquí se pone el arma y se fijan las manos (Inputs) con el pecho de este frame.</summary>
         public event System.Action<ProceduralRig, float> BeforeArms;
 

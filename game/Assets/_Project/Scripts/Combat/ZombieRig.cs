@@ -9,14 +9,16 @@ namespace SevenDays.Combat
     /// animarla sin huesos, y cada zona de impacto es un collider simple en la capa Hitbox hijo de su pivote: sigue a la animación.
     /// Para cambiarlo por un modelo de Quaternius basta crear un rig con las mismas partes (ver docs/UNITY_SETUP.md); el resto del código solo usa esta clase.
     /// </summary>
-    public class ZombieRig
+    public class ZombieRig : IZombieRig
     {
-        public Transform Visual, Spine, HeadPivot, ArmL, ArmR, LegL, LegR;
+        public Transform Visual { get; private set; }
+        public Transform Spine, HeadPivot, ArmL, ArmR, LegL, LegR;
         public GameObject WeakPoint;   // núcleo brillante en el pecho de los jefes con punto débil; solo existe como hitbox mientras está expuesto
         public Renderer[] Renderers;
-        public Hitbox[] Hitboxes;
+        public Hitbox[] Hitboxes { get; private set; }
         private Renderer[] _skin, _cloth;
         private Material _skinMat, _clothMat;
+        private float _baseScale = 1f;
 
         public static ZombieRig Build(Transform root, Health owner)
         {
@@ -115,6 +117,27 @@ namespace SevenDays.Combat
             for (int i = 0; i < _skin.Length; i++) _skin[i].sharedMaterial = on ? flash : _skinMat;
             for (int i = 0; i < _cloth.Length; i++) _cloth[i].sharedMaterial = on ? flash : _clothMat;
         }
+
+        // ---- IZombieRig (cuerpo antiguo de primitivas: lo usan los jefes hasta el bloque D)
+        public void Setup(ZombieTypeData type, int seed, bool emerge)
+        {
+            _baseScale = type.scale;
+            Visual.localScale = Vector3.one * type.scale; Visual.localPosition = Vector3.zero; Visual.localRotation = Quaternion.identity;
+            HeadPivot.localScale = Vector3.one;
+            SetColor(new Color(type.color[0], type.color[1], type.color[2]));
+        }
+
+        public void Animate(in ZombieAnimState s)
+        {
+            if (s.DistanceToCamera >= 70f) return;   // lejos la animación se salta: nadie la ve
+            Pose(s.WalkPhase, Mathf.Clamp01(s.MoveAmount), Mathf.Max(0f, s.AttackT), s.Stunned ? 1f : 0f, s.Time, s.Chasing ? 1f : 0f);
+        }
+
+        public void OnHit(HitZone zone, Vector3 dirWorld, float strength, float healthFraction) { }
+        public void OnDeath(HitZone lastZone, Vector3 dirWorld, bool headshot) { if (headshot) HeadPivot.localScale = Vector3.zero; }
+        public void SetFuse(float inflate, float glow, float shake) { Visual.localScale = Vector3.one * _baseScale * inflate; }
+        public bool Emerging => false;
+        public bool ConsumeImpact() => false;
 
         public void SetWeakPoint(bool on) { if (WeakPoint != null) WeakPoint.SetActive(on); }
 
