@@ -22,13 +22,20 @@ namespace SevenDays.Core
             }
         }
 
-        public static Vector2 Look => Mouse.current != null ? Mouse.current.delta.ReadValue() : Vector2.zero;
+        /// <summary>Mientras es true (rueda de armas abierta) el ratón no mira, no dispara ni apunta: lo usa la rueda para elegir con el movimiento del ratón.</summary>
+        public static bool InputCaptured;
+
+        public static Vector2 Look => Mouse.current != null && !InputCaptured ? Mouse.current.delta.ReadValue() : Vector2.zero;
+        /// <summary>Movimiento crudo del ratón, también con la entrada capturada.</summary>
+        public static Vector2 RawLook => Mouse.current != null ? Mouse.current.delta.ReadValue() : Vector2.zero;
         public static float Scroll => Mouse.current != null ? Mouse.current.scroll.ReadValue().y : 0f;
 
-        public static bool FireHeld => Mouse.current != null && Mouse.current.leftButton.isPressed;
-        public static bool FirePressed => Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
-        public static bool AimPressed => Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
-        public static bool AimHeld => Mouse.current != null && Mouse.current.rightButton.isPressed;
+        public static bool FireHeld => Mouse.current != null && !InputCaptured && Mouse.current.leftButton.isPressed;
+        public static bool FirePressed => Mouse.current != null && !InputCaptured && Mouse.current.leftButton.wasPressedThisFrame;
+        public static bool AimPressed => Mouse.current != null && !InputCaptured && Mouse.current.rightButton.wasPressedThisFrame;
+        public static bool AimHeld => Mouse.current != null && !InputCaptured && Mouse.current.rightButton.isPressed;
+        public static bool WheelPressed => Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame;
+        public static bool WheelHeld => Keyboard.current != null && Keyboard.current.tabKey.isPressed;
 
         public static bool SprintHeld => Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed;
         public static bool CrouchHeld => Keyboard.current != null && Keyboard.current.leftCtrlKey.isPressed;

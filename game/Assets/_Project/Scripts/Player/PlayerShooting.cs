@@ -174,13 +174,19 @@ namespace SevenDays.Player
             int count = _inventory.Weapons.Count;
             int slot = GameInput.WeaponSlotPressed;
             // con mira telescópica la rueda hace zoom (lo lee PlayerCamera), no cambia de arma
-            if (slot < 0 && !(_camera.Aiming && Current.Data.HasScope))
+            if (slot < 0 && !GameInput.InputCaptured && !(_camera.Aiming && Current.Data.HasScope))
             {
                 float scroll = GameInput.Scroll;
                 if (scroll > 0.1f) slot = (_current + 1) % count;
                 else if (scroll < -0.1f) slot = (_current - 1 + count) % count;
             }
-            if (slot < 0 || slot >= count || slot == _current) return;
+            SelectSlot(slot);
+        }
+
+        /// <summary>Cambia al arma de esa ranura (teclas 1-5, rueda del ratón o rueda radial). Devuelve false si no existe o ya está en la mano.</summary>
+        public bool SelectSlot(int slot)
+        {
+            if (slot < 0 || slot >= _inventory.Weapons.Count || slot == _current) return false;
 
             Reload.Cancel(); // cambiar de arma cancela la recarga (los cartuchos de escopeta ya metidos se quedan)
             _reloadQueued = false;
@@ -190,6 +196,7 @@ namespace SevenDays.Player
             OnWeaponEquipped();
             FireControl.Cancel(Time.time, 0.25f);
             WeaponChanged?.Invoke(Current);
+            return true;
         }
 
         private void OnWeaponEquipped()
