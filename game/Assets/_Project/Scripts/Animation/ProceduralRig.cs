@@ -716,7 +716,7 @@ namespace SevenDays.Animation
                 }
 
                 // codos: con el arma en las manos, hacia abajo y un poco hacia dentro (nunca hacia fuera); brazo libre, hacia atrás
-                Vector3 holdPole = shoulder + Vector3.down * 0.5f - chestRight * side * 0.15f - chestFwd * 0.1f;   // codos abajo (mundo) y algo hacia dentro
+                Vector3 holdPole = shoulder + Vector3.down * 0.5f + chestRight * side * 0.12f + chestFwd * 0.04f;   // codos abajo (mundo) y algo hacia fuera: con más fondo y hombros más anchos, hacia dentro entraban en el torso
                 Vector3 freePole = shoulder - chestFwd * 0.5f - up * 0.3f + chestRight * side * 0.05f;
                 Vector3 pole = Vector3.Lerp(freePole, holdPole, left ? lw : rw);
                 TwoBoneIK.Solve(ToV3(shoulder), ToV3(target), ToV3(pole), _upperArm, _lowerArm, out V3 mid, out V3 end);
