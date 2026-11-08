@@ -836,3 +836,29 @@ en el antebrazo y 3 cm sobre el hombro, donde no había nada que tapara la unió
 1. En **F6 > Complexión**: hombros, cadera, grosor general, torso, **brazos y piernas** y cabeza; "Aplicar complexión" reconstruye al momento. Los valores por defecto están
    en `Resources/Config/ProportionSettings` (versión 3; los assets antiguos con los valores de fábrica de la esbelta o de la fuerte se migran solos al cargarlos).
 2. Compara de frente, de lado y de espalda con los brazos en reposo y apuntando (F7 recorre las armas y luego el soldado de frente y de lado).
+
+
+## Zombis procedurales: cuerpo, texturas, animación y capa de daño (ZOMBIS_SKINS.md, bloque C)
+
+**Qué hay:** los 6 tipos de zombi tienen cuerpo procedural propio (ver `docs/ZOMBIES.md`): esqueleto del soldado con otras proporciones, ropa y rasgos por tipo, 3 a 4 variantes, texturas de 512 px, LOD de malla y de
+animación, hitboxes pegados a los huesos, heridas por cuartos de vida, emerger del suelo y morir de espaldas, hacia delante o de rodillas. Los jefes siguen con las primitivas hasta el bloque D.
+
+**Pasos manuales** (no hay que crear nada a mano en el editor; Unity genera los `.meta` al abrir):
+1. Abre el proyecto en Unity y espera a que compile (si el Test Runner estaba abierto, ciérralo y vuelve a abrirlo).
+2. Abre `Assets/_Project/Scenes` (la escena de pruebas) y pulsa **Play**. Los zombis salen de la arena con **Z** (cada pulsación genera uno y recorre los 6 tipos), **V** (oleada de 8) y **B** (jefes del día).
+   La primera vez, las texturas de los zombis tardan 1-2 s en llegar (se generan en hilos): mientras tanto se ven con el color base del tipo.
+3. **F6** abre los paneles. El panel **RENDER** ahora tiene una línea "Zombis": activos, reparto de LOD 0/1/2, CPU de la animación (ms), triángulos, heridas visibles y memoria de texturas y mallas. Los ms de CPU y GPU
+   del frame salen de la línea de FPS (GPU solo si la plataforma da `FrameTimingManager`).
+4. Prueba de carga: genera unos 30 zombis con **V** varias veces (el tope del pool es 24 + 4 extra, `ZombieManager.MaxZombies`; súbelo en el inspector del objeto `ZombieManager` si quieres más) y mira el panel.
+5. Capas de daño: dispara a un zombi cerca de ti; en el 75 %, 50 % y 25 % de vida aparece una herida en la zona que le diste. El headshot mortal le quita la cabeza.
+6. Para ver el cuerpo de cerca sin que se mueva: acércate a un zombi que acaba de salir del suelo (los 1.3 s de emerger no se mueven ni atacan).
+7. (Opcional) para definir variantes propias copia `docs/zombie_variants.default.json` a `Assets/_Project/Resources/Zombies/zombie_variants.json` y edítalo; si no pasa la validación se avisa en la consola y se usan las de fábrica.
+
+**Verificación sin el editor (lo que se pudo comprobar):** la malla, los pesos, las texturas, la animación pura y las poses de muerte se prueban en EditMode (`ZombieLookTests`, `ZombieModelTests`, `ZombieSkinningTests`,
+`ZombieTextureTests`, `ZombieWoundsTests`, `ZombieMotionTests`, `ZombieDamageLayerTests`); el cuerpo real de Unity (rig, SkinnedMeshRenderer, hitboxes, decals) en `ZombieBodyTests` (Test Runner real, sin tocar el editor
+abierto) y la IA en la arena real en `ZombieBehaviourTests` (PlayMode): persigue y golpea, muere de un headshot, el pool reutiliza el cuerpo, el explosivo detona, el lanzador lanza y el pool lleno reconstruye el cuerpo
+al cambiar de tipo. Las capturas se hicieron renderizando con URP en modo batch (`ZombieShowcase`, [Explicit]).
+
+**Carga con 30 zombis** (`ZombieLoadTest`, Apple M3, arena real, 1080p, resolución dinámica y gobernador de calidad vigentes): render del frame completo sin zombis ~13.2 ms y con 30 zombis ~14.9 ms (mejor de 3): el coste
+de dibujar los 30 es ~1.1 ms (de ellos ~0.8 ms las sombras de los que están cerca, ~0.4 ms los decals de heridas), con 13 en LOD 0 y 17 en LOD 1 (~115 k triángulos). La animación de los 31 rigs cuesta ~0.06 ms de CPU por frame
+en total. El frame de la ventana va a 60 FPS (el tope del v-sync en modo batch); el margen real depende de tu Mac y de la resolución dinámica.
