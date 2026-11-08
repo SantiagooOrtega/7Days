@@ -31,8 +31,8 @@ namespace SevenDays.Player
             var rigGo = new GameObject("Rig");
             rigGo.transform.SetParent(visual, false);
             var rig = rigGo.AddComponent<SevenDays.Animation.ProceduralRig>();
-            rig.Build(SevenDays.Animation.ProportionSettings.Load());
             var variant = SevenDays.Animation.CharacterVariantLibrary.Current;   // Calavera, Explorador, Médico o Francotirador (F6 la cambia)
+            rig.Build(SevenDays.Animation.ProportionSettings.For(variant));      // grosor base + el de la variante
             SevenDays.Animation.RigVisuals.BuildSoldier(rig, variant);
 
             // Soporte del arma y boca del cañón

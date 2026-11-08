@@ -19,7 +19,7 @@ namespace SevenDays.Animation
             if (parent != null) go.transform.SetParent(parent, false);
             go.transform.position = position;
             var rig = go.AddComponent<ProceduralRig>();
-            rig.Build(SevenDays.Animation.ProportionSettings.Load());
+            rig.Build(SevenDays.Animation.ProportionSettings.For(CharacterVariantLibrary.Current));
             RigVisuals.BuildSoldier(rig, RigPalette.Soldier);
             return rig;
         }
