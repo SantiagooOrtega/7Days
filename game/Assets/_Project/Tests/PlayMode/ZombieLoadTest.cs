@@ -128,6 +128,10 @@ namespace SevenDays.Tests.PlayMode
             sb.Append("Coste medio de los rigs (todos, ms por frame): " + rigMs.ToString("0.00") + " con " + rigs + " rigs\n");
             var art = T("SevenDays.Animation.ZombieArt");
             sb.Append("Texturas de zombi: " + ((long)art.GetProperty("TextureBytes").GetValue(null) / 1048576f).ToString("0.0") + " MB (" + art.GetProperty("TexturesReady").GetValue(null) + " mapas)  mallas: " + ((long)T("SevenDays.Animation.ZombieMeshes").GetProperty("MeshBytes").GetValue(null) / 1048576f).ToString("0.0") + " MB\n");
+            // física: coste de sincronizar los colliders que se mueven con la animación (30 zombis con ~18 colliders cada uno)
+            var sw = new System.Diagnostics.Stopwatch(); float syncMs = 0f; int syncN = 0;
+            for (int i = 0; i < 60; i++) { yield return null; sw.Restart(); Physics.SyncTransforms(); sw.Stop(); syncMs += (float)sw.Elapsed.TotalMilliseconds; syncN++; }
+            sb.Append("Physics.SyncTransforms con 30 zombis: " + (syncMs / syncN).ToString("0.00") + " ms por frame\n");
             // ¿dónde se va el coste? apagando cada cosa de los zombis por separado
             var smrs = new List<SkinnedMeshRenderer>(); var decals = new List<MeshRenderer>();
             foreach (var z in all)

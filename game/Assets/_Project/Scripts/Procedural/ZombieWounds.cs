@@ -33,6 +33,9 @@ namespace SevenDays.Procedural
         public const int Grid = 4;
         public const float Lift = 0.003f;
 
+        /// <summary>Las 20 posiciones posibles (12 de la capa de daño y 8 marcas del individuo), creadas una sola vez.</summary>
+        public static readonly List<WoundSpot> All = Spots();
+
         public static List<WoundSpot> Spots()
         {
             var l = new List<WoundSpot>();

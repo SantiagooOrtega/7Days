@@ -52,7 +52,8 @@ namespace SevenDays.Combat
             Instance = m;
             foreach (var t in types ?? ZombieCatalog.Defaults()) m._types[t.id] = t;
             HitboxLayer.ConfigureCollisions();
-            SevenDays.Animation.ZombieArt.PrewarmAll();   // texturas de zombi en hilos de fondo desde el principio
+            SevenDays.Animation.ZombieArt.PrewarmAll();   // texturas y mallas de zombi en hilos de fondo desde el principio
+            SevenDays.Animation.ZombieMeshes.PrewarmAll();
             return m;
         }
 

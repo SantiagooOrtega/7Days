@@ -337,7 +337,7 @@ namespace SevenDays.Procedural
             float lu = u * 4f - cx, lv = v * 4f - cy;
             int seed = id * 31 + 2000;
             float grime = Fbm(lu, lv, 5, 4, seed);
-            float weave = 0.5f + 0.5f * Fbm(lu, lv, 24, 2, seed + 13);   // trama como ruido fino (sin patrón regular: no hace muaré)
+            float weave = 0.5f + 0.5f * Fbm(lu, lv, 90, 1, seed + 13);   // trama como grano fino (sin patrón regular: no hace muaré)
             Rgb c; o.Smooth = 0.2f; o.Alpha = 1f; o.Ao = 1f;
             switch (id)
             {
@@ -433,6 +433,16 @@ namespace SevenDays.Procedural
                     c = Rgb.Lerp(c, new Rgb(0.32f, 0.05f, 0.05f), Smooth(0.6f, 0.82f, Fbm(lu, lv, 5, 3, seed + 8)) * 0.85f);
                     o.Height = 0.3f * f; break;
                 }
+            }
+            // pliegues y arrugas de la tela (correr alrededor de la pieza) y manchas de tono: rompen la superficie lisa
+            bool soft = id != ZombieAtlas.ClMetal && id != ZombieAtlas.ClRubber && id != ZombieAtlas.ClDoor && id != ZombieAtlas.ClLeather;
+            if (soft)
+            {
+                float fold = Fbm(lu * 0.4f, lv * 3.4f, 3, 3, seed + 20);
+                float tone = Fbm(lu, lv, 2, 3, seed + 21);
+                c = c.Scale(0.82f + 0.36f * tone);
+                o.Height += 1.1f * fold + 0.5f * (1f - Smooth(0.25f, 0.5f, Math.Abs(fold - 0.5f)));
+                c = c.Scale(0.9f + 0.2f * fold);
             }
             if (id != ZombieAtlas.ClMetal) o.Color = c;
             // suciedad, barro hacia el borde inferior (v pequeña = dobladillo), quemaduras y sangre

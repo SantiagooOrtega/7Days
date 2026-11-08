@@ -231,7 +231,7 @@ namespace SevenDays.Procedural
             private float[] PelvisRings(float grow, float hipK)
             {
                 float s = _s, k = _k;
-                var g = new[] { -0.115f * s, 0.098f, 0.66f, -0.004f, -0.05f * s, 0.15f, 0.66f, -0.012f, 0.05f * s, 0.158f, 0.66f, -0.006f, 0.12f * s, 0.152f, 0.66f, -0.002f };
+                var g = new[] { -0.15f * s, 0.07f, 0.64f, -0.004f, -0.11f * s, 0.122f, 0.66f, -0.004f, -0.05f * s, 0.152f, 0.66f, -0.012f, 0.05f * s, 0.158f, 0.66f, -0.006f, 0.12f * s, 0.152f, 0.66f, -0.002f };
                 var r = new float[(g.Length / 4) * 5];
                 for (int i = 0; i < g.Length / 4; i++)
                 {
@@ -273,6 +273,7 @@ namespace SevenDays.Procedural
 
             // ================================================================ brazos
             private float[] UpperArmRings(float len, float f) => SoldierModel.LoftRings(len, f, 0, 0,
+                -0.07f, 0.034f, 0.036f, 0f, 0f, -0.035f, 0.052f, 0.055f, 0f, 0f,
                 0.00f, 0.058f, 0.062f, 0f, 0f, 0.12f, 0.064f, 0.067f, 0f, 0f, 0.36f, 0.060f, 0.067f, 0f, 0.005f, 0.60f, 0.053f, 0.058f, 0f, 0.001f, 0.85f, 0.046f, 0.048f, 0f, -0.001f, 1.00f, 0.042f, 0.043f, 0f, 0f);
 
             private float[] LowerArmRings(float len, float f) => SoldierModel.LoftRings(len, f, 0, 0,
@@ -289,18 +290,18 @@ namespace SevenDays.Procedural
                     BoneId ua = left ? BoneId.LeftUpperArm : BoneId.RightUpperArm, la = left ? BoneId.LeftLowerArm : BoneId.RightLowerArm, hand = left ? BoneId.LeftHand : BoneId.RightHand;
                     float lu = L(ua), ll = L(la);
                     var up = new MeshBuilder();
-                    Lf(up, default, default, UpperArmRings(lu, f), 10, SK(ZombieAtlas.SkBody), 0.5f);
+                    Lf(up, default, default, UpperArmRings(lu, f), 9, SK(ZombieAtlas.SkBody), 0.5f);
                     Add(ua, "brazo", SlotSkin, up, 2, true);
                     var delt = new MeshBuilder();
                     delt.Lathe(new V3(side * 0.012f * f, 0.004f, 0f), default, SoldierModel.Ellipsoid(0.058f * f, 0.055f * f, 4), Sides(10), 1.04f, true, true, SK(ZombieAtlas.SkBody), 0.3f);
                     bool covered = !(_v.clothing == ZombieClothing.Rags && !left);   // con manga el hombro lo cubre la ropa
                     if (!covered) Add(ua, "deltoides", SlotSkin, delt, 0, false, false);
                     var lo = new MeshBuilder();
-                    Lf(lo, default, default, LowerArmRings(ll + ex, f), 10, SK(ZombieAtlas.SkBody), 0.5f);
+                    Lf(lo, default, default, LowerArmRings(ll + ex, f), 9, SK(ZombieAtlas.SkBody), 0.5f);
                     Add(la, "antebrazo", SlotSkin, lo, 2, true);
                     // codo huesudo
                     var elbow = new MeshBuilder();
-                    elbow.Lathe(new V3(0f, -0.004f * f, -0.028f * f), default, SoldierModel.Ellipsoid(0.026f * f, 0.024f * f, 3), 6, 1f, true, true, SK(ZombieAtlas.SkBody), 0.1f);
+                    elbow.Lathe(new V3(0f, -0.004f * f, -0.026f * f), default, SoldierModel.Ellipsoid(0.017f * f, 0.016f * f, 3), 6, 1f, true, true, SK(ZombieAtlas.SkBody), 0.1f);
                     Add(la, "codo", SlotSkin, elbow, 0, false, false);
                     Hand(hand, left, f, ex);
                 }
@@ -339,10 +340,11 @@ namespace SevenDays.Procedural
             }
 
             // ================================================================ piernas
-            private float[] ThighRings(float len, float f) => SoldierModel.LoftRings(len, f, 0, 2,
+            private float[] ThighRings(float len, float f) => SoldierModel.LoftRings(len, f, 0, 0,
+                -0.09f, 0.045f, 0.05f, 0f, -0.01f, -0.045f, 0.07f, 0.078f, 0f, -0.01f,
                 0.00f, 0.083f, 0.090f, 0f, -0.010f, 0.14f, 0.083f, 0.091f, 0f, -0.004f, 0.38f, 0.079f, 0.088f, 0f, 0.006f, 0.62f, 0.070f, 0.076f, 0f, 0.008f, 0.86f, 0.056f * 0.9f, 0.058f * 0.9f, 0f, 0.002f, 1.00f, 0.052f * 0.9f, 0.053f * 0.9f, 0f, 0f);
 
-            private float[] CalfRings(float len, float f) => SoldierModel.LoftRings(len, f, 1, 0,
+            private float[] CalfRings(float len, float f) => SoldierModel.LoftRings(len, f, 0, 0,
                 0.00f, 0.052f * 0.9f, 0.053f * 0.9f, 0f, 0f, 0.20f, 0.062f, 0.068f, 0f, -0.012f, 0.38f, 0.066f, 0.073f, 0f, -0.012f, 0.62f, 0.052f, 0.054f, 0f, -0.006f, 0.85f, 0.040f, 0.041f, 0f, 0f, 1.00f, 0.036f, 0.038f, 0f, 0f);
 
             private void Legs()
@@ -354,10 +356,10 @@ namespace SevenDays.Procedural
                     BoneId foot = left ? BoneId.LeftFoot : BoneId.RightFoot, toes = left ? BoneId.LeftToes : BoneId.RightToes;
                     float thigh = L(ul), shin = L(ll), drop = L(foot), ball = _spec[(int)toes].LocalPosition.Z;
                     var th = new MeshBuilder();
-                    Lf(th, default, default, ThighRings(thigh, _f), 10, SK(ZombieAtlas.SkBody), 0.5f);
+                    Lf(th, default, default, ThighRings(thigh, _f), 9, SK(ZombieAtlas.SkBody), 0.5f);
                     Add(ul, "muslo", SlotSkin, th, 2, true);
                     var calf = new MeshBuilder();
-                    Lf(calf, default, default, CalfRings(shin, _f), 10, SK(ZombieAtlas.SkBody), 0.5f);
+                    Lf(calf, default, default, CalfRings(shin, _f), 9, SK(ZombieAtlas.SkBody), 0.5f);
                     Add(ll, "pantorrilla", SlotSkin, calf, 2, true);
                     // rótula huesuda
                     var knee = new MeshBuilder();
@@ -411,10 +413,7 @@ namespace SevenDays.Procedural
                 foreach (float sx in new[] { -1f, 1f })
                     eyes.Lathe(new V3(sx * 0.036f * h, 0.118f * h, 0.082f * h), new V3(90f, 0f, 0f), SoldierModel.Ellipsoid(0.014f * h, 0.012f * h, 3), Sides(7), 1f, true, true, SK(ZombieAtlas.SkEye), 0f, true);
                 Add(BoneId.Head, "ojos", SlotSkin, eyes, 2, false, false);
-                // ceja marcada y nariz hundida
-                var brow = new MeshBuilder();
-                brow.Loft(new V3(0f, 0.138f * h, 0.098f * h), new V3(0f, 0f, 90f), new[] { -0.07f * h, 0.012f * h, 0.012f * h, 0f, 0f, 0f, 0.016f * h, 0.015f * h, 0f, 0.002f * h, 0.07f * h, 0.012f * h, 0.012f * h, 0f, 0f }, 6, true, true, SK(ZombieAtlas.SkBody), 0.1f);
-                Add(BoneId.Head, "ceja", SlotSkin, brow, 1, false, false);
+                // nariz hundida (la ceja y las cuencas van pintadas en la textura)
                 var nose = new MeshBuilder();
                 nose.Loft(new V3(0f, 0.07f * h, 0.098f * h), new V3(-24f, 0f, 0f), new[] { -0.02f * h, 0.014f * h, 0.012f * h, 0f, 0f, 0.0f, 0.011f * h, 0.012f * h, 0f, 0.002f * h, 0.03f * h, 0.006f * h, 0.006f * h, 0f, 0.004f * h }, 6, true, true, SK(ZombieAtlas.SkBody), 0.1f);
                 Add(BoneId.Head, "nariz", SlotSkin, nose, 0, false, false);
@@ -542,7 +541,7 @@ namespace SevenDays.Procedural
                     if (!longSleeves) uaR = Slice(uaR, -lu * 0.5f, 0f);    // manga corta hasta mitad del brazo
                     else if (rags) uaR = Slice(uaR, -lu * 0.65f, 0f);
                     var sleeve = new MeshBuilder();
-                    Lf(sleeve, default, default, uaR, 10, CL(top), 0.4f);
+                    Lf(sleeve, default, default, uaR, 9, CL(top), 0.4f);
                     float side = left ? -1f : 1f;
                     sleeve.Lathe(new V3(side * 0.012f * f, 0.004f, 0f), default, SoldierModel.Ellipsoid(0.07f * f, 0.062f * f, 2), Sides(8), 1.04f, true, true, CL(top), 0.3f);
                     Add(ua, "manga", SlotCloth, sleeve, 2, true);
@@ -550,7 +549,7 @@ namespace SevenDays.Procedural
                     {
                         float[] laR = Slice(Grow(LowerArmRings(ll + ArmExtra(left), f), grow, 1.04f), -ll * 0.97f, 0f);
                         var fore = new MeshBuilder();
-                        Lf(fore, default, default, laR, 10, CL(top), 0.4f);
+                        Lf(fore, default, default, laR, 9, CL(top), 0.4f);
                         Add(la, "manga", SlotCloth, fore, 2, true);
                     }
                 legs:;
@@ -565,12 +564,12 @@ namespace SevenDays.Procedural
                     else if (c == ZombieClothing.Workwear && !left) cR = Slice(cR, -shin * 0.7f, 0f);   // pernera rota por debajo de la rodilla
                     else cR = Slice(cR, -shin * 0.96f, 0f);
                     var leg = new MeshBuilder();
-                    Lf(leg, default, default, tR, 10, CL(bottom), 0.45f);
+                    Lf(leg, default, default, tR, 9, CL(bottom), 0.45f);
                     Add(ul, "pernera", SlotCloth, leg, 2, true);
                     if (cR != null)
                     {
                         var shinC = new MeshBuilder();
-                        Lf(shinC, default, default, cR, 10, CL(bottom), 0.45f);
+                        Lf(shinC, default, default, cR, 9, CL(bottom), 0.45f);
                         Add(ll, "pernera", SlotCloth, shinC, 2, true);
                     }
                     // bata: faldón suelto por delante y detrás del muslo, atado al muslo (no atraviesa las piernas al caminar)
@@ -578,7 +577,7 @@ namespace SevenDays.Procedural
                     {
                         var skirt = new MeshBuilder();
                         float[] sk = Slice(Grow(ThighRings(thigh, _f), grow * 3f, 1.22f), -thigh * 0.62f, 0.02f);
-                        Lf(skirt, default, default, sk, 10, CL(ZombieAtlas.ClLab), 0.45f);
+                        Lf(skirt, default, default, sk, 9, CL(ZombieAtlas.ClLab), 0.45f);
                         Add(ul, "faldon", SlotCloth, skirt, 1, true);
                     }
                     FootCloth(left);

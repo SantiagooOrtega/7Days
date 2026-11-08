@@ -157,4 +157,4 @@ Rangos válidos (Validate): vida 60-140, velocidad 0.85-1.15, curación 0.5-1.6,
 Con el cuerpo procedural (`ZOMBIS_SKINS.md`, bloque C) los colliders de cabeza, torso, brazos y piernas se ajustan a los huesos y a las proporciones de cada tipo (el tanque mide 2.64 m y tiene un brazo derecho
 1.55 veces más grueso; el corredor es delgado). **Los multiplicadores por zona, las resistencias y la tabla de este documento no cambian**: `ZoneMultipliers`, `ZombieCatalog.Defaults()` y los tiempos de matar por arma y
 tipo salen de `Procedural/CombatModel.cs`, que no se tocó, y `BalanceTests` / `CombatTests` pasan sin modificarse. Lo único que cambia es DÓNDE hay que apuntar: los colliders siguen la animación hueso a hueso y cubren
-entre el 82 % (tanque) y el 91 % (común) de la malla a menos de 5 cm (`ZombieBodyTests.Hitboxes_FollowTheBones_AndCoverTheBody`).
+entre el 88 % (tanque) y el 100 % (corredor) de la malla a menos de 5 cm (18 colliders por zombi: cabeza, cuello, torso, pelvis, hombros, brazos, manos, muslos, pantorrillas y pies, más el vientre del explosivo) (`ZombieBodyTests.Hitboxes_FollowTheBones_AndCoverTheBody`).

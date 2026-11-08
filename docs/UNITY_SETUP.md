@@ -845,7 +845,7 @@ animación, hitboxes pegados a los huesos, heridas por cuartos de vida, emerger 
 
 **Pasos manuales** (no hay que crear nada a mano en el editor; Unity genera los `.meta` al abrir):
 1. Abre el proyecto en Unity y espera a que compile (si el Test Runner estaba abierto, ciérralo y vuelve a abrirlo).
-2. Abre `Assets/_Project/Scenes` (la escena de pruebas) y pulsa **Play**. Los zombis salen de la arena con **Z** (cada pulsación genera uno y recorre los 6 tipos), **V** (oleada de 8) y **B** (jefes del día).
+2. Abre la escena `Game` (`Assets/Scenes/Game.unity`) y pulsa **Play**. Los zombis salen de la arena con **Z** (cada pulsación genera uno y recorre los 6 tipos), **V** (oleada de 8) y **B** (jefes del día).
    La primera vez, las texturas de los zombis tardan 1-2 s en llegar (se generan en hilos): mientras tanto se ven con el color base del tipo.
 3. **F6** abre los paneles. El panel **RENDER** ahora tiene una línea "Zombis": activos, reparto de LOD 0/1/2, CPU de la animación (ms), triángulos, heridas visibles y memoria de texturas y mallas. Los ms de CPU y GPU
    del frame salen de la línea de FPS (GPU solo si la plataforma da `FrameTimingManager`).

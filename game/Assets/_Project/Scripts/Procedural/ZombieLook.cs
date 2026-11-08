@@ -98,7 +98,7 @@ namespace SevenDays.Procedural
                 case ZombieIds.Explosive:
                     return new ZombieAnatomy { TypeId = id, Proportions = P(1.72f, 0.46f, 0.30f, 1.0f, 0.5f, 1f, 0.9f, 0.95f, 0.4f, 1.05f, 0.95f), Emaciation = 0.15f, Belly = true, SkinBase = new[] { 0.72f, 0.58f, 0.46f } };
                 default:
-                    return new ZombieAnatomy { TypeId = ZombieIds.Common, Proportions = P(1.78f, 0.44f, 0.27f, 0.98f, 0.5f, 1f, 1f, 1f, 0.55f, 0.9f, 0.92f), Emaciation = 0.3f, SkinTension = 0.35f, SkinBase = new[] { 0.55f, 0.58f, 0.51f } };
+                    return new ZombieAnatomy { TypeId = ZombieIds.Common, Proportions = P(1.78f, 0.44f, 0.27f, 0.98f, 0.5f, 1f, 1f, 1f, 0.55f, 1.05f, 0.92f), Emaciation = 0.3f, SkinTension = 0.35f, SkinBase = new[] { 0.55f, 0.58f, 0.51f } };
             }
         }
 
