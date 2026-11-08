@@ -149,18 +149,32 @@ namespace SevenDays.Combat
         {
             if (ActiveCount >= MaxZombies && !type.isBoss && !ignoreCap) return null;
             ZombieController z = null;
-            foreach (var c in _all) if (!c.InUse) { z = c; break; }
-            if (z == null)
+            string key = ZombieController.KeyFor(type);
+            // se reutiliza un zombi libre con el MISMO cuerpo (elegido al azar entre los libres: así sus alturas se reparten)
+            int free = 0;
+            foreach (var c in _all) if (!c.InUse && c.BodyKey == key) free++;
+            if (free > 0)
             {
-                if (_all.Count >= MaxZombies + 4) return null; // los jefes y los invocados pueden pasarse un poco del tope
+                int pick = _rng.Next(free);
+                foreach (var c in _all) if (!c.InUse && c.BodyKey == key && pick-- == 0) { z = c; break; }
+            }
+            if (z == null && _all.Count < MaxZombies + 4)
+            {
                 var go = new GameObject("Zombie");
                 go.transform.SetParent(transform, false);
                 go.AddComponent<Health>();
                 z = go.AddComponent<ZombieController>();
-                z.Build();
+                z.Build(type);
                 z.Killed += OnKilled;
                 z.SetPlayer(_player, _playerHealth);
                 _all.Add(z);
+            }
+            if (z == null)
+            {
+                // pool lleno de otros tipos: un zombi libre cambia de cuerpo
+                foreach (var c in _all) if (!c.InUse) { z = c; break; }
+                if (z == null) return null;
+                z.Rebuild(type);
             }
             // los parámetros del director multiplican a los pedidos; la vida de un jefe no se toca (siempre 10–30 veces la de un común)
             z.Activate(type, position, healthMult * (type.isBoss ? 1f : Tuning.healthMultiplier), speedMult * Tuning.speedMultiplier, damageMult * Tuning.damageMultiplier);
