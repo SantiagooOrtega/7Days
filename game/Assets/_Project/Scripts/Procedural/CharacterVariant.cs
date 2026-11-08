@@ -19,6 +19,7 @@ namespace SevenDays.Procedural
         public bool visor = true;          // visor ahumado sobre las cuencas (solo con la placa calavera)
         public bool armband;               // brazalete (médico)
         public int seed = 7;
+        public float buildScale = 1f;      // multiplica el grosor del cuerpo (ProportionSettings.bulk): la Calavera es algo más corpulenta
 
         // camuflaje woodland oscuro: base, manchas medianas, manchas oscuras, trazos grises
         public float[] camoBase = { 0.24f, 0.26f, 0.19f };
@@ -56,6 +57,7 @@ namespace SevenDays.Procedural
             gear = Fix(gear, d.gear); gearDark = Fix(gearDark, d.gearDark); leather = Fix(leather, d.leather); boot = Fix(boot, d.boot); pad = Fix(pad, d.pad);
             metal = Fix(metal, d.metal); helmet = Fix(helmet, d.helmet); paint = Fix(paint, d.paint); accent = Fix(accent, d.accent); fabric = Fix(fabric, d.fabric);
             camoScale = Clamp(camoScale, 0.5f, 2f);
+            buildScale = Clamp(buildScale, 0.9f, 1.1f);
             maxHealth = Clamp(maxHealth, 60f, 140f);
             moveSpeed = Clamp(moveSpeed, 0.85f, 1.15f);
             healing = Clamp(healing, 0.5f, 1.6f);
@@ -79,10 +81,10 @@ namespace SevenDays.Procedural
         /// <summary>Las variantes jugables por defecto (los ScriptableObject de Resources/Config/Variants las pueden sustituir).</summary>
         public static List<CharacterVariantData> Defaults() => new List<CharacterVariantData>
         {
-            new CharacterVariantData { id = "calavera", displayName = "Calavera", headgear = Headgear.SkullHelmet, visor = true, seed = 7 },
+            new CharacterVariantData { id = "calavera", displayName = "Calavera", headgear = Headgear.SkullHelmet, visor = true, seed = 7, buildScale = 1.04f },
             new CharacterVariantData
             {
-                id = "explorador", displayName = "Explorador", headgear = Headgear.CapGoggles, visor = false, seed = 21,
+                id = "explorador", displayName = "Explorador", headgear = Headgear.CapGoggles, visor = false, seed = 21, buildScale = 0.97f,
                 camoBase = new[] { 0.42f, 0.4f, 0.31f }, camoMid = new[] { 0.36f, 0.3f, 0.21f }, camoDark = new[] { 0.2f, 0.19f, 0.15f }, camoLight = new[] { 0.55f, 0.52f, 0.43f },
                 gear = new[] { 0.38f, 0.33f, 0.24f }, gearDark = new[] { 0.22f, 0.2f, 0.16f }, boot = new[] { 0.3f, 0.23f, 0.16f },
                 fabric = new[] { 0.36f, 0.32f, 0.24f }, accent = new[] { 0.55f, 0.24f, 0.14f },

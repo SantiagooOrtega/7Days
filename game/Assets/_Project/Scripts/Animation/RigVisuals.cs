@@ -51,7 +51,7 @@ namespace SevenDays.Animation
                 if (!piece.Shadow) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 PartCount++;
             }
-            float k = rig.Proportions.bulk;
+            float k = 1f + (rig.Proportions.bulk - 1f) * 0.5f;   // las manos engordan la mitad que el torso (el agarre está calibrado a su tamaño)
             foreach (bool left in new[] { true, false })
             {
                 // mano con guante: pulgar + 4 dedos de 2 falanges que agarran el arma con poses

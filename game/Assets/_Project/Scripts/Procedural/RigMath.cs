@@ -223,8 +223,24 @@ namespace SevenDays.Procedural
             torsoDepth = CameraMath.Clamp(torsoDepth, 0.6f, 1.6f); limbThickness = CameraMath.Clamp(limbThickness, 0.6f, 1.6f);
         }
 
-        /// <summary>Soldado atlético (no corpulento): hombros proporcionados, torso y chaleco delgados, misma altura (cámara, mira y pies no cambian).</summary>
-        public static RigProportions Soldier() => new RigProportions { height = 1.82f, shoulderWidth = 0.44f, hipWidth = 0.27f, bulk = 1f, torsoDepth = 0.9f, limbThickness = 0.92f };
+        /// <summary>
+        /// Soldado atlético y fuerte (ni esbelto ni cuadrado): misma altura (cámara, mira y pies no cambian). Respecto a la versión esbelta: torso +13 % de ancho y
+        /// de fondo (bulk), hombros +9 %, cadera +5 %, brazos y piernas +11 % y cuello +13 %.
+        /// </summary>
+        public static RigProportions Soldier() => new RigProportions { height = 1.82f, shoulderWidth = SoldierShoulders, hipWidth = SoldierHips, bulk = SoldierBulk, torsoDepth = 0.9f, limbThickness = SoldierLimbs };
+
+        public const float SoldierShoulders = 0.48f, SoldierHips = 0.285f, SoldierBulk = 1.13f, SoldierLimbs = 0.905f;
+        /// <summary>Valores de la versión esbelta (los que guardan los assets anteriores a la versión 2 de ProportionSettings).</summary>
+        public const float SlimShoulders = 0.44f, SlimHips = 0.27f, SlimBulk = 1f, SlimLimbs = 0.92f;
+
+        /// <summary>Copia con el grosor de la variante aplicado (la Calavera es algo más corpulenta; el Explorador, algo más ligero).</summary>
+        public RigProportions WithBuild(float bulkScale)
+        {
+            var c = (RigProportions)MemberwiseClone();
+            c.bulk *= bulkScale;
+            c.Validate();
+            return c;
+        }
     }
 
     public enum BoneId

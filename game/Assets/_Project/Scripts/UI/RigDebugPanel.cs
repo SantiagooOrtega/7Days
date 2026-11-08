@@ -145,7 +145,8 @@ namespace SevenDays.UI
                     if (GUILayout.Toggle(sel, v.displayName, GUI.skin.button) && !sel)
                     {
                         CharacterVariantLibrary.SetCurrent(v.id);
-                        RigVisuals.Rebuild(_rig, ProportionCopy(_rig.Proportions), v);
+                        _prop ??= ProportionCopy(ProportionSettings.Load());
+                        RigVisuals.Rebuild(_rig, _prop.WithBuild(v.buildScale), v);
                         SevenDays.Player.PlayerVariantStats.Apply(_rig.GetComponentInParent<SevenDays.Player.PlayerMotor>()?.gameObject, v);
                     }
                 }
@@ -159,7 +160,7 @@ namespace SevenDays.UI
             {
                 GUILayout.Space(6);
                 GUILayout.Label("Complexión (ProportionSettings)", _head);
-                _prop ??= ProportionCopy(_rig.Proportions);
+                _prop ??= ProportionCopy(ProportionSettings.Load());   // la base; el grosor de la variante se suma al aplicar
                 _prop.shoulderWidth = Slider("ancho de hombros", _prop.shoulderWidth, 0.3f, 0.7f);
                 _prop.hipWidth = Slider("ancho de cadera", _prop.hipWidth, 0.18f, 0.4f);
                 _prop.bulk = Slider("grosor general", _prop.bulk, 0.7f, 1.5f);
@@ -168,7 +169,7 @@ namespace SevenDays.UI
                 _prop.headSize = Slider("cabeza", _prop.headSize, 0.8f, 1.3f);
                 _prop.armRatio = Slider("largo de brazos", _prop.armRatio, 0.85f, 1.15f);
                 _prop.legRatio = Slider("largo de piernas", _prop.legRatio, 0.44f, 0.56f);
-                if (GUILayout.Button("Aplicar complexión")) { _prop.Validate(); RigVisuals.Rebuild(_rig, ProportionCopy(_prop), _rig.Variant); }
+                if (GUILayout.Button("Aplicar complexión")) { _prop.Validate(); RigVisuals.Rebuild(_rig, _prop.WithBuild(_rig.Variant != null ? _rig.Variant.buildScale : 1f), _rig.Variant); }
             }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
