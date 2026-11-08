@@ -29,7 +29,7 @@ namespace SevenDays.Core
     }
 
     /// <summary>
-    /// Vida reutilizable: jugador, zombies, jefes y blancos de práctica. Envuelve CombatantCore (lógica pura probada en EditMode): estados
+    /// Vida reutilizable: jugador, zombies y jefes. Envuelve CombatantCore (lógica pura probada en EditMode): estados
     /// vivo/aturdido/muerto, resistencias y multiplicadores por zona.
     /// </summary>
     public class Health : MonoBehaviour, IDamageable

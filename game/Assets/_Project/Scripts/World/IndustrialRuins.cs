@@ -39,7 +39,7 @@ namespace SevenDays.World
         }
 
         /// <summary>
-        /// Zonas ocupadas por el mapa de ruinas (contenedores, coberturas, barriles, farolas, blancos y nave). La vegetación y los
+        /// Zonas ocupadas por el mapa de ruinas (contenedores, coberturas, barriles, farolas y nave). La vegetación y los
         /// props no se colocan encima. Son datos fijos para que también los use el exportador de JSON del editor.
         /// </summary>
         public static System.Collections.Generic.List<SevenDays.Procedural.Zone> Exclusions()
@@ -54,7 +54,7 @@ namespace SevenDays.World
             C(-25f, -11f, 3f);                                                                    // tuberías
             C(-5.5f, -18f, 1.3f); C(5.5f, 0f, 1.3f); C(-5.5f, 14f, 1.3f); C(5.5f, -26f, 1.3f);  // farolas
             C(0f, -14f, 3.5f);                                                                    // aparición del jugador
-            z.Add(SevenDays.Procedural.Zone.Rect(-14f, 8f, 10.5f, 17.5f));                        // blancos de práctica
+            z.Add(SevenDays.Procedural.Zone.Rect(-14f, 8f, 10.5f, 17.5f));                        // (antes: blancos de práctica; se quitaron, la zona sigue libre para no mover la vegetación ya repartida)
             z.Add(SevenDays.Procedural.Zone.Rect(-24f, 19f, 24f, 29f));                           // nave del fondo
             z.Add(HouseIO.FootprintZone(HouseIO.Load()));                                          // casa central
             return z;
