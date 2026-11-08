@@ -73,7 +73,11 @@ namespace SevenDays.Procedural
         public readonly MeshData Data = new MeshData();
         public int TriangleCount => Data.Triangles.Count / 3;
 
-        public void Append(MeshData part, V3 pos, Mat3 rot, AtlasCell cell, float cellMeters, bool exactUv = false)
+        /// <summary>
+        /// Añade una pieza. UV: por defecto en metros (densidad igual en todas las piezas); "exactUv" usa los UV de la pieza tal cual (0..1); "fit" estira los UV de la
+        /// pieza para llenar TODA su celda (una banda de pliegues o una rótula con su textura propia).
+        /// </summary>
+        public void Append(MeshData part, V3 pos, Mat3 rot, AtlasCell cell, float cellMeters, bool exactUv = false, bool fit = false)
         {
             float umin = float.MaxValue, vmin = float.MaxValue, umax = float.MinValue, vmax = float.MinValue;
             foreach (var uv in part.Uvs) { umin = Math.Min(umin, uv.X); vmin = Math.Min(vmin, uv.Y); umax = Math.Max(umax, uv.X); vmax = Math.Max(vmax, uv.Y); }
@@ -87,7 +91,9 @@ namespace SevenDays.Procedural
                 Data.Tangents.Add(rot.Mul(part.Tangents[i]).Normalized);
                 Data.TangentW.Add(part.WOf(i));
                 var uv = part.Uvs[i];
-                Data.Uvs.Add(exactUv ? cell.Map(uv.X, uv.Y) : cell.Map((uv.X - umin) * scale, (uv.Y - vmin) * scale));
+                Data.Uvs.Add(exactUv ? cell.Map(uv.X, uv.Y)
+                    : fit ? cell.Map((uv.X - umin) / Math.Max(1e-5f, umax - umin), (uv.Y - vmin) / Math.Max(1e-5f, vmax - vmin))
+                    : cell.Map((uv.X - umin) * scale, (uv.Y - vmin) * scale));
             }
             foreach (int t in part.Triangles) Data.Triangles.Add(b + t);
         }
@@ -112,8 +118,79 @@ namespace SevenDays.Procedural
         /// Torno a lo largo del eje Y local de la pieza: "profile" = pares (y, radio) de abajo arriba; "depth" estira Z (secciones ovaladas); tapas opcionales.
         /// UV: u = metros alrededor (la costura queda en -Z, detrás), v = metros a lo largo.
         /// </summary>
-        public void Lathe(V3 center, V3 euler, float[] profile, int sides, float depth, bool capBottom, bool capTop, AtlasCell cell, float cellMeters)
-            => Append(LatheData(profile, sides, depth, capBottom, capTop), center, Mat3.Euler(euler), cell, cellMeters);
+        public void Lathe(V3 center, V3 euler, float[] profile, int sides, float depth, bool capBottom, bool capTop, AtlasCell cell, float cellMeters, bool fit = false)
+            => Append(LatheData(profile, sides, depth, capBottom, capTop), center, Mat3.Euler(euler), cell, cellMeters, false, fit);
+
+        /// <summary>
+        /// Loft de anillos elípticos a lo largo de Y: "rings" = grupos de 5 (y, radio X, radio Z, desplazamiento X, desplazamiento Z) de abajo arriba. Con el centro de
+        /// cada anillo desplazado salen bultos asimétricos (bíceps y pectoral hacia delante, gemelo y glúteo hacia atrás, cuádriceps) que un torno no da.
+        /// </summary>
+        public void Loft(V3 center, V3 euler, float[] rings, int sides, bool capBottom, bool capTop, AtlasCell cell, float cellMeters, bool fit = false)
+            => Append(LoftData(rings, sides, capBottom, capTop), center, Mat3.Euler(euler), cell, cellMeters, false, fit);
+
+        public const int LoftStride = 5;
+
+        public static MeshData LoftData(float[] rings, int sides, bool capBottom, bool capTop)
+        {
+            var m = new MeshData();
+            int n = rings.Length / LoftStride, row = sides + 1;
+            float circ = 0f;
+            for (int r = 0; r < n; r++) circ += (float)(2.0 * Math.PI * 0.5 * (rings[r * LoftStride + 1] + rings[r * LoftStride + 2])) / n;
+            float along = 0f;
+            for (int r = 0; r < n; r++)
+            {
+                int o = r * LoftStride;
+                if (r > 0) along += (float)Math.Sqrt(Sq(rings[o] - rings[o - LoftStride]) + Sq(rings[o + 1] - rings[o + 1 - LoftStride]));
+                for (int s = 0; s <= sides; s++)
+                {
+                    double a = Math.PI + s * 2.0 * Math.PI / sides;   // la costura queda detrás (-Z), como en los tornos
+                    m.Positions.Add(new V3(rings[o + 3] + (float)Math.Sin(a) * rings[o + 1], rings[o], rings[o + 4] + (float)Math.Cos(a) * rings[o + 2]));
+                    m.Uvs.Add(new V2(s / (float)sides * circ, along));
+                }
+            }
+            for (int r = 0; r < n; r++)
+                for (int s = 0; s <= sides; s++)
+                {
+                    int i = r * row + s;
+                    int sp = r * row + (s + 1) % sides + (s + 1 >= sides ? 0 : 0), sm = r * row + (s - 1 + sides) % sides;
+                    if (s == sides) { sp = r * row + 1; sm = r * row + sides - 1; }
+                    int rp = Math.Min(n - 1, r + 1), rm = Math.Max(0, r - 1);
+                    V3 dRing = m.Positions[sp] - m.Positions[sm];
+                    V3 dAlong = m.Positions[rp * row + s] - m.Positions[rm * row + s];
+                    V3 nrm = V3.Cross(dAlong, dRing).Normalized;
+                    V3 center = new V3(rings[r * LoftStride + 3], rings[r * LoftStride], rings[r * LoftStride + 4]);
+                    if (V3.Dot(nrm, m.Positions[i] - center) < 0f) nrm = -nrm;
+                    if (nrm.Length < 0.5f) nrm = (m.Positions[i] - center).Normalized;
+                    m.Normals.Add(nrm);
+                    m.Tangents.Add(dRing.Length > 1e-9f ? dRing.Normalized : new V3(1f, 0f, 0f));
+                }
+            for (int r = 0; r < n - 1; r++)
+                for (int s = 0; s < sides; s++)
+                {
+                    int a0 = r * row + s, a1 = a0 + 1, b0 = a0 + row, b1 = b0 + 1;
+                    Tri(m, a0, b0, a1, Outward(m, a0, a1, b0));
+                    Tri(m, a1, b0, b1, Outward(m, a1, b0, b1));
+                }
+            if (capBottom) LoftCap(m, 0, sides, new V3(0f, -1f, 0f), circ);
+            if (capTop) LoftCap(m, (n - 1) * row, sides, new V3(0f, 1f, 0f), circ);
+            return m;
+        }
+
+        private static void LoftCap(MeshData m, int ringStart, int sides, V3 normal, float circ)
+        {
+            V3 c = new V3(0f, 0f, 0f);
+            for (int s = 0; s < sides; s++) c = c + m.Positions[ringStart + s];
+            c = c * (1f / sides);
+            int center = m.Positions.Count;
+            m.Positions.Add(c); m.Normals.Add(normal); m.Tangents.Add(new V3(1f, 0f, 0f)); m.Uvs.Add(new V2(circ * 0.5f, circ * 0.5f));
+            int first = m.Positions.Count;
+            for (int s = 0; s <= sides; s++)
+            {
+                V3 p = m.Positions[ringStart + s];
+                m.Positions.Add(p); m.Normals.Add(normal); m.Tangents.Add(new V3(1f, 0f, 0f)); m.Uvs.Add(new V2(circ * 0.5f + (p.X - c.X), circ * 0.5f + (p.Z - c.Z)));
+            }
+            for (int s = 0; s < sides; s++) Tri(m, center, first + s, first + s + 1, normal);
+        }
 
         /// <summary>Cilindro (o cono si r1 != r0) a lo largo del eje Y local, centrado en "center".</summary>
         public void Cylinder(V3 center, V3 euler, float r0, float r1, float length, int sides, AtlasCell cell, float cellMeters, bool caps = true)
