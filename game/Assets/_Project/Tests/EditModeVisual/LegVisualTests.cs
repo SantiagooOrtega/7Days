@@ -189,7 +189,7 @@ namespace SevenDays.Tests.Visual
             Transform toes = Bone(rig, rear == 1 ? BoneId.RightToes : BoneId.LeftToes);
             float toeLow = float.MaxValue;
             foreach (var mf in toes.GetComponentsInChildren<MeshFilter>()) foreach (var v in mf.sharedMesh.vertices) toeLow = Mathf.Min(toeLow, mf.transform.TransformPoint(v).y);
-            Assert.LessOrEqual(toeLow, 0.015f, "la punta del pie trasero apoyada");
+            Assert.LessOrEqual(toeLow, 0.0155f, "la punta del pie trasero apoyada (la suela deja 1.5 cm)");
             Assert.That(TorsoLean(rig), Is.InRange(25f, 35f), "torso adelante");
         }
 

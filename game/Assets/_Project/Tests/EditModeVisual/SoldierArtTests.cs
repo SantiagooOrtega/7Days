@@ -50,6 +50,20 @@ namespace SevenDays.Tests.Visual
         }
 
         [Test]
+        public void ProportionSettingsAsset_FromTheSlimVersion_MigratesToTheStrongBuild()
+        {
+            var load = T("SevenDays.Animation.ProportionSettings").GetMethod("Load");
+            var p = (RigProportions)load.Invoke(null, null);
+            Assert.AreEqual(RigProportions.SoldierBulk, p.bulk, 1e-4f, "el asset del repo guarda la esbelta: pasa a la fuerte al cargarla");
+            Assert.AreEqual(RigProportions.SoldierShoulders, p.shoulderWidth, 1e-4f);
+            Assert.AreEqual(RigProportions.SoldierLimbs, p.limbThickness, 1e-4f);
+            var forVariant = T("SevenDays.Animation.ProportionSettings").GetMethod("For");
+            float calavera = ((RigProportions)forVariant.Invoke(null, new object[] { CharacterVariants.Defaults().Find(x => x.id == "calavera") })).bulk;
+            float medico = ((RigProportions)forVariant.Invoke(null, new object[] { CharacterVariants.Defaults().Find(x => x.id == "medico") })).bulk;
+            Assert.Greater(calavera, medico, "la Calavera es la más corpulenta");
+        }
+
+        [Test]
         public void Textures_AreGenerated_Compressed_AndReported()
         {
             var art = T("SevenDays.Animation.CharacterArt");

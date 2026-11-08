@@ -100,8 +100,8 @@ namespace SevenDays.Tests.Visual
             SetStep(sc, "Hip"); Run(sc, 0.8f);
             SetStep(sc, "Reload");
             int frames = Mathf.CeilToInt((w.reloadTime * 2.2f + 0.5f) * 60f);
-            // en tránsito el dedo (1.9 cm de grueso) puede rozar 2 cm; atravesar el arma serían varios centímetros
-            for (int i = 0; i < frames; i++) { Tick(sc, 1f / 60f); if (i % 2 == 0) AssertGrip(sc, id + " recarga frame " + i, false, 0.02f); }
+            // en tránsito (mano a 2.6 m/s, 1-2 frames) un dedo de 1.9 cm puede rozar una arista hasta 2.5 cm; atravesar el arma serían varios centímetros más
+            for (int i = 0; i < frames; i++) { Tick(sc, 1f / 60f); if (i % 2 == 0) AssertGrip(sc, id + " recarga frame " + i, false, 0.025f); }
             Run(sc, 0.6f);
             AssertGrip(sc, id + " tras la recarga");
         }
@@ -181,8 +181,9 @@ namespace SevenDays.Tests.Visual
                     if (mf.transform.parent != Bone(sc, b)) continue;
                     foreach (var v in mf.sharedMesh.vertices) { Vector3 p = rig.transform.InverseTransformPoint(mf.transform.TransformPoint(v)); minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x); minZ = Mathf.Min(minZ, p.z); maxZ = Mathf.Max(maxZ, p.z); }
                 }
-            Assert.LessOrEqual(maxX - minX, 0.42f, "torso ancho: debe ser atlético, no corpulento");
-            Assert.LessOrEqual(maxZ - minZ, 0.3f, "chaleco grueso: debe ser ligero");
+            Debug.Log("[Complexión] torso (pecho y chaleco): ancho " + ((maxX - minX) * 100f).ToString("0") + " cm, fondo " + ((maxZ - minZ) * 100f).ToString("0") + " cm");
+            Assert.That(maxX - minX, Is.InRange(0.36f, 0.5f), "torso: atlético y fuerte, ni esbelto ni cuadrado");
+            Assert.That(maxZ - minZ, Is.InRange(0.26f, 0.36f), "chaleco: ligero, sin abultar");
         }
 
         /// <summary>F7 (prueba de humo): arranca el ciclo, recorre TODOS los tramos (piernas, cada arma por pasos, complexión) avanzando el soldado y colocando la cámara.</summary>
