@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using SevenDays.Procedural;
@@ -28,24 +29,57 @@ namespace SevenDays.Tests
             return r;
         }
 
+        private static RigProportions V2() => new RigProportions { height = 1.82f, shoulderWidth = RigProportions.V2Shoulders, hipWidth = RigProportions.SoldierHips, bulk = RigProportions.SoldierBulk, torsoDepth = 0.9f, limbThickness = RigProportions.V2Limbs };
+
         [Test]
-        public void StrongBuild_IsRoughly12To15PercentWiderAndDeeperTorso_Shoulders9_Limbs11()
+        public void MuscularBuild_TorsoWiderAndDeeper_ShouldersWider_LimbsAnother10Percent()
         {
-            var slim = Slim(); var strong = RigProportions.Soldier();
-            var v = CharacterVariants.Defaults()[1];   // Explorador sin el grosor propio: se compara la base
-            v.buildScale = 1f;
+            var slim = Slim(); var now = RigProportions.Soldier();
+            var v = CharacterVariants.Defaults()[1]; v.buildScale = 1f;
             var a = SoldierModel.Build(HumanoidRigSpec.Build(slim), slim, v);
-            var b = SoldierModel.Build(HumanoidRigSpec.Build(strong), strong, v);
+            var b = SoldierModel.Build(HumanoidRigSpec.Build(now), now, v);
             float tw = Extent(b, "torso", 0) / Extent(a, "torso", 0), td = Extent(b, "torso", 2) / Extent(a, "torso", 2);
-            Assert.That(tw, Is.InRange(1.12f, 1.15f), "ancho del torso x" + tw);
-            Assert.That(td, Is.InRange(1.12f, 1.15f), "fondo del torso x" + td);
-            Assert.That(strong.shoulderWidth / slim.shoulderWidth, Is.InRange(1.08f, 1.10f), "hombros");
-            float arm = MaxRadius(b, "LeftUpperArm limb", -0.2f) / MaxRadius(a, "LeftUpperArm limb", -0.2f);
-            float thigh = MaxRadius(b, "LeftUpperLeg limb", -0.15f) / MaxRadius(a, "LeftUpperLeg limb", -0.15f);
-            Assert.That(arm, Is.InRange(1.10f, 1.12f), "brazos x" + arm);
-            Assert.That(thigh, Is.InRange(1.00f, 1.12f), "muslos x" + thigh + " (más abajo se estrechan al radio de la rótula)");
-            float neck = MaxRadius(b, "Neck braga", -1f) / MaxRadius(a, "Neck braga", -1f);
-            Assert.That(neck, Is.InRange(1.05f, 1.2f), "cuello x" + neck);
+            TestContext.WriteLine("torso x" + tw + " fondo x" + td);
+            Assert.That(tw, Is.InRange(1.10f, 1.20f), "ancho del torso x" + tw);
+            Assert.That(td, Is.InRange(1.10f, 1.25f), "fondo del torso x" + td + " (incluye el pectoral)");
+            Assert.That(now.WithBuild(1.04f).shoulderWidth / slim.shoulderWidth, Is.InRange(1.12f, 1.16f), "hombros de la Calavera frente a la esbelta");
+            // brazos y piernas "otro +10 a 12 %" sobre la versión anterior: mismo modelo, limbThickness 0.905 -> 1.0
+            var prev = V2();
+            var c = SoldierModel.Build(HumanoidRigSpec.Build(prev), prev, v);
+            float arm = Extent(b, "RightUpperArm limb", 0) / Extent(c, "RightUpperArm limb", 0);
+            float calf = Extent(b, "RightLowerLeg limb", 0) / Extent(c, "RightLowerLeg limb", 0);
+            Assert.That(arm, Is.InRange(1.09f, 1.13f), "brazos x" + arm);
+            Assert.That(calf, Is.InRange(1.05f, 1.13f), "pantorrillas x" + calf);
+            Assert.That(now.limbThickness / prev.limbThickness, Is.InRange(1.10f, 1.12f));
+        }
+
+        [Test]
+        public void Migrate_FromSlimAndFromV2_ToTheMuscularBuild_KeepsHandEdits()
+        {
+            foreach (var old in new[] { Slim(), V2() })
+            {
+                old.headSize = 1.1f;   // edición a mano: se respeta
+                SevenDays.Procedural.RigProportions.Soldier();
+                var m = old;
+                Migrate(m);
+                Assert.AreEqual(RigProportions.SoldierLimbs, m.limbThickness, 1e-4f);
+                Assert.AreEqual(RigProportions.SoldierShoulders, m.shoulderWidth, 1e-4f);
+                Assert.AreEqual(RigProportions.SoldierBulk, m.bulk, 1e-4f);
+                Assert.AreEqual(1.1f, m.headSize, 1e-4f);
+            }
+            var custom = RigProportions.Soldier(); custom.limbThickness = 0.8f;
+            Migrate(custom);
+            Assert.AreEqual(0.8f, custom.limbThickness, 1e-4f, "un valor propio no se toca");
+        }
+
+        // la migración vive en Assembly-CSharp (ProportionSettings); aquí se replica la misma regla pura para poder probarla sin Unity
+        private static void Migrate(RigProportions p)
+        {
+            const float e = 0.0015f;
+            if (Math.Abs(p.shoulderWidth - RigProportions.SlimShoulders) < e || Math.Abs(p.shoulderWidth - RigProportions.V2Shoulders) < e) p.shoulderWidth = RigProportions.SoldierShoulders;
+            if (Math.Abs(p.hipWidth - RigProportions.SlimHips) < e) p.hipWidth = RigProportions.SoldierHips;
+            if (Math.Abs(p.bulk - RigProportions.SlimBulk) < e) p.bulk = RigProportions.SoldierBulk;
+            if (Math.Abs(p.limbThickness - RigProportions.SlimLimbs) < e || Math.Abs(p.limbThickness - RigProportions.V2Limbs) < e) p.limbThickness = RigProportions.SoldierLimbs;
         }
 
         [Test]

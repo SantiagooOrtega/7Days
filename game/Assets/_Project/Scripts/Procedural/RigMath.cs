@@ -224,20 +224,25 @@ namespace SevenDays.Procedural
         }
 
         /// <summary>
-        /// Soldado atlético y fuerte (ni esbelto ni cuadrado): misma altura (cámara, mira y pies no cambian). Respecto a la versión esbelta: torso +13 % de ancho y
-        /// de fondo (bulk), hombros +9 %, cadera +5 %, brazos y piernas +11 % y cuello +13 %.
+        /// Soldado atlético y musculoso (ni esbelto ni cuadrado): misma altura (cámara, mira y pies no cambian). Respecto a la versión esbelta: torso +13 % de ancho y
+        /// de fondo (bulk), hombros +14 %, cadera +5 %, brazos y piernas +21 % (+11 % y otro +10.5 %: formas anatómicas con deltoides, bíceps, cuádriceps y gemelo) y cuello +13 %.
         /// </summary>
         public static RigProportions Soldier() => new RigProportions { height = 1.82f, shoulderWidth = SoldierShoulders, hipWidth = SoldierHips, bulk = SoldierBulk, torsoDepth = 0.9f, limbThickness = SoldierLimbs };
 
-        public const float SoldierShoulders = 0.48f, SoldierHips = 0.285f, SoldierBulk = 1.13f, SoldierLimbs = 0.905f;
+        public const float SoldierShoulders = 0.48f, SoldierHips = 0.285f, SoldierBulk = 1.13f, SoldierLimbs = 1.0f;   // base; la Calavera (x1.04) llega a hombros 0.50
+        /// <summary>Valores de la versión 2 (fuerte, antes del cuerpo musculoso).</summary>
+        public const float V2Shoulders = 0.48f, V2Limbs = 0.905f;
         /// <summary>Valores de la versión esbelta (los que guardan los assets anteriores a la versión 2 de ProportionSettings).</summary>
         public const float SlimShoulders = 0.44f, SlimHips = 0.27f, SlimBulk = 1f, SlimLimbs = 0.92f;
 
-        /// <summary>Copia con el grosor de la variante aplicado (la Calavera es algo más corpulenta; el Explorador, algo más ligero).</summary>
+        /// <summary>
+        /// Copia con el grosor de la variante aplicado (la Calavera es algo más corpulenta; el Explorador, algo más ligero). El ancho de hombros y de cadera sigue al grosor:
+        /// si el torso se estrecha, los brazos se acercan y no queda hueco entre ambos.
+        /// </summary>
         public RigProportions WithBuild(float bulkScale)
         {
             var c = (RigProportions)MemberwiseClone();
-            c.bulk *= bulkScale;
+            c.bulk *= bulkScale; c.shoulderWidth *= bulkScale; c.hipWidth *= bulkScale;
             c.Validate();
             return c;
         }
