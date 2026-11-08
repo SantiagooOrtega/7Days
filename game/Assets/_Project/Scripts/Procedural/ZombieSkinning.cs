@@ -28,6 +28,8 @@ namespace SevenDays.Procedural
         public SkinnedPart Skin = new SkinnedPart(), Cloth = new SkinnedPart();
         public int BoneCount;
         public V3[] RestBonePositions;
+        /// <summary>Hueso del esqueleto que mueve a cada hueso (los 22 propios y los extra, que siguen a su padre).</summary>
+        public int[] BoneToSkeleton;
 
         public int Triangles => (Skin.Mesh.Triangles.Count + Cloth.Mesh.Triangles.Count) / 3;
     }
@@ -99,6 +101,9 @@ namespace SevenDays.Procedural
         {
             var z = new ZombieSkinned { BoneCount = HumanoidRigSpec.BoneCount + r.Extras.Count };
             z.RestBonePositions = new V3[z.BoneCount];
+            z.BoneToSkeleton = new int[z.BoneCount];
+            for (int i = 0; i < HumanoidRigSpec.BoneCount; i++) z.BoneToSkeleton[i] = i;
+            for (int e = 0; e < r.Extras.Count; e++) z.BoneToSkeleton[HumanoidRigSpec.BoneCount + e] = (int)r.Extras[e].Parent;
             for (int i = 0; i < HumanoidRigSpec.BoneCount; i++) z.RestBonePositions[i] = HumanoidRigSpec.RestPosition(r.Spec, (BoneId)i);
             for (int e = 0; e < r.Extras.Count; e++) z.RestBonePositions[HumanoidRigSpec.BoneCount + e] = HumanoidRigSpec.RestPosition(r.Spec, r.Extras[e].Parent) + r.Extras[e].LocalPos;
 
