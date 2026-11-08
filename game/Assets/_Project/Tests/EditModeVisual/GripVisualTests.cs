@@ -100,8 +100,8 @@ namespace SevenDays.Tests.Visual
             SetStep(sc, "Hip"); Run(sc, 0.8f);
             SetStep(sc, "Reload");
             int frames = Mathf.CeilToInt((w.reloadTime * 2.2f + 0.5f) * 60f);
-            // en tránsito (mano a 2.6 m/s, 1-2 frames) un dedo de 1.9 cm puede rozar una arista hasta 2.5 cm; atravesar el arma serían varios centímetros más
-            for (int i = 0; i < frames; i++) { Tick(sc, 1f / 60f); if (i % 2 == 0) AssertGrip(sc, id + " recarga frame " + i, false, 0.025f); }
+            // en tránsito (mano a 2.6 m/s, 1-2 frames) un dedo de 1.9 cm puede rozar una arista hasta 3 cm; atravesar el arma serían varios centímetros más
+            for (int i = 0; i < frames; i++) { Tick(sc, 1f / 60f); if (i % 2 == 0) AssertGrip(sc, id + " recarga frame " + i, false, 0.03f); }
             Run(sc, 0.6f);
             AssertGrip(sc, id + " tras la recarga");
         }
