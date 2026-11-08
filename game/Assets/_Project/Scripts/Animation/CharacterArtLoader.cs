@@ -15,6 +15,6 @@ namespace SevenDays.Animation
             _instance = go.AddComponent<CharacterArtLoader>();
         }
 
-        private void Update() => CharacterArt.Poll();
+        private void Update() { CharacterArt.Poll(); ZombieArt.Poll(); }
     }
 }

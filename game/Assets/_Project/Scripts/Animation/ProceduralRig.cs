@@ -29,6 +29,11 @@ namespace SevenDays.Animation
         public Vector3 RightHandGrip, LeftHandGrip;   // punto de agarre del arma que sujeta cada mano (mundo): para medir y depurar
         public float WeaponWeight;          // 0..1: armas pesadas bajan un poco el hombro y llevan más inercia
         public Transform HandSpace;         // las manos se suavizan en este espacio (el arma): al moverse el arma no se quedan atrás
+        // extras aditivos para personajes no jugables (zombis); con el valor por defecto (0) el rig se comporta exactamente igual que antes
+        public float PelvisRoll;            // grados: la cadera se inclina de lado (cojera)
+        public Vector3 PelvisOffset;        // metros, espacio del cuerpo: la cadera se adelanta o se hunde (embestida, pierna que cede, emerger)
+        public Vector3 TorsoExtra;          // grados (pitch, yaw, roll) repartidos entre columna, pecho y pecho alto
+        public Vector3 HeadExtra;           // grados (pitch, yaw, roll) sumados a la cabeza y el cuello
     }
 
     /// <summary>Suavizados de cada capa (segundos). Se pueden tocar en vivo desde el panel F6.</summary>
@@ -554,8 +559,8 @@ namespace SevenDays.Animation
 
             var hips = Bone(BoneId.Hips);
             float centerZ = Mathf.Clamp(feetCenter.z, -0.15f, 0.15f) * 0.5f * idle * (1f - kneel);
-            hips.localPosition = new Vector3(sway, h, Mathf.Lerp(CrouchPose.PelvisBack(crouch), 0.02f, kneel) + centerZ);
-            hips.localRotation = Quaternion.Euler(tilt, hipYaw, -Mathf.Sin(phase) * 2f * moving);
+            hips.localPosition = new Vector3(sway, h, Mathf.Lerp(CrouchPose.PelvisBack(crouch), 0.02f, kneel) + centerZ) + I.PelvisOffset;
+            hips.localRotation = Quaternion.Euler(tilt, hipYaw, -Mathf.Sin(phase) * 2f * moving + I.PelvisRoll);
         }
 
         private void SolveLegs()
@@ -639,9 +644,10 @@ namespace SevenDays.Animation
             float deathBend = dead * 35f;
 
             float pitch = lean + aimPitch + breath + deathBend;
-            Bone(BoneId.Spine).localRotation = Quaternion.Euler(pitch * spineShare + hit.X * 0.4f, twist * 0.2f + counter * 0.3f, side * 0.35f + hit.Z * 0.4f);
-            Bone(BoneId.Chest).localRotation = Quaternion.Euler(pitch * 0.35f + hit.X * 0.35f, twist * 0.3f + counter * 0.35f + hit.Y * 0.5f, side * 0.35f + hit.Z * 0.35f);
-            Bone(BoneId.UpperChest).localRotation = Quaternion.Euler(pitch * upperShare - breath * 0.5f + hit.X * 0.25f, twist * 0.5f + counter * 0.35f + hit.Y * 0.5f, side * 0.3f + hit.Z * 0.25f);
+            Vector3 tx = I.TorsoExtra;
+            Bone(BoneId.Spine).localRotation = Quaternion.Euler(pitch * spineShare + hit.X * 0.4f + tx.x * 0.3f, twist * 0.2f + counter * 0.3f + tx.y * 0.3f, side * 0.35f + hit.Z * 0.4f + tx.z * 0.3f);
+            Bone(BoneId.Chest).localRotation = Quaternion.Euler(pitch * 0.35f + hit.X * 0.35f + tx.x * 0.35f, twist * 0.3f + counter * 0.35f + hit.Y * 0.5f + tx.y * 0.35f, side * 0.35f + hit.Z * 0.35f + tx.z * 0.35f);
+            Bone(BoneId.UpperChest).localRotation = Quaternion.Euler(pitch * upperShare - breath * 0.5f + hit.X * 0.25f + tx.x * 0.35f, twist * 0.5f + counter * 0.35f + hit.Y * 0.5f + tx.y * 0.35f, side * 0.3f + hit.Z * 0.25f + tx.z * 0.35f);
 
             // cabeza: se adelanta (suavizado más rápido) y mira hacia la mira, con límites
             var upper = Bone(BoneId.UpperChest);
@@ -653,8 +659,9 @@ namespace SevenDays.Animation
             float hp = _headPitch.Step(Mathf.Lerp(pitchH, 40f, dead), Smoothing.head, dt);
             // mejilla a la culata: la cabeza se inclina hacia el arma y un poco adelante (la mira queda alineada con el ojo)
             float cheek = _cheek.Step(I.CheekWeld, 0.1f, dt);
-            Bone(BoneId.Neck).localRotation = Quaternion.Euler(hp * 0.4f + cheek * 6f, hy * 0.4f, cheek * 5f);
-            Bone(BoneId.Head).localRotation = Quaternion.Euler(hp * 0.6f + cheek * 4f, hy * 0.6f, dead * 25f + cheek * 12f);
+            Vector3 hx = I.HeadExtra;
+            Bone(BoneId.Neck).localRotation = Quaternion.Euler(hp * 0.4f + cheek * 6f + hx.x * 0.4f, hy * 0.4f + hx.y * 0.4f, cheek * 5f + hx.z * 0.4f);
+            Bone(BoneId.Head).localRotation = Quaternion.Euler(hp * 0.6f + cheek * 4f + hx.x * 0.6f, hy * 0.6f + hx.y * 0.6f, dead * 25f + cheek * 12f + hx.z * 0.6f);
         }
 
         // ------------------------------------------------------------------ capa 3: brazos y arma (IK)
