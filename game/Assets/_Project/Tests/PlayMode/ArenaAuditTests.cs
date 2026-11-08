@@ -53,7 +53,7 @@ namespace SevenDays.Tests.PlayMode
             Assert.AreEqual(1, bar.Active, "el HUD sigue el cambio de arma");
             var rect0 = (RectTransform)vt.GetMethod("SlotRect").Invoke(view, new object[] { 0 });
             var rect1 = (RectTransform)vt.GetMethod("SlotRect").Invoke(view, new object[] { 1 });
-            Assert.Greater(rect1.sizeDelta.x, rect0.sizeDelta.x * 1.4f, "la ranura 2 es la grande");
+            Assert.Greater(rect1.sizeDelta.x, rect0.sizeDelta.x * 1.3f, "la ranura 2 es la grande");
             Debug.Log("[HUD en la arena] munición antes '" + ammo0 + "' y después '" + vt.GetProperty("AmmoText").GetValue(view) + "', nombre '" + vt.GetProperty("NameText").GetValue(view) + "'");
         }
     }

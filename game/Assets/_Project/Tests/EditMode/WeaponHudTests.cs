@@ -107,17 +107,37 @@ namespace SevenDays.Tests
         }
 
         [Test]
-        public void Layout_NeighborsMakeRoom_NoOverlap_AlignedRight()
+        public void Layout_VerticalColumn_NeighborsMakeRoom_NoOverlapEvenMidTransition()
         {
             var bar = new WeaponBarState();
             bar.Set(5, 2, instant: true);
             for (int i = 0; i < 60; i++) bar.Tick(1f / 60f);
             var r = new SlotRect[WeaponBarState.Slots];
             bar.Layout(r);
-            Assert.AreEqual(0f, r[4].Right, "la última, pegada al borde derecho");
-            for (int i = 0; i < 4; i++) Assert.GreaterOrEqual(r[i].Right, r[i + 1].Right + r[i + 1].Width + WeaponBarState.Gap - 0.01f, "sin solaparse");
-            Assert.Greater(r[2].Width, r[1].Width * 1.4f); Assert.Greater(r[2].Height, r[3].Height * 1.4f);
-            Assert.Less(WeaponBarState.TotalWidth(r), 700f, "barra compacta");
+            Assert.AreEqual(0f, r[0].Top, "la 1 arriba del todo");
+            for (int i = 0; i < 4; i++) Assert.GreaterOrEqual(r[i + 1].Top, r[i].Bottom + WeaponBarState.Gap - 0.01f, "sin solaparse: la " + (i + 2) + " empieza debajo de la " + (i + 1));
+            Assert.AreEqual(72f, r[1].Width, 0.5f); Assert.AreEqual(36f, r[1].Height, 0.5f);
+            Assert.AreEqual(100f, r[2].Width, 1f); Assert.AreEqual(50f, r[2].Height, 1f);
+            Assert.Greater(r[2].Width, r[1].Width * 1.3f); Assert.Greater(r[2].Height, r[3].Height * 1.3f);
+            Assert.Greater(r[2].Shift, 10f, "la activa se desplaza a la izquierda"); Assert.AreEqual(0f, r[1].Shift, 0.5f);
+            Assert.AreEqual(WeaponBarState.ColumnHeight, WeaponBarState.TotalHeight(r), 1f, "alto total constante");
+            Assert.Less(WeaponBarState.TotalHeight(r), 240f, "columna compacta");
+        }
+
+        [Test]
+        public void Layout_NeverOverlaps_WhileSwitchingBetweenAnySlots()
+        {
+            var bar = new WeaponBarState(); var r = new SlotRect[WeaponBarState.Slots];
+            bar.Set(5, 0, true);
+            foreach (int target in new[] { 4, 1, 3, 0, 2 })
+            {
+                bar.Set(5, target);
+                for (int f = 0; f < 40; f++)
+                {
+                    bar.Tick(1f / 60f); bar.Layout(r);
+                    for (int i = 0; i < 4; i++) Assert.GreaterOrEqual(r[i + 1].Top, r[i].Bottom + WeaponBarState.Gap - 0.01f, "solape entre " + i + " y " + (i + 1) + " cambiando a " + target);
+                }
+            }
         }
 
         [Test]

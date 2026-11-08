@@ -162,18 +162,21 @@ namespace SevenDays.Procedural
         private static byte ToByte(float v) => (byte)(Math.Max(0f, Math.Min(1f, v)) * 255f + 0.5f);
     }
 
-    /// <summary>Un hueco de la barra de armas ya colocado (coordenadas de referencia 1920x1080 del Canvas; x desde el borde derecho hacia la izquierda, y hacia arriba).</summary>
+    /// <summary>Un hueco de la columna de armas ya colocado (coordenadas de referencia 1920x1080 del Canvas): Top = distancia desde lo alto de la columna hacia abajo; Shift = cuánto se desplaza hacia la izquierda.</summary>
     public struct SlotRect
     {
-        public float Right, Width, Height, Scale, Alpha;   // Right = distancia del borde derecho de la barra al borde derecho de la ranura
-        public float CenterFromRight => Right + Width * 0.5f;
+        public float Top, Width, Height, Scale, Alpha, Shift;
+        public float Bottom => Top + Height;
+        public float CenterY => Top + Height * 0.5f;
     }
 
-    /// <summary>Animación y colocación de la barra compacta de ranuras: la activa crece y se resalta, las demás se quedan pequeñas y semitransparentes.</summary>
+    /// <summary>Animación y colocación de la columna vertical de ranuras: la activa crece (72x36 -> 100x50 a 1080p), se desplaza a la izquierda y se resalta; las demás se quedan pequeñas y semitransparentes.</summary>
     public class WeaponBarState
     {
         public const int Slots = 5;
-        public const float BaseWidth = 104f, BaseHeight = 52f, ActiveScale = 1.55f, Gap = 8f, InactiveAlpha = 0.42f, EmptyAlpha = 0.16f, NameSeconds = 1.5f;
+        public const float BaseWidth = 72f, BaseHeight = 36f, ActiveScale = 1.39f, Gap = 6f, ActiveShift = 18f, InactiveAlpha = 0.42f, EmptyAlpha = 0.16f, NameSeconds = 1.5f;
+        /// <summary>Alto total de la columna con 5 ranuras (siempre hay una activa): 4 pequeñas + 1 grande + 4 separaciones.</summary>
+        public const float ColumnHeight = 4 * BaseHeight + BaseHeight * ActiveScale + 4 * Gap;
 
         public int Active { get; private set; }
         public int Count { get; private set; }
@@ -213,19 +216,19 @@ namespace SevenDays.Procedural
         public float ScaleOf(int i) => 1f + (ActiveScale - 1f) * Clamp01(Highlight[i]);
         public float AlphaOf(int i) => i >= Count ? EmptyAlpha : InactiveAlpha + (1f - InactiveAlpha) * Clamp01(Highlight[i]);
 
-        /// <summary>Coloca las 5 ranuras de derecha a izquierda (la 1 queda a la izquierda). Una ranura que crece empuja a las vecinas: se desplazan suavemente.</summary>
+        /// <summary>Apila las 5 ranuras de arriba abajo (la 1 arriba), alineadas a la derecha. Una ranura que crece empuja a las vecinas: se desplazan suavemente y nunca se solapan.</summary>
         public void Layout(SlotRect[] outRects)
         {
-            float x = 0f;
-            for (int i = Slots - 1; i >= 0; i--)
+            float y = 0f;
+            for (int i = 0; i < Slots; i++)
             {
                 float s = ScaleOf(i);
-                outRects[i] = new SlotRect { Right = x, Width = BaseWidth * s, Height = BaseHeight * s, Scale = s, Alpha = AlphaOf(i) };
-                x += BaseWidth * s + Gap;
+                outRects[i] = new SlotRect { Top = y, Width = BaseWidth * s, Height = BaseHeight * s, Scale = s, Alpha = AlphaOf(i), Shift = ActiveShift * Clamp01(Highlight[i]) };
+                y += BaseHeight * s + Gap;
             }
         }
 
-        public static float TotalWidth(SlotRect[] r) { float m = 0f; foreach (var s in r) m = Math.Max(m, s.Right + s.Width); return m; }
+        public static float TotalHeight(SlotRect[] r) { float m = 0f; foreach (var s in r) m = Math.Max(m, s.Bottom); return m; }
 
         private static float Clamp01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
     }
