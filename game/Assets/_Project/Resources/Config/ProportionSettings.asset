@@ -14,13 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SevenDays.Animation.ProportionSettings
   Settings:
     height: 1.82
-    shoulderWidth: 0.44
-    hipWidth: 0.27
-    bulk: 1
+    shoulderWidth: 0.48
+    hipWidth: 0.285
+    bulk: 1.13
     legRatio: 0.5
     armRatio: 1
     neckRatio: 1
     headSize: 1
     hunch: 0
     torsoDepth: 0.9
-    limbThickness: 0.92
+    limbThickness: 1
+  version: 3

@@ -28,7 +28,7 @@ namespace SevenDays.Procedural
     public static class CharacterTextures
     {
         // ---- celdas de cada atlas
-        public const int UCamo = 0, UCamoMud = 1, USleeve = 2, UKnit = 3;                       // uniforme: 2x2
+        public const int UCamo = 0, UCamoMud = 1, UFold = 2, UKnit = 3;                         // uniforme: 2x2 (UFold: 4 subceldas, 0 codo, 1 rodilla)
         public const int GVest = 0, GPouch = 1, GWebbing = 2, GVelcro = 3, GGlove = 4, GKnuckle = 5, GBoot = 6, GSole = 7,
                          GLaces = 8, GPad = 9, GMetal = 10, GRadio = 11, GBelt = 12, GHolster = 13, GArmband = 14, GPatch = 15;   // equipo: 4x4
         public const int HCover = 0, HHardware = 1, HSkull = 2, HHeadwear = 3;                 // casco: 2x2 (las celdas 1 y 3 se dividen en 2x2)
@@ -119,6 +119,7 @@ namespace SevenDays.Procedural
                 o.Height = 0.35f * rib + 0.1f * knit; o.Smooth = 0.12f; o.Ao = 0.85f + 0.15f * rib;
                 return;
             }
+            if (cell == UFold) { Fold(u, v, p, seed, ref o); return; }
             Rgb camo = Camo(u, v, p, seed);
             // trama de la tela (sarga): diagonales finas
             float twill = (float)Math.Sin((u * 1.0f + v) * 260f * Math.PI) * 0.5f + 0.5f;
@@ -141,18 +142,40 @@ namespace SevenDays.Procedural
                 c = Rgb.Lerp(c, new Rgb(0.38f, 0.35f, 0.29f), knee * 0.5f);
                 o.Smooth = 0.18f + mud * 0.25f;
             }
-            else if (cell == USleeve)
-            {
-                // codos y puños gastados
-                float wear = Smooth(0.6f, 0.9f, Fbm(u, v, 10, 3, seed + 5)) * (Smooth(0.75f, 1f, v) + Smooth(0.2f, 0f, v));
-                c = Rgb.Lerp(c, c.Scale(1.35f), Math.Min(1f, wear) * 0.5f);
-                o.Smooth = 0.2f;
-            }
             else o.Smooth = 0.2f;
             // sangre seca, leve y rara
             float blood = Smooth(0.82f, 0.9f, Fbm(u + 0.3f, v, 5, 4, seed + 41));
             c = Rgb.Lerp(c, new Rgb(0.18f, 0.06f, 0.04f), blood * 0.55f);
             o.Color = c; o.Height = 0.12f * twill + 0.55f * wrinkle - 0.4f * stitch; o.Ao = ao;
+        }
+
+        /// <summary>
+        /// Pliegues de la tela en codos (subcelda 0) y rodillas (subcelda 1): el camuflaje con crestas horizontales onduladas que se concentran en el pliegue interior de la
+        /// articulación (la espalda de la pieza, -Z: u cerca de 0 y 1) y se alisan en la punta (codo, rótula), con surcos oscuros y relieve fuerte en el mapa de normales.
+        /// Coordenadas de la banda: u alrededor (0.5 = la punta), v a lo largo (0.5 = la articulación).
+        /// </summary>
+        private static void Fold(float u, float v, CharacterVariantData p, int seed, ref TexSample o)
+        {
+            int sub = (u < 0.5f ? 0 : 1) + (v < 0.5f ? 0 : 2);
+            float su = Frac(u * 2f), sv = Frac(v * 2f);
+            int creases = sub == 1 ? 7 : 6; float amp = sub == 1 ? 1.35f : 1f;
+            Rgb camo = Camo(su, sv, p, seed + sub * 7);
+            float du = Math.Min(su, 1f - su);                 // 0 en el pliegue interior, 0.5 en la punta
+            float crook = Smooth(0.42f, 0.08f, du);
+            float ridge = 0f;
+            for (int k = 0; k < creases; k++)
+            {
+                float c = (k + 0.5f) / creases + (TileableNoise.Hash01(k, sub, seed) - 0.5f) * 0.06f;
+                float curve = c + 0.035f * (float)Math.Sin((su * 2f + k * 0.37f) * Math.PI * 2.0) + (0.5f - du) * 0.05f;   // onduladas y arqueadas hacia el pliegue
+                ridge = Math.Max(ridge, Smooth(0.055f, 0.012f, Math.Abs(sv - curve)));
+            }
+            float strength = 0.3f + 0.7f * crook;
+            float groove = (1f - ridge) * strength;
+            Rgb c2 = camo.Scale(0.92f + 0.14f * ridge * strength);
+            c2 = Rgb.Lerp(c2, c2.Scale(0.62f), groove * 0.55f);   // surcos más oscuros
+            float dust = Fbm(su, sv, 6, 3, seed + 9);
+            c2 = Rgb.Lerp(c2, new Rgb(0.42f, 0.39f, 0.33f), Smooth(0.55f, 0.85f, dust) * 0.2f);
+            o.Color = c2; o.Height = ridge * strength * 2.6f * amp; o.Smooth = 0.2f; o.Ao = 1f - 0.3f * groove;
         }
 
         /// <summary>Woodland oscuro: base, manchas medianas, manchas oscuras y trazos claros, con bordes deformados.</summary>
