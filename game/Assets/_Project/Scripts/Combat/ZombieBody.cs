@@ -227,14 +227,21 @@ namespace SevenDays.Combat
             ApplyDecalVisibility();
         }
 
+        private bool _lookReady;
+        private float _nextLookCheck;
+
         private void ApplyLook()
         {
             var v = Variant; var ind = Individual;
+            // mientras las texturas se generan en segundo plano, el tinte lleva el color base del tipo (si no, saldría blanco)
+            _lookReady = ZombieArt.IsReady(_skinMat) && ZombieArt.IsReady(_clothMat);
             Color skin = new Color(v.skinTone[0], v.skinTone[1], v.skinTone[2]) * (1f + ind.SkinShift);
+            if (!_lookReady) skin *= new Color(Anatomy.SkinBase[0], Anatomy.SkinBase[1], Anatomy.SkinBase[2]);
             skin.a = 1f;
             _skinBlock.SetColor(BaseColorId, skin);
             ApplyEmission(0f);
             Color cloth = new Color(v.clothTone[0], v.clothTone[1], v.clothTone[2]) * (1f - 0.35f * ind.Grime);
+            if (!_lookReady) cloth *= new Color(0.4f, 0.38f, 0.34f);
             cloth.a = 1f;
             _clothBlock.SetColor(BaseColorId, cloth);
             Renderer.SetPropertyBlock(_skinBlock, 0); Renderer.SetPropertyBlock(_clothBlock, 1);
@@ -326,9 +333,23 @@ namespace SevenDays.Combat
         }
 
         // ================================================================== cada frame
+        /// <summary>CPU (ms) que gastaron todos los cuerpos de zombi en Animate durante el último frame completo (panel F6).</summary>
+        public static float AnimateMsLastFrame { get; private set; }
+        private static float _accumMs; private static int _accumFrame = -1;
+
         public void Animate(in ZombieAnimState s)
         {
+            long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+            AnimateInner(s);
+            float ms = (System.Diagnostics.Stopwatch.GetTimestamp() - t0) * 1000f / System.Diagnostics.Stopwatch.Frequency;
+            if (_accumFrame != Time.frameCount) { AnimateMsLastFrame = _accumMs; _accumMs = 0f; _accumFrame = Time.frameCount; }
+            _accumMs += ms;
+        }
+
+        private void AnimateInner(in ZombieAnimState s)
+        {
             _state = s;
+            if (!_lookReady && Time.unscaledTime >= _nextLookCheck) { _nextLookCheck = Time.unscaledTime + 0.5f; if (ZombieArt.IsReady(_skinMat) && ZombieArt.IsReady(_clothMat)) ApplyLook(); }
             if (_camFrame != Time.frameCount) { _camFrame = Time.frameCount; _cam = Camera.main; }
             float dist = s.DistanceToCamera;
             UpdateLod(dist);

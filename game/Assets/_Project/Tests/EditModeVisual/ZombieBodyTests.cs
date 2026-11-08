@@ -42,7 +42,7 @@ namespace SevenDays.Tests.Visual
             return new Body { Obj = obj, Root = root, BodyType = bt };
         }
 
-        private static void ZombieArtWait() { T("SevenDays.Animation.ZombieArt").GetMethod("WaitAll").Invoke(null, null); }
+        private static void ZombieArtWait() { T("SevenDays.Animation.ZombieArt").GetMethod("PrewarmAll").Invoke(null, null); T("SevenDays.Animation.ZombieArt").GetMethod("WaitAll").Invoke(null, null); }
 
         private object State(float dt, float moveAmount, bool chasing, bool stunned, float attackT, string kind, float dist = 5f)
         {

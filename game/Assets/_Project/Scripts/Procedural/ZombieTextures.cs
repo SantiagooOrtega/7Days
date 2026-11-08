@@ -337,7 +337,7 @@ namespace SevenDays.Procedural
             float lu = u * 4f - cx, lv = v * 4f - cy;
             int seed = id * 31 + 2000;
             float grime = Fbm(lu, lv, 5, 4, seed);
-            float weave = (float)(Math.Sin(lu * 180f * Math.PI) * Math.Sin(lv * 180f * Math.PI)) * 0.5f + 0.5f;
+            float weave = 0.5f + 0.5f * Fbm(lu, lv, 24, 2, seed + 13);   // trama como ruido fino (sin patrón regular: no hace muaré)
             Rgb c; o.Smooth = 0.2f; o.Alpha = 1f; o.Ao = 1f;
             switch (id)
             {
@@ -438,8 +438,8 @@ namespace SevenDays.Procedural
             // suciedad, barro hacia el borde inferior (v pequeña = dobladillo), quemaduras y sangre
             Rgb col = o.Color;
             col = Rgb.Lerp(col, new Rgb(0.2f, 0.17f, 0.12f), Smooth(0.55f, 0.9f, grime) * 0.35f);
-            float mud = Smooth(0.28f, 0.0f, lv + (grime - 0.5f) * 0.2f);
-            col = Rgb.Lerp(col, new Rgb(0.18f, 0.13f, 0.09f), mud * 0.7f);
+            float mud = Smooth(0.6f, 0.9f, Fbm(lu, lv, 3, 4, seed + 12));   // barro a manchas (sin depender del borde de la celda: cada pieza usa su propio v)
+            col = Rgb.Lerp(col, new Rgb(0.18f, 0.13f, 0.09f), mud * 0.35f);
             float burn = Smooth(0.72f, 0.88f, Fbm(lu, lv, 4, 3, seed + 9));
             col = Rgb.Lerp(col, new Rgb(0.04f, 0.035f, 0.03f), burn * 0.8f);
             float blood = Smooth(0.7f, 0.86f, Fbm(lu + 0.2f, lv, 5, 3, seed + 10));
@@ -449,7 +449,7 @@ namespace SevenDays.Procedural
             if (id != ZombieAtlas.ClMetal && id != ZombieAtlas.ClRubber && id != ZombieAtlas.ClDoor && id != ZombieAtlas.ClLeather && id != ZombieAtlas.ClWebbing)
             {
                 float bias = id == ZombieAtlas.ClRags ? 0.12f : 0f;
-                float holes = Fbm(lu, lv, 4, 3, seed + 11) - 0.32f * Smooth(0.35f, 0f, lv) - bias;
+                float holes = Fbm(lu, lv, 4, 3, seed + 11) - bias;
                 float rim = Smooth(0.78f, 0.84f, holes + 0.05f);
                 o.Alpha = holes > 0.76f ? 0f : 1f;
                 float edge = Smooth(0.7f, 0.76f, holes);

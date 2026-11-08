@@ -72,6 +72,7 @@ namespace SevenDays.Procedural
             private readonly BoneDef[] _spec;
             private readonly float _s, _k, _d, _em, _f, _tw, _hs;
             public readonly ZombieModelResult Result = new ZombieModelResult();
+            private float _uw = 1f, _yWaist, _yTop;
 
             public Builder(ZombieAnatomy a, ZombieVariantData v, int lod)
             {
@@ -81,9 +82,14 @@ namespace SevenDays.Procedural
                 Result.Spec = _spec;
                 _s = a.Size; _k = _pr.bulk; _d = _pr.torsoDepth; _em = a.Emaciation;
                 float kt = _k * _pr.limbThickness;
-                _f = kt * _s / SoldierModel.ReferenceKt * (1f - 0.2f * _em);   // radios de brazos y piernas (las tablas son del soldado)
+                _f = kt * _s / SoldierModel.ReferenceKt * (1f - 0.2f * _em) * 1.12f;   // radios de brazos y piernas (las tablas son del soldado)
                 _tw = 1f - 0.1f * _em;                                          // anchura del torso
                 _hs = _pr.headSize * _s;                                        // tamaño de la cabeza
+                // el pecho se ensancha hasta tocar los brazos (si no, queda un hueco entre el hombro y el torso en los cuerpos flacos)
+                float armR = 0.062f * _f, baseUpper = 0.162f * _k * _s * _tw;
+                _uw = Math.Max(1f, (_pr.shoulderWidth * 0.5f - 0.85f * armR) / baseUpper);
+                _yWaist = 0.02f * _s;
+                _yTop = _spec[(int)BoneId.Spine].Length + _spec[(int)BoneId.Chest].Length + 0.75f * _spec[(int)BoneId.UpperChest].Length;
             }
 
 
@@ -111,13 +117,16 @@ namespace SevenDays.Procedural
             }
 
             // anillos del torso: grupos (y, ancho/k, fondo/ancho, cz/k) con las medidas del soldado; grow engorda (ropa)
-            private float[] Torso(float grow, params float[] g)
+            private float[] Torso(float grow, BoneId bone, params float[] g)
             {
                 int n = g.Length / 4; var r = new float[n * MeshBuilder.LoftStride];
+                float yBase = HumanoidRigSpec.RestPosition(_spec, bone).Y - HumanoidRigSpec.RestPosition(_spec, BoneId.Hips).Y;
                 for (int i = 0; i < n; i++)
                 {
-                    float rx = g[i * 4 + 1] * _k * _s * _tw + grow;
-                    r[i * 5] = g[i * 4]; r[i * 5 + 1] = rx; r[i * 5 + 2] = rx * g[i * 4 + 2] * _d; r[i * 5 + 3] = 0f; r[i * 5 + 4] = g[i * 4 + 3] * _k * _s;
+                    float baseRx = g[i * 4 + 1] * _k * _s * _tw;
+                    float wide = 1f + (_uw - 1f) * ZombieSkinning.Smooth(_yWaist, _yTop, yBase + g[i * 4]);
+                    float rx = baseRx * wide + grow;
+                    r[i * 5] = g[i * 4]; r[i * 5 + 1] = rx; r[i * 5 + 2] = (baseRx * (1f + 0.35f * (wide - 1f)) + grow) * g[i * 4 + 2] * _d; r[i * 5 + 3] = 0f; r[i * 5 + 4] = g[i * 4 + 3] * _k * _s;
                 }
                 return r;
             }
@@ -177,7 +186,7 @@ namespace SevenDays.Procedural
                 Add(BoneId.Hips, "pelvis", SlotSkin, pelvis, 2, true);
 
                 var spine = new MeshBuilder();
-                Lf(spine, default, default, Torso(0f, -0.02f * s, 0.158f, 0.66f, 0f, sp * 0.5f, 0.150f, 0.66f, 0.002f, sp * 1.08f, 0.156f, 0.65f, 0.004f), 12, SK(ZombieAtlas.SkBody), 0.5f);
+                Lf(spine, default, default, Torso(0f, BoneId.Spine, -0.02f * s, 0.158f, 0.66f, 0f, sp * 0.5f, 0.150f, 0.66f, 0.002f, sp * 1.08f, 0.156f, 0.65f, 0.004f), 12, SK(ZombieAtlas.SkBody), 0.5f);
                 Add(BoneId.Spine, "torso", SlotSkin, spine, 2, true);
 
                 var chest = new MeshBuilder();
@@ -189,7 +198,7 @@ namespace SevenDays.Procedural
                 Add(BoneId.UpperChest, "torso", SlotSkin, upper, 2, true);
                 // trapecio caído: elipsoide ancho y plano de la base del cuello al hombro
                 var trap = new MeshBuilder();
-                trap.Lathe(new V3(0f, uc * 0.88f, -0.012f * s), default, SoldierModel.Ellipsoid(0.16f * k * s * _tw, 0.05f * s, 4), Sides(12), 0.5f * _d / 0.9f, true, true, SK(ZombieAtlas.SkBody), 0.4f);
+                trap.Lathe(new V3(0f, uc * 0.88f, -0.012f * s), default, SoldierModel.Ellipsoid(0.16f * k * s * _tw * _uw, 0.05f * s, 4), Sides(12), 0.5f * _d / 0.9f, true, true, SK(ZombieAtlas.SkBody), 0.4f);
                 Add(BoneId.UpperChest, "trapecio", SlotSkin, trap, 1);
 
                 // cuello con tendones (esternocleidomastoideos) y la nuez
@@ -213,8 +222,8 @@ namespace SevenDays.Procedural
                 if (_a.VisibleRibs && _lod == 0)
                 {
                     var bones = new MeshBuilder();
-                    for (int i = 0; i < 4; i++)
-                        bones.Lathe(new V3(0f, (0.02f + i * 0.04f) * s, -(0.15f * k * s * _tw * 0.66f * _d) * 0.98f), default, SoldierModel.Ellipsoid(0.013f * s, 0.011f * s, 3), 6, 1.2f, true, true, SK(ZombieAtlas.SkBody), 0.05f);
+                    for (int i = 0; i < 3; i++)
+                        bones.Lathe(new V3(0f, (0.03f + i * 0.055f) * s, -(0.15f * k * s * _tw * 0.66f * _d) * 0.98f), default, SoldierModel.Ellipsoid(0.014f * s, 0.012f * s, 3), 5, 1.2f, true, true, SK(ZombieAtlas.SkBody), 0.05f);
                     Add(BoneId.Chest, "columna", SlotSkin, bones, 0);
                 }
             }
@@ -222,7 +231,7 @@ namespace SevenDays.Procedural
             private float[] PelvisRings(float grow, float hipK)
             {
                 float s = _s, k = _k;
-                var g = new[] { -0.13f * s, 0.130f, 0.66f, -0.004f, -0.05f * s, 0.158f, 0.66f, -0.012f, 0.05f * s, 0.158f, 0.66f, -0.006f, 0.12f * s, 0.152f, 0.66f, -0.002f };
+                var g = new[] { -0.115f * s, 0.098f, 0.66f, -0.004f, -0.05f * s, 0.15f, 0.66f, -0.012f, 0.05f * s, 0.158f, 0.66f, -0.006f, 0.12f * s, 0.152f, 0.66f, -0.002f };
                 var r = new float[(g.Length / 4) * 5];
                 for (int i = 0; i < g.Length / 4; i++)
                 {
@@ -246,18 +255,20 @@ namespace SevenDays.Procedural
                         float rib = 1f + 0.05f * _em * (float)Math.Sin(t * Math.PI * 4.0 + 0.5);
                         float w = (0.150f + 0.016f * t) * rib;
                         float y = -0.02f * s + (ch * 1.07f + 0.02f * s) * t;
-                        float rx = w * _k * _s * _tw + grow;
-                        o.Add(y); o.Add(rx); o.Add(rx * (0.66f + 0.02f * t) * _d); o.Add(0f); o.Add((0.003f + 0.006f * t) * _k * _s);
+                        float baseRx = w * _k * _s * _tw;
+                        float wide = 1f + (_uw - 1f) * ZombieSkinning.Smooth(_yWaist, _yTop, HumanoidRigSpec.RestPosition(_spec, BoneId.Chest).Y - HumanoidRigSpec.RestPosition(_spec, BoneId.Hips).Y + y);
+                        float rx = baseRx * wide + grow;
+                        o.Add(y); o.Add(rx); o.Add((baseRx * (1f + 0.35f * (wide - 1f)) + grow) * (0.66f + 0.02f * t) * _d); o.Add(0f); o.Add((0.003f + 0.006f * t) * _k * _s);
                     }
                     return o.ToArray();
                 }
-                return Torso(grow, -0.02f * s, 0.152f, 0.65f, 0.004f, ch * 0.5f, 0.158f, 0.68f, 0.008f, ch * 1.05f, 0.162f, 0.68f, 0.009f);
+                return Torso(grow, BoneId.Chest, -0.02f * s, 0.152f, 0.65f, 0.004f, ch * 0.5f, 0.158f, 0.68f, 0.008f, ch * 1.05f, 0.162f, 0.68f, 0.009f);
             }
 
             private float[] UpperRings(float grow)
             {
                 float s = _s, uc = L(BoneId.UpperChest);
-                return Torso(grow, -0.02f * s, 0.162f, 0.68f, 0.009f, uc * 0.35f, 0.163f, 0.66f, 0.008f, uc * 0.7f, 0.155f, 0.62f, 0.004f, uc * 0.92f, 0.118f, 0.6f, 0f, uc * 1.03f, 0.07f, 0.6f, 0f);
+                return Torso(grow, BoneId.UpperChest, -0.02f * s, 0.162f, 0.68f, 0.009f, uc * 0.35f, 0.163f, 0.66f, 0.008f, uc * 0.7f, 0.158f, 0.62f, 0.004f, uc * 0.92f, 0.125f, 0.6f, 0f, uc * 1.03f, 0.075f, 0.6f, 0f);
             }
 
             // ================================================================ brazos
@@ -281,8 +292,9 @@ namespace SevenDays.Procedural
                     Lf(up, default, default, UpperArmRings(lu, f), 10, SK(ZombieAtlas.SkBody), 0.5f);
                     Add(ua, "brazo", SlotSkin, up, 2, true);
                     var delt = new MeshBuilder();
-                    delt.Lathe(new V3(side * 0.012f * f, 0.004f, 0f), default, SoldierModel.Ellipsoid(0.066f * f, 0.06f * f, 4), Sides(10), 1.04f, true, true, SK(ZombieAtlas.SkBody), 0.3f);
-                    Add(ua, "deltoides", SlotSkin, delt, 0, false, false);
+                    delt.Lathe(new V3(side * 0.012f * f, 0.004f, 0f), default, SoldierModel.Ellipsoid(0.058f * f, 0.055f * f, 4), Sides(10), 1.04f, true, true, SK(ZombieAtlas.SkBody), 0.3f);
+                    bool covered = !(_v.clothing == ZombieClothing.Rags && !left);   // con manga el hombro lo cubre la ropa
+                    if (!covered) Add(ua, "deltoides", SlotSkin, delt, 0, false, false);
                     var lo = new MeshBuilder();
                     Lf(lo, default, default, LowerArmRings(ll + ex, f), 10, SK(ZombieAtlas.SkBody), 0.5f);
                     Add(la, "antebrazo", SlotSkin, lo, 2, true);
@@ -298,7 +310,7 @@ namespace SevenDays.Procedural
             private void Hand(BoneId bone, bool left, float f, float extra)
             {
                 float k = Math.Max(0.7f, Math.Min(1.7f, f / 0.8f)) * _s / Math.Max(0.8f, _s);   // el tamaño de la mano sigue al del brazo
-                k = Math.Max(0.7f, Math.Min(2.4f, k));
+                k = Math.Max(0.7f, Math.Min(3.8f, k));
                 float thumb = left ? -1f : 1f;
                 float pl = HandWrap.PalmLength * k * 0.95f, pw = HandWrap.PalmWidth * k * 0.98f, pt = HandWrap.PalmThickness * k * 0.85f;
                 var h = new MeshBuilder();
@@ -392,7 +404,7 @@ namespace SevenDays.Procedural
                     0.205f * h, 0.055f * h, 0.068f * h, 0f, -0.006f * h,
                     0.218f * h, 0.020f * h, 0.030f * h, 0f, -0.006f * h };
                 var skull = new MeshBuilder();
-                Lf(skull, default, default, sk, 16, SK(ZombieAtlas.SkHead), 0f, true);
+                Lf(skull, default, default, sk, 15, SK(ZombieAtlas.SkHead), 0f, true);
                 Add(BoneId.Head, "craneo", SlotSkin, skull, 2);
                 // ojos con velo lechoso en las cuencas
                 var eyes = new MeshBuilder();
@@ -425,7 +437,7 @@ namespace SevenDays.Procedural
                 float[] ring = { -0.050f * h, 0.036f * h, 0.030f * h, 0f, 0.058f * h, -0.020f * h, 0.064f * h, 0.050f * h, 0f, 0.034f * h, 0.010f * h, 0.074f * h, 0.075f * h, 0f, 0.012f * h, 0.036f * h, 0.070f * h, 0.082f * h, 0f, 0.006f * h };
                 var jaw = new MeshBuilder();
                 int cell = exposed ? ZombieAtlas.SkBone : ZombieAtlas.SkBody;
-                Lf(jaw, new V3(0f, 0.012f * h, 0.004f * h), new V3(open, yaw, 0f), ring, 12, SK(cell), exposed ? 0.1f : 0.35f);
+                Lf(jaw, new V3(0f, 0.012f * h, 0.004f * h), new V3(open, yaw, 0f), ring, 10, SK(cell), exposed ? 0.1f : 0.35f);
                 Add(BoneId.Head, "mandibula", SlotSkin, jaw, 2, false, true);
                 if (_lod > 0) return;
                 // dientes: fila superior fija y fila inferior pegada a la mandíbula (cajas finas)
@@ -475,13 +487,13 @@ namespace SevenDays.Procedural
                         float lat = 35f + F() * 50f;
                         double la = lat * Math.PI / 180.0;
                         V3 at = new V3((float)(Math.Cos(la) * Math.Sin(lon)) * 0.098f * h, 0.106f * h + (float)Math.Sin(la) * 0.108f * h, (float)(Math.Cos(la) * Math.Cos(lon)) * 0.108f * h - 0.004f * h);
-                        hair.Lathe(at, new V3(-(float)(lat * 0.6), (float)(lon * 180.0 / Math.PI), 0f), SoldierModel.Ellipsoid(0.014f * h, (0.03f + 0.03f * F()) * h, 3), 5, 0.7f, true, true, SK(ZombieAtlas.SkHair), 0.06f);
+                        hair.Lathe(at, new V3(-(float)(lat * 0.6), (float)(lon * 180.0 / Math.PI), 0f), SoldierModel.Ellipsoid((0.022f + 0.012f * F()) * h, (0.011f + 0.012f * F()) * h, 3), 5, 0.7f, true, true, SK(ZombieAtlas.SkHair), 0.06f);
                     }
                 }
                 else
                 {
                     // pelo largo apelmazado: casquete sobre cráneo y nuca y mechones que cuelgan hasta los hombros
-                    hair.Dome(new V3(0f, 0.112f * h, -0.006f * h), default, new V3(0.108f * h, 0.112f * h, 0.118f * h), lon => 18f + 6f * (float)Math.Cos(lon * Math.PI / 180.0 * 2.0), 0.008f * h, Sides(12), Sides(4), SK(ZombieAtlas.SkHair), 0.3f);
+                    hair.Dome(new V3(0f, 0.112f * h, -0.006f * h), default, new V3(0.108f * h, 0.112f * h, 0.118f * h), lon => 18f + 6f * (float)Math.Cos(lon * Math.PI / 180.0 * 2.0), 0.008f * h, Sides(10), Sides(3), SK(ZombieAtlas.SkHair), 0.3f);
                     int n = _lod == 0 ? 5 : (_lod == 1 ? 3 : 0);
                     for (int i = 0; i < n; i++)
                     {
@@ -506,7 +518,7 @@ namespace SevenDays.Procedural
 
                 // torso: camisa, chaqueta o mono; los harapos solo cubren el pecho y cuelgan rotos
                 var chestCloth = new MeshBuilder(); var upperCloth = new MeshBuilder(); var spineCloth = new MeshBuilder(); var pelvisCloth = new MeshBuilder();
-                float[] spR = Torso(grow, -0.02f * s, 0.158f, 0.66f, 0f, sp * 0.5f, 0.150f, 0.66f, 0.002f, sp * 1.08f, 0.156f, 0.65f, 0.004f);
+                float[] spR = Torso(grow, BoneId.Spine, -0.02f * s, 0.158f, 0.66f, 0f, sp * 0.5f, 0.150f, 0.66f, 0.002f, sp * 1.08f, 0.156f, 0.65f, 0.004f);
                 if (rags) spR = Slice(spR, sp * 0.4f, sp * 1.08f);
                 Lf(spineCloth, default, default, spR, 12, CL(top), 0.45f);
                 Add(BoneId.Spine, "prenda", SlotCloth, spineCloth, 2, true);
@@ -531,6 +543,8 @@ namespace SevenDays.Procedural
                     else if (rags) uaR = Slice(uaR, -lu * 0.65f, 0f);
                     var sleeve = new MeshBuilder();
                     Lf(sleeve, default, default, uaR, 10, CL(top), 0.4f);
+                    float side = left ? -1f : 1f;
+                    sleeve.Lathe(new V3(side * 0.012f * f, 0.004f, 0f), default, SoldierModel.Ellipsoid(0.07f * f, 0.062f * f, 2), Sides(8), 1.04f, true, true, CL(top), 0.3f);
                     Add(ua, "manga", SlotCloth, sleeve, 2, true);
                     if (longSleeves)
                     {
@@ -577,23 +591,23 @@ namespace SevenDays.Procedural
                 }
             }
 
-            // bota rota: caña en la pantorrilla y suela; descalzo no añade nada
+            // bota rota: caña en la pantorrilla y una bota abultada (loft redondeado a lo largo del pie); descalzo no añade nada
             private void FootCloth(bool left)
             {
                 if (_v.footwear != ZombieFootwear.BrokenBoots) return;
                 BoneId ll = left ? BoneId.LeftLowerLeg : BoneId.RightLowerLeg, foot = left ? BoneId.LeftFoot : BoneId.RightFoot, toes = left ? BoneId.LeftToes : BoneId.RightToes;
                 float shin = L(ll), drop = L(foot), ball = _spec[(int)toes].LocalPosition.Z, s = _s;
                 var shaft = new MeshBuilder();
-                shaft.Lathe(new V3(0f, -shin * 0.62f, 0f), default, SoldierModel.Limb(shin * 0.4f, new[] { 0f, 0.052f * s * 1.02f, 1f, 0.05f * s }), Sides(12), 1.05f, true, true, CL(ZombieAtlas.ClLeather), 0.25f);
+                shaft.Lathe(new V3(0f, -shin * 0.62f, 0f), default, SoldierModel.Limb(shin * 0.4f, new[] { 0f, 0.056f * s * 1.04f * (_f / (0.9f * s)), 1f, 0.052f * s * (_f / (0.9f * s)) }), Sides(12), 1.05f, true, true, CL(ZombieAtlas.ClLeather), 0.25f);
                 Add(ll, "bota", SlotCloth, shaft, 1);
-                float heel = 0.07f * s, h = Math.Min(0.085f * s, drop + 0.01f), len = ball + heel;
+                float heel = 0.075f * s, h = drop * 1.15f, w = 0.056f * s * (0.8f + 0.2f * _k);
                 var boot = new MeshBuilder();
-                boot.Box(new V3(0f, 0.009f * s, (ball - heel) * 0.5f), new V3(0.108f * s, 0.018f * s, len), default, 0.006f, CL(ZombieAtlas.ClRubber), 0.3f);
-                boot.Box(new V3(0f, 0.018f * s + (h - 0.018f * s) * 0.5f, (ball - heel) * 0.5f - 0.004f), new V3(0.1f * s, h - 0.018f * s, len - 0.012f), default, 0.014f, CL(ZombieAtlas.ClLeather), 0.3f);
-                Add(foot, "bota", SlotCloth, boot, 2, false, true, new V3(0f, -drop, 0f));
+                Lf(boot, new V3(0f, -drop, 0f), new V3(90f, 0f, 0f), new[] { -heel, w * 0.62f, h * 0.45f, 0f, -h * 0.45f, -heel * 0.5f, w * 0.95f, h * 0.55f, 0f, -h * 0.55f, ball * 0.35f, w, h * 0.5f, 0f, -h * 0.5f, ball, w * 0.9f, h * 0.36f, 0f, -h * 0.36f }, 8, CL(ZombieAtlas.ClLeather), 0.25f);
+                Add(foot, "bota", SlotCloth, boot, 2, false, true);
                 var toe = new MeshBuilder();
-                toe.Box(new V3(0f, 0.027f * s, 0.032f * s), new V3(0.098f * s, 0.04f * s, 0.07f * s), default, 0.012f, CL(ZombieAtlas.ClLeather), 0.2f);
-                Add(toes, "puntera", SlotCloth, toe, 2);
+                float toeLen = 0.075f * s;
+                Lf(toe, default, new V3(90f, 0f, 0f), new[] { -0.006f * s, w * 0.9f, h * 0.36f, 0f, -h * 0.36f, toeLen * 0.6f, w * 0.85f, h * 0.3f, 0f, -h * 0.3f, toeLen, w * 0.55f, h * 0.2f, 0f, -h * 0.2f }, 6, CL(ZombieAtlas.ClLeather), 0.2f);
+                Add(toes, "puntera", SlotCloth, toe, 1);
             }
 
             // ---- acceso para las características de cada tipo
