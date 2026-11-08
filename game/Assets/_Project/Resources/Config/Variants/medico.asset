@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8337709f110764ef1b2060bc7adf998a, type: 3}
+  m_Name: medico
+  m_EditorClassIdentifier: Assembly-CSharp::SevenDays.Animation.CharacterVariantAsset
+  Data:
+    id: medico
+    displayName: "M\xE9dico"
+    headgear: 2
+    visor: 0
+    armband: 1
+    seed: 33
+    camoBase:
+    - 0.27
+    - 0.29
+    - 0.27
+    camoMid:
+    - 0.21
+    - 0.23
+    - 0.22
+    camoDark:
+    - 0.1
+    - 0.11
+    - 0.11
+    camoLight:
+    - 0.4
+    - 0.41
+    - 0.39
+    camoScale: 1
+    gear:
+    - 0.19
+    - 0.21
+    - 0.2
+    gearDark:
+    - 0.12
+    - 0.12
+    - 0.11
+    leather:
+    - 0.11
+    - 0.1
+    - 0.09
+    boot:
+    - 0.18
+    - 0.14
+    - 0.1
+    pad:
+    - 0.15
+    - 0.15
+    - 0.14
+    metal:
+    - 0.16
+    - 0.16
+    - 0.17
+    helmet:
+    - 0.24
+    - 0.25
+    - 0.23
+    paint:
+    - 0.82
+    - 0.8
+    - 0.74
+    accent:
+    - 0.58
+    - 0.22
+    - 0.14
+    fabric:
+    - 0.16
+    - 0.17
+    - 0.17
+    maxHealth: 100
+    moveSpeed: 1
+    healing: 1.3
+    weaponSway: 1

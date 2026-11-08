@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8337709f110764ef1b2060bc7adf998a, type: 3}
+  m_Name: calavera
+  m_EditorClassIdentifier: Assembly-CSharp::SevenDays.Animation.CharacterVariantAsset
+  Data:
+    id: calavera
+    displayName: Calavera
+    headgear: 0
+    visor: 1
+    armband: 0
+    seed: 7
+    camoBase:
+    - 0.24
+    - 0.26
+    - 0.19
+    camoMid:
+    - 0.27
+    - 0.22
+    - 0.16
+    camoDark:
+    - 0.09
+    - 0.09
+    - 0.08
+    camoLight:
+    - 0.36
+    - 0.36
+    - 0.33
+    camoScale: 1
+    gear:
+    - 0.21
+    - 0.22
+    - 0.17
+    gearDark:
+    - 0.12
+    - 0.12
+    - 0.11
+    leather:
+    - 0.11
+    - 0.1
+    - 0.09
+    boot:
+    - 0.18
+    - 0.14
+    - 0.1
+    pad:
+    - 0.15
+    - 0.15
+    - 0.14
+    metal:
+    - 0.16
+    - 0.16
+    - 0.17
+    helmet:
+    - 0.2
+    - 0.21
+    - 0.17
+    paint:
+    - 0.82
+    - 0.8
+    - 0.74
+    accent:
+    - 0.62
+    - 0.3
+    - 0.12
+    fabric:
+    - 0.3
+    - 0.27
+    - 0.2
+    maxHealth: 100
+    moveSpeed: 1
+    healing: 1
+    weaponSway: 1
