@@ -88,17 +88,17 @@ namespace SevenDays.Procedural
             switch (id)
             {
                 case ZombieIds.Runner:
-                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.74f, 0.40f, 0.245f, 0.80f, 0.52f, 1.14f, 1.05f, 0.96f, 0.6f, 0.85f, 0.78f), Emaciation = 0.8f, SkinTension = 0.9f, SkinBase = new[] { 0.66f, 0.64f, 0.55f } };
+                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.74f, 0.40f, 0.245f, 0.80f, 0.52f, 1.14f, 1.05f, 0.96f, 0.8f, 0.85f, 0.78f), Emaciation = 0.8f, SkinTension = 0.9f, SkinBase = new[] { 0.66f, 0.64f, 0.55f } };
                 case ZombieIds.Tank:
-                    return new ZombieAnatomy { TypeId = id, Proportions = P(2.64f, 0.80f, 0.42f, 1.3f, 0.46f, 1.1f, 0.6f, 0.78f, 0.4f, 1.1f, 1.25f), Emaciation = 0f, BigArmScale = 1.55f, BigArmSide = 1, ScarPlates = true, SkinTension = 0.7f, SkinBase = new[] { 0.5f, 0.55f, 0.48f } };
+                    return new ZombieAnatomy { TypeId = id, Proportions = P(2.64f, 0.80f, 0.42f, 1.3f, 0.46f, 1.1f, 0.6f, 0.78f, 0.55f, 1.1f, 1.25f), Emaciation = 0f, BigArmScale = 1.55f, BigArmSide = 1, ScarPlates = true, SkinTension = 0.7f, SkinBase = new[] { 0.5f, 0.55f, 0.48f } };
                 case ZombieIds.Armored:
-                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.82f, 0.50f, 0.29f, 1.1f, 0.5f, 1f, 1f, 1f, 0.12f, 1f, 1f), Emaciation = 0.1f, SkinBase = new[] { 0.62f, 0.64f, 0.6f } };
+                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.82f, 0.50f, 0.29f, 1.1f, 0.5f, 1f, 1f, 1f, 0.3f, 1f, 1f), Emaciation = 0.1f, SkinBase = new[] { 0.62f, 0.64f, 0.6f } };
                 case ZombieIds.Spitter:
-                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.76f, 0.46f, 0.27f, 0.95f, 0.5f, 1.06f, 1f, 1f, 0.34f, 0.95f, 0.9f), Emaciation = 0.35f, LongArmExtra = 0.12f, Bags = true, SkinBase = new[] { 0.58f, 0.66f, 0.46f } };
+                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.76f, 0.46f, 0.27f, 0.95f, 0.5f, 1.06f, 1f, 1f, 0.6f, 0.95f, 0.9f), Emaciation = 0.35f, LongArmExtra = 0.12f, Bags = true, SkinBase = new[] { 0.58f, 0.66f, 0.46f } };
                 case ZombieIds.Explosive:
-                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.72f, 0.46f, 0.30f, 1.0f, 0.5f, 1f, 0.9f, 0.95f, 0.22f, 1.05f, 0.95f), Emaciation = 0.15f, Belly = true, SkinBase = new[] { 0.72f, 0.58f, 0.46f } };
+                    return new ZombieAnatomy { TypeId = id, Proportions = P(1.72f, 0.46f, 0.30f, 1.0f, 0.5f, 1f, 0.9f, 0.95f, 0.4f, 1.05f, 0.95f), Emaciation = 0.15f, Belly = true, SkinBase = new[] { 0.72f, 0.58f, 0.46f } };
                 default:
-                    return new ZombieAnatomy { TypeId = ZombieIds.Common, Proportions = P(1.78f, 0.44f, 0.27f, 0.98f, 0.5f, 1f, 1f, 1f, 0.28f, 0.9f, 0.92f), Emaciation = 0.3f, SkinTension = 0.35f, SkinBase = new[] { 0.64f, 0.67f, 0.6f } };
+                    return new ZombieAnatomy { TypeId = ZombieIds.Common, Proportions = P(1.78f, 0.44f, 0.27f, 0.98f, 0.5f, 1f, 1f, 1f, 0.55f, 0.9f, 0.92f), Emaciation = 0.3f, SkinTension = 0.35f, SkinBase = new[] { 0.55f, 0.58f, 0.51f } };
             }
         }
 

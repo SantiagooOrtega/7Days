@@ -18,6 +18,7 @@ namespace SevenDays.UI
         private ProfilerRecorder _draw, _setPass, _tris, _casters;
         private readonly FrameTiming[] _timing = new FrameTiming[1];
         private float _cpu, _gpu, _fps = 60f, _nextCount;
+        private SevenDays.Combat.ZombieStatsSnapshot _zombies;
         private int _lights, _lightShadows, _particles;
         private GUIStyle _label, _head;
         private readonly StringBuilder _sb = new StringBuilder(600);
@@ -74,8 +75,10 @@ namespace SevenDays.UI
             if (urp != null)
                 _sb.Append("Sombras ").Append(urp.shadowDistance.ToString("0")).Append(" m x").Append(urp.shadowCascadeCount).Append(" cascadas   HDR ").Append(urp.supportsHDR ? "sí" : "no")
                    .Append("   MSAA ").Append(urp.msaaSampleCount).Append("x\n");
-            _sb.Append("Calidad: ").Append(SevenDays.Look.QualityDirector.Describe());
-            var r = new Rect(10, 120, 470, 150);
+            _sb.Append("Calidad: ").Append(SevenDays.Look.QualityDirector.Describe()).Append('\n');
+            _zombies = SevenDays.Combat.ZombieStats.Collect();
+            _sb.Append("Zombis: ").Append(SevenDays.Combat.ZombieStats.Describe(_zombies));
+            var r = new Rect(10, 120, 470, 200);
             var prev = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.65f); GUI.DrawTexture(r, Texture2D.whiteTexture); GUI.color = prev;
             GUI.Label(new Rect(r.x + 8, r.y + 4, r.width - 16, 22), "RENDER (F6)", _head);
             GUI.Label(new Rect(r.x + 8, r.y + 26, r.width - 16, r.height - 30), _sb.ToString(), _label);

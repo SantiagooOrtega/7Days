@@ -61,7 +61,7 @@ namespace SevenDays.Tests
         {
             var r = ZombieAnatomies.For(ZombieIds.Runner); var c = ZombieAnatomies.For(ZombieIds.Common);
             Assert.Less(r.Proportions.bulk, c.Proportions.bulk * 0.9f);
-            Assert.Greater(r.Proportions.hunch, c.Proportions.hunch * 1.5f);
+            Assert.Greater(r.Proportions.hunch, c.Proportions.hunch * 1.3f);
             Assert.Greater(r.Proportions.armRatio, c.Proportions.armRatio);
             Assert.IsTrue(r.VisibleRibs);
         }

@@ -85,11 +85,11 @@ namespace SevenDays.Procedural
             BoneId big = _a.BigArmSide > 0 ? BoneId.RightUpperArm : BoneId.LeftUpperArm;
             float lu = _b.Len(big), fa = _b.F * _a.BigArmScale;
             var arm = new MeshBuilder();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 3; i++)
             {
                 float y = -lu * (0.2f + 0.2f * i), ang = (F() - 0.5f) * 220f * (float)Math.PI / 180f;
                 arm.Lathe(new V3((float)Math.Sin(ang) * 0.07f * fa, y, (float)Math.Cos(ang) * 0.072f * fa), AlignY(new V3((float)Math.Sin(ang), 0.1f, (float)Math.Cos(ang))),
-                    SoldierModel.Ellipsoid(0.04f * fa, 0.014f * fa, 3), 7, 0.8f, true, true, SK(ZombieAtlas.SkFeatureA), 0.15f);
+                    SoldierModel.Ellipsoid(0.026f * fa, 0.01f * fa, 3), 7, 0.8f, true, true, SK(ZombieAtlas.SkFeatureA), 0.15f);
             }
             _b.AddPiece(big, "placas", ZombieModel.SlotSkin, arm, 1, false, true, default, -1);
         }
@@ -222,9 +222,9 @@ namespace SevenDays.Procedural
         private void Explosive()
         {
             float s = _s, sp = _b.Len(BoneId.Spine);
-            int belly = _b.AddExtraBone("Belly", BoneId.Spine, new V3(0f, sp * 0.62f, 0.04f * s * _k));
+            int belly = _b.AddExtraBone("Belly", BoneId.Spine, new V3(0f, sp * 0.55f, 0.012f * s * _k));
             var m = new MeshBuilder();
-            float rx = 0.19f * _k * s, ry = 0.16f * s, rz = 0.2f * _d * s;
+            float rx = 0.215f * _k * s, ry = 0.19f * s, rz = 0.225f * _d * s;
             m.Lathe(default, default, SoldierModel.Ellipsoid(rx, ry, 6), _b.SidesFor(16), rz / rx, true, true, SK(ZombieAtlas.SkFeatureA), 0.5f, true);
             var r = new Random(_v.seed * 19 + 11);
             float F() => (float)r.NextDouble();

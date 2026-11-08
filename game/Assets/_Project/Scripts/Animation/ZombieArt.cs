@@ -25,6 +25,16 @@ namespace SevenDays.Animation
         public static int TexturesReady { get; private set; }
         public static bool Busy => Jobs.Count > 0;
 
+        /// <summary>true cuando el material ya tiene su textura de color (los hilos de fondo terminaron).</summary>
+        public static bool IsReady(Material m) => m != null && m.GetTexture("_BaseMap") != null;
+
+        /// <summary>Genera ya (en segundo plano) las texturas de todos los tipos, la ropa y las heridas: así están listas antes de la primera oleada.</summary>
+        public static void PrewarmAll()
+        {
+            foreach (string t in ZombieAnatomies.Types) Skin(t);
+            var c = Cloth; var w = Wounds;
+        }
+
         public static Material Skin(string typeId)
         {
             typeId = ZombieAnatomies.Has(typeId) ? typeId : ZombieIds.Common;
