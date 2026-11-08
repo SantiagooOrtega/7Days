@@ -791,3 +791,23 @@ máscara en BC, normales sin comprimir a media resolución. Las armas son piezas
 5. **F7**: el ciclo enseña cada arma de cerca (sin apuntar, apuntando, recargando) y al soldado de frente y de lado.
 6. Panel Render de F6: compara GPU ms con la ventana grande con lo de antes (debería ser igual o casi).
 7. Capturas que necesito (Cmd+Shift+5): cada variante de frente, de lado y de espalda; el casco calavera de cerca; cada arma de cerca.
+
+## Soldado más fuerte, HUD de armas con iconos y arena sin píldoras
+**Complexión:** el soldado pasa de esbelto a atlético y fuerte, con la misma altura (cámara, mira, pies y largo de brazos y piernas no cambian): torso +13 % de
+ancho y de fondo, hombros +9 %, cadera +5 %, brazos y piernas +11 %, cuello +13 %, chaleco y hombreras en proporción. Valores en `Resources/Config/ProportionSettings`
+(un asset de la versión esbelta se migra solo al cargarlo, respetando lo que hayas editado a mano). Cada variante suma su propio grosor (`buildScale` en su asset):
+Calavera ×1.04, Explorador ×0.97, Médico y Francotirador ×1.00. Las manos engordan la mitad que el torso (el agarre está calibrado a su tamaño). El
+CharacterController (radio 0.35) no se ha tocado: cobertura, vault y puertas siguen igual. Triángulos por variante sin cambios (≤ 11 968 de 15 000).
+1. En **F6 > Complexión**: hombros, cadera, grosor general, torso, brazos y piernas, cabeza y largos; **Aplicar complexión** reconstruye al momento (el grosor de la
+   variante se suma encima). Compara de frente, de lado y de espalda con F7 (tramos finales) o cambiando de variante en F6.
+
+**HUD de armas (`UI/WeaponHud*.cs`, uGUI con Canvas Scale With Screen Size 1920x1080):** barra compacta abajo a la derecha con el icono de cada arma y su número de
+tecla. Los iconos se generan desde las piezas del modelo del arma (vista lateral: silueta blanca, detalle gris y contorno, 256x128, en caché; 7 iconos ≈ 1 MB). La
+activa se agranda y se resalta con el color de su rareza y un leve brillo; las demás, semitransparentes; las vacías, un marco tenue. Debajo de la activa, solo
+munición (cargador / reserva) y modo de disparo; el nombre aparece 1.5 s al cambiar. Teclas 1-5 y rueda del ratón como siempre. **Mantén Tab:** rueda radial con
+iconos grandes (el tiempo se ralentiza suave hasta 0.25x; mueve el ratón hacia el sector y suelta Tab; Esc cancela; mientras está abierta el ratón no mira ni
+dispara). Se mantiene el resto del HUD (vida, vendas, botiquines, reserva por tipo). Medido: 0 bytes asignados por frame.
+2. Play, F6 cerrado: comprueba la barra, cambia de arma con 1-5 y la rueda, y mantén Tab para la rueda.
+
+**Arena:** se quitaron los blancos de práctica (cápsulas naranjas), `TargetDummy` y su entrada en la auditoría. La zona libre que ocupaban sigue sin vegetación para no
+mover lo ya repartido. Para probar el daño, usa zombis reales (Z). La auditoría de colisiones del Unity real da 154/154 sin avisos.
