@@ -102,6 +102,63 @@ namespace SevenDays.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator InTheArena_WithTheRealCamera()
+        {
+            Directory.CreateDirectory(Dir);
+            new GameObject("Arena").AddComponent(T("SevenDays.World.TestArena"));
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 40f && GameObject.FindWithTag("Player") == null) yield return null;
+            for (int i = 0; i < 240; i++) yield return null;
+            var player = GameObject.FindWithTag("Player");
+            var mgrType = T("SevenDays.Combat.ZombieManager");
+            var mgr = mgrType.GetProperty("Instance").GetValue(null);
+            var ph = mgrType.GetProperty("PlayerHealth").GetValue(mgr) as Component;
+            ph.GetType().GetMethod("SetMax").Invoke(ph, new object[] { 1000000f, true });
+            var spawn = Array.Find(mgrType.GetMethods(), m => m.Name == "Spawn" && m.GetParameters()[0].ParameterType == typeof(string));
+            var cam = Camera.main;
+            var fwd = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized; var right = Vector3.Cross(Vector3.up, fwd);
+            string[] ids = { "common", "runner", "tank", "armored", "spitter", "explosive", "common", "common" };
+            for (int i = 0; i < ids.Length; i++)
+                spawn.Invoke(mgr, new object[] { ids[i], player.transform.position + fwd * (7f + (i % 3) * 3f) + right * ((i - 3.5f) * 1.7f), 1f, 1f, 1f, true });
+            for (int i = 0; i < 100; i++) yield return null;
+            // congela a los zombis (sin IA) para una foto estable
+            var all = (System.Collections.IEnumerable)mgrType.GetProperty("All").GetValue(mgr);
+            var rt = new RenderTexture(1600, 900, 24, RenderTextureFormat.ARGB32);
+            for (int shot = 0; shot < 3; shot++)
+            {
+                for (int i = 0; i < 90; i++) yield return null;
+                var prev = cam.targetTexture; cam.targetTexture = rt; cam.Render(); RenderTexture.active = rt;
+                var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false); tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0); tex.Apply();
+                File.WriteAllBytes(Path.Combine(Dir, "arena_" + shot + ".png"), tex.EncodeToPNG());
+                RenderTexture.active = null; cam.targetTexture = prev; UnityEngine.Object.Destroy(tex);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Heads_CloseUp()
+        {
+            Stage();
+            T("SevenDays.Animation.ZombieArt").GetMethod("PrewarmAll").Invoke(null, null); T("SevenDays.Animation.ZombieArt").GetMethod("WaitAll").Invoke(null, null);
+            int n = 0;
+            for (int seed = 1; seed < 80 && n < 5; seed++)
+            {
+                var body = Make(ZombieIds.Common, seed, 1, Vector3.zero, 0f, out var root);
+                var v = (ZombieVariantData)body.GetType().GetProperty("Variant").GetValue(body);
+                if (seed > 1 && v.head == ZombieHeadStyle.Intact && n > 0) { UnityEngine.Object.Destroy(root); yield return null; continue; }
+                yield return Settle(body, 20);
+                var rig = (Component)body.GetType().GetProperty("Rig").GetValue(body);
+                var head = (Transform)rig.GetType().GetMethod("Bone").Invoke(rig, new object[] { BoneId.Head });
+                var p = head.position + Vector3.up * 0.1f;
+                _cam.fieldOfView = 22f;
+                yield return Shoot("head_" + v.head + "_" + seed, p, p + root.transform.forward * 1.1f + Vector3.right * 0.25f);
+                yield return Shoot("headside_" + v.head + "_" + seed, p, p + root.transform.right * 1.1f);
+                n++;
+                UnityEngine.Object.Destroy(root);
+                yield return null;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Types_Chasing()
         {
             Stage();

@@ -103,12 +103,12 @@ con otras proporciones, una sola malla con pesos de hueso (`SkinnedMeshRenderer`
 
 | Tipo | Altura | Rasgos del cuerpo | Triángulos LOD 0 / 1 / 2 | Presupuesto |
 |------|--------|-------------------|--------------------------|-------------|
-| Común (`common`) | 1.78 m | persona descompuesta, hombros caídos y cabeza ladeada, costillas a la vista | 4 786–5 388 / 2 788–3 274 / 1 458–1 728 | 6 000 |
-| Corredor (`runner`) | 1.74 m | delgado y tenso, muy encorvado, brazos largos, columna y costillas marcadas | 4 712–5 814 / 2 536–3 228 / 1 332–1 738 | 6 000 |
-| Tanque (`tank`) | 2.64 m | torso enorme, brazo derecho 1.55 veces más grueso, placas de tejido cicatrizado | 5 142–6 208 / 3 178–3 880 / 1 222–1 648 | 12 000 |
-| Blindado (`armored`) | 1.82 m | chaleco con placas, puerta atada, neumáticos o chatarra; la cabeza queda expuesta | 5 170–5 910 / 3 078–3 596 / 1 614–1 894 | 6 000 |
-| Lanzador (`spitter`) | 1.76 m | bolsas y bultos en espalda y hombros, brazo derecho largo, pústulas verdosas | 4 980–5 908 / 2 934–3 602 / 1 302–1 658 | 6 000 |
-| Explosivo (`explosive`) | 1.72 m | abdomen hinchado en un hueso extra (`Belly`) con pústulas y venas naranjas que brillan y pulsan durante la mecha | 4 960–5 672 / 2 854–3 334 / 1 444–1 690 | 6 000 |
+| Común (`common`) | 1.78 m | persona descompuesta, hombros caídos y cabeza ladeada, costillas a la vista | 4 758–5 398 / 2 738–3 274 / 1 458–1 678 | 6 000 |
+| Corredor (`runner`) | 1.74 m | delgado y tenso, muy encorvado, brazos largos, columna y costillas marcadas | 4 774–5 786 / 2 536–3 178 / 1 332–1 688 | 6 000 |
+| Tanque (`tank`) | 2.64 m | torso enorme, brazo derecho 1.55 veces más grueso, placas de tejido cicatrizado | 5 204–6 180 / 3 178–3 830 / 1 222–1 598 | 12 000 |
+| Blindado (`armored`) | 1.82 m | chaleco con placas, puerta atada, neumáticos o chatarra; la cabeza queda expuesta | 5 232–5 972 / 3 078–3 596 / 1 614–1 894 | 6 000 |
+| Lanzador (`spitter`) | 1.76 m | bolsas y bultos en espalda y hombros, brazo derecho largo, pústulas verdosas | 5 042–5 970 / 2 934–3 602 / 1 302–1 608 | 6 000 |
+| Explosivo (`explosive`) | 1.72 m | abdomen hinchado en un hueso extra (`Belly`) con pústulas y venas naranjas que brillan y pulsan durante la mecha | 5 022–5 734 / 2 854–3 334 / 1 444–1 640 | 6 000 |
 
 (Rangos entre las 3-4 variantes de cada tipo. Código: `Procedural/ZombieLook.cs`, `ZombieModel.cs`, `ZombieTypeFeatures.cs`, `ZombieSkinning.cs`; probado en `ZombieModelTests`.)
 
@@ -146,7 +146,7 @@ El validador equivalente en C# es `ZombieLookValidator` (`Procedural/ZombieLook.
 
 **Texturas (512 px, hilos de fondo, caché, mipmaps; color y máscara comprimidos BC3, normales y emisión sin pérdida de tipo):** un atlas de piel por tipo (cuerpo y cabeza a 256 px; manos, pies, hueso/dientes, ojo con velo lechoso,
 pelo, tejido y los rasgos del tipo a 128 px), un atlas de ropa común (16 telas: camisa, camiseta, uniforme, bata, traje, pantalón, vaquero, mono, harapos, cuero, chapa oxidada, goma, cinta, puerta, venda, saco; el alfa
-recorta agujeros y desgarros) y un atlas de heridas (decals con alfa). Memoria medida: 15.7 MB las 8 texturas más 23 MB de mallas con todas las variantes usadas. Código: `ZombieTextures.cs`, `ZombieAtlas.cs`, `Animation/ZombieArt.cs`.
+recorta agujeros y desgarros) y un atlas de heridas (decals con alfa). Memoria medida: 15.7 MB las 8 texturas y ~47 MB de mallas (las 20 variantes en los 3 cubos de altura, precalculadas en hilos de fondo y pasadas a mallas de Unity de una en una por frame). Código: `ZombieTextures.cs`, `ZombieAtlas.cs`, `Animation/ZombieArt.cs`.
 
 **Capa de daño progresiva (`ZombieDamageLayer`):** al cruzar el 75, 50 y 25 % de vida aparece una herida en la zona del golpe (cabeza, torso, brazos o piernas: las mismas zonas de los hitbox), proyectada con rayos sobre la
 malla real (si hay ropa, sale como desgarro). Un headshot mortal hace desaparecer la cabeza (queda el muñón del cuello) y el cuerpo cae.

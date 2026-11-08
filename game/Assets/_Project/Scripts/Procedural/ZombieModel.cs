@@ -411,15 +411,15 @@ namespace SevenDays.Procedural
                 // ojos con velo lechoso en las cuencas
                 var eyes = new MeshBuilder();
                 foreach (float sx in new[] { -1f, 1f })
-                    eyes.Lathe(new V3(sx * 0.036f * h, 0.118f * h, 0.082f * h), new V3(90f, 0f, 0f), SoldierModel.Ellipsoid(0.014f * h, 0.012f * h, 3), Sides(7), 1f, true, true, SK(ZombieAtlas.SkEye), 0f, true);
+                    eyes.Lathe(new V3(sx * 0.037f * h, 0.118f * h, 0.107f * h), new V3(90f, 0f, 0f), SoldierModel.Ellipsoid(0.0125f * h, 0.0115f * h, 3), Sides(9), 1f, true, true, SK(ZombieAtlas.SkEye), 0f, true);
                 Add(BoneId.Head, "ojos", SlotSkin, eyes, 2, false, false);
                 // nariz hundida (la ceja y las cuencas van pintadas en la textura)
                 var nose = new MeshBuilder();
-                nose.Loft(new V3(0f, 0.07f * h, 0.098f * h), new V3(-24f, 0f, 0f), new[] { -0.02f * h, 0.014f * h, 0.012f * h, 0f, 0f, 0.0f, 0.011f * h, 0.012f * h, 0f, 0.002f * h, 0.03f * h, 0.006f * h, 0.006f * h, 0f, 0.004f * h }, 6, true, true, SK(ZombieAtlas.SkBody), 0.1f);
+                nose.Lathe(new V3(0f, 0.072f * h, 0.106f * h), new V3(75f, 0f, 0f), SoldierModel.Ellipsoid(0.014f * h, 0.013f * h, 2), 5, 0.9f, true, true, SK(ZombieAtlas.SkBody), 0.1f);
                 Add(BoneId.Head, "nariz", SlotSkin, nose, 0, false, false);
                 var ears = new MeshBuilder();
                 foreach (float sx in new[] { -1f, 1f })
-                    ears.Lathe(new V3(sx * 0.1f * h, 0.098f * h, -0.004f * h), new V3(0f, 0f, 90f), SoldierModel.Ellipsoid(0.026f * h, 0.012f * h, 2), 5, 0.6f, true, true, SK(ZombieAtlas.SkBody), 0.08f);
+                    ears.Lathe(new V3(sx * 0.1f * h, 0.098f * h, -0.004f * h), new V3(0f, 0f, 90f), SoldierModel.Ellipsoid(0.026f * h, 0.007f * h, 3), 6, 0.6f, true, true, SK(ZombieAtlas.SkBody), 0.08f);
                 Add(BoneId.Head, "orejas", SlotSkin, ears, 0, false, false);
                 Jaw(style, h);
                 Hair(h);
@@ -429,33 +429,47 @@ namespace SevenDays.Procedural
             private void Jaw(ZombieHeadStyle style, float h)
             {
                 bool broken = style == ZombieHeadStyle.JawBroken, exposed = style == ZombieHeadStyle.JawExposed;
-                float open = broken ? 24f : (exposed ? 14f : 6f);
+                float open = broken ? 26f : (exposed ? 16f : 6f);
                 float yaw = broken ? 11f : (exposed ? -6f : 0f);
-                float skinR = exposed ? 0f : 1f;
-                // la mandíbula gira desde la bisagra cerca de las orejas (y=0.075, z=0.0)
+                // la mandíbula gira desde la bisagra, a la altura de las orejas y algo detrás del centro
+                var pivot = new V3(0f, 0.072f * h, -0.004f * h);
+                var euler = new V3(open, yaw, 0f);
                 float[] ring = { -0.050f * h, 0.036f * h, 0.030f * h, 0f, 0.058f * h, -0.020f * h, 0.064f * h, 0.050f * h, 0f, 0.034f * h, 0.010f * h, 0.074f * h, 0.075f * h, 0f, 0.012f * h, 0.036f * h, 0.070f * h, 0.082f * h, 0f, 0.006f * h };
                 var jaw = new MeshBuilder();
                 int cell = exposed ? ZombieAtlas.SkBone : ZombieAtlas.SkBody;
-                Lf(jaw, new V3(0f, 0.012f * h, 0.004f * h), new V3(open, yaw, 0f), ring, 10, SK(cell), exposed ? 0.1f : 0.35f);
-                Add(BoneId.Head, "mandibula", SlotSkin, jaw, 2, false, true);
+                Lf(jaw, new V3(0f, 0.012f * h, 0.004f * h), default, ring, 10, SK(cell), exposed ? 0.1f : 0.35f);
+                if (_lod <= 2 && jaw.Data.Triangles.Count > 0)
+                    Result.Pieces.Add(new ZombiePiece { Bone = BoneId.Head, Extra = -1, Name = "Head mandibula", Slot = SlotSkin, Mesh = RotatedAbout(jaw.Data, pivot, euler), Pivot = default, Blend = false, Shadow = true });
                 if (_lod > 0) return;
-                // dientes: fila superior fija y fila inferior pegada a la mandíbula (cajas finas)
+                // dientes: fila superior fija (en la encía, delante del cráneo) y fila inferior que gira con la mandíbula
                 var teeth = new MeshBuilder();
                 for (int i = -2; i <= 2; i++)
                 {
-                    float x = i * 0.0125f * h, z = 0.082f * h - Math.Abs(i) * 0.0022f * h;
-                    teeth.Box(new V3(x, 0.066f * h, z), new V3(0.0105f * h, 0.013f * h - Math.Abs(i) * 0.0008f * h, 0.006f * h), new V3(0f, i * 6f, i % 2 == 0 ? 2f : -3f), 0f, SK(ZombieAtlas.SkBone), 0.03f);
+                    float x = i * 0.0125f * h, z = 0.108f * h - Math.Abs(i) * 0.0035f * h;
+                    teeth.Box(new V3(x, 0.058f * h, z), new V3(0.0105f * h, 0.014f * h - Math.Abs(i) * 0.0008f * h, 0.007f * h), new V3(0f, i * 6f, i % 2 == 0 ? 2f : -3f), 0f, SK(ZombieAtlas.SkBone), 0.03f);
                 }
                 Add(BoneId.Head, "dientes", SlotSkin, teeth, 0, false, false);
                 var lowerTeeth = new MeshBuilder();
                 for (int i = -2; i <= 2; i++)
                 {
-                    float x = i * 0.0125f * h, z = 0.081f * h - Math.Abs(i) * 0.0022f * h;
+                    float x = i * 0.0125f * h, z = 0.088f * h - Math.Abs(i) * 0.0035f * h;
                     if (broken && i == 1) continue;     // dientes que faltan
-                    lowerTeeth.Box(new V3(x, 0.032f * h, z), new V3(0.01f * h, 0.011f * h, 0.0055f * h), new V3(0f, i * 6f, 0f), 0f, SK(ZombieAtlas.SkBone), 0.03f);
+                    lowerTeeth.Box(new V3(x, 0.05f * h, z), new V3(0.01f * h, 0.012f * h, 0.006f * h), new V3(0f, i * 6f, 0f), 0f, SK(ZombieAtlas.SkBone), 0.03f);
                 }
-                                // los dientes de abajo siguen a la mandíbula: se giran con ella alrededor de la bisagra
-                Result.Pieces.Add(new ZombiePiece { Bone = BoneId.Head, Extra = -1, Name = "Head dientes inferiores", Slot = SlotSkin, Mesh = Rotated(lowerTeeth.Data, new V3(0f, 0.012f * h, 0.004f * h), new V3(open, yaw, 0f)), Pivot = default, Blend = false, Shadow = false });
+                Result.Pieces.Add(new ZombiePiece { Bone = BoneId.Head, Extra = -1, Name = "Head dientes inferiores", Slot = SlotSkin, Mesh = RotatedAbout(lowerTeeth.Data, pivot, euler), Pivot = default, Blend = false, Shadow = false });
+            }
+
+            /// <summary>Gira una malla alrededor de un punto (bisagra de la mandíbula).</summary>
+            private static MeshData RotatedAbout(MeshData m, V3 pivot, V3 euler)
+            {
+                var r = Mat3.Euler(euler); var o = new MeshData();
+                for (int i = 0; i < m.Positions.Count; i++)
+                {
+                    o.Positions.Add(pivot + r.Mul(m.Positions[i] - pivot)); o.Normals.Add(r.Mul(m.Normals[i]).Normalized); o.Tangents.Add(r.Mul(m.Tangents[i]).Normalized);
+                    o.TangentW.Add(m.WOf(i)); o.Uvs.Add(m.Uvs[i]);
+                }
+                foreach (int t in m.Triangles) o.Triangles.Add(t);
+                return o;
             }
 
             private static MeshData Rotated(MeshData m, V3 pos, V3 euler)
@@ -478,15 +492,19 @@ namespace SevenDays.Procedural
                 float F() => (float)r.NextDouble();
                 if (_v.hair == ZombieHairStyle.Tufts)
                 {
-                    // mechones sueltos sobre un cuero cabelludo con calvas
+                    // mechones sueltos: hebras cortas que salen del cuero cabelludo hacia fuera y abajo, con calvas entre ellas
                     int n = _lod == 0 ? 9 : 5;
                     for (int i = 0; i < n; i++)
                     {
                         double lon = (F() * 300.0 - 150.0) * Math.PI / 180.0;
-                        float lat = 35f + F() * 50f;
+                        float lat = 30f + F() * 55f;
                         double la = lat * Math.PI / 180.0;
-                        V3 at = new V3((float)(Math.Cos(la) * Math.Sin(lon)) * 0.098f * h, 0.106f * h + (float)Math.Sin(la) * 0.108f * h, (float)(Math.Cos(la) * Math.Cos(lon)) * 0.108f * h - 0.004f * h);
-                        hair.Lathe(at, new V3(-(float)(lat * 0.6), (float)(lon * 180.0 / Math.PI), 0f), SoldierModel.Ellipsoid((0.022f + 0.012f * F()) * h, (0.011f + 0.012f * F()) * h, 3), 5, 0.7f, true, true, SK(ZombieAtlas.SkHair), 0.06f);
+                        var nrm = new V3((float)(Math.Cos(la) * Math.Sin(lon)), (float)Math.Sin(la), (float)(Math.Cos(la) * Math.Cos(lon)));
+                        V3 at = new V3(nrm.X * 0.098f * h, 0.106f * h + nrm.Y * 0.108f * h, nrm.Z * 0.108f * h - 0.004f * h);
+                        V3 dir = (nrm + new V3(0f, -0.9f, 0f)).Normalized;   // cae por su peso
+                        double ex = Math.Acos(Math.Max(-1.0, Math.Min(1.0, dir.Y))), ey = Math.Atan2(dir.X, dir.Z);
+                        float len = (0.035f + 0.035f * F()) * h;
+                        hair.Loft(at, new V3((float)(ex * 180.0 / Math.PI), (float)(ey * 180.0 / Math.PI), 0f), new[] { 0f, 0.011f * h, 0.011f * h, 0f, 0f, len * 0.5f, 0.007f * h, 0.007f * h, 0f, 0f, len, 0.0015f * h, 0.0015f * h, 0f, 0f }, 5, true, true, SK(ZombieAtlas.SkHair), 0.06f);
                     }
                 }
                 else
