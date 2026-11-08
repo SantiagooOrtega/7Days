@@ -71,22 +71,10 @@ namespace SevenDays.UI
             Fill(new Rect(bar.x, bar.y, bar.width * pct, bar.height), Color.Lerp(new Color(0.8f, 0.1f, 0.1f), new Color(0.3f, 0.8f, 0.3f), pct));
             GUI.Label(new Rect(bar.x, bar.y - 40, 420, 36), "VIDA  " + Mathf.CeilToInt(_health.Current), _label);
 
-            // Arma, rareza y munición de su tipo (la reserva es compartida por todas las armas del mismo tipo)
+            // El arma activa, la barra de ranuras con iconos, la munición y el modo de disparo los dibuja WeaponHud (uGUI).
             var wpn = _shooting.Current;
             var d = wpn.Data;
-            var rc = WeaponCatalog.RarityColor(d.rarity);
-            Color prevC = GUI.color;
-            GUI.color = new Color(rc[0], rc[1], rc[2]);
-            GUI.Label(new Rect(w - 660, h - 170, 600, 40), d.displayName + "  (" + WeaponCatalog.RarityName(d.rarity) + ")", new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
-            GUI.color = prevC;
             int reserve = _shooting.CurrentReserve;
-            if (d.IsMelee) GUI.Label(new Rect(w - 560, h - 130, 500, 70), "—", _big);
-            else GUI.Label(new Rect(w - 560, h - 130, 500, 70), wpn.Magazine + " / " + reserve, _big);
-            if (!d.IsMelee)
-                GUI.Label(new Rect(w - 860, h - 118, 280, 40), SevenDays.Procedural.FireModes.Label(_shooting.FireControl.Mode) + (d.fireModes != null && d.fireModes.Length > 1 ? "  [X]" : ""), new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontSize = 22 });
-            if (!d.IsMelee)
-                GUI.Label(new Rect(w - 560, h - 60, 500, 36), "reserva de " + PlayerInventory.AmmoName(d.ammoType) + " (máx. " + _inventory.Ammo.Max(d.ammoType) + ")", new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontSize = 20 });
-            DrawSlots(w, h);
             DrawInventoryLine(w, h);
 
             if (_shooting.Reloading)
@@ -154,20 +142,6 @@ namespace SevenDays.UI
             {
                 Fill(new Rect(0, 0, w, h), new Color(0.4f, 0, 0, 0.5f));
                 GUI.Label(new Rect(0, h / 2 - 60, w, 120), "HAS MUERTO\nPulsa R para reiniciar", _center);
-            }
-        }
-
-        private void DrawSlots(float w, float h)
-        {
-            var list = _inventory.Weapons;
-            for (int i = 0; i < list.Count; i++)
-            {
-                var rc = WeaponCatalog.RarityColor(list[i].Data.rarity);
-                bool cur = list[i] == _shooting.Current;
-                Color prev = GUI.color;
-                GUI.color = cur ? new Color(rc[0], rc[1], rc[2]) : new Color(rc[0], rc[1], rc[2], 0.55f);
-                GUI.Label(new Rect(w - 660, h - 215 - (list.Count - 1 - i) * 30, 600, 30), (i + 1) + "  " + list[i].Data.displayName, new GUIStyle(_label) { alignment = TextAnchor.MiddleRight, fontSize = cur ? 24 : 20, fontStyle = cur ? FontStyle.Bold : FontStyle.Normal });
-                GUI.color = prev;
             }
         }
 
