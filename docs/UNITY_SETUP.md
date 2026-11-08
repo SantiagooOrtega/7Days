@@ -765,3 +765,29 @@ F3 pasa de nivel a mano.
    en la build, mismas resoluciones (ventana o pantalla completa), F6.
 6. **Banco de pruebas en batch:** Window > General > Test Runner > PlayMode > `RenderBenchmark` (es [Explicit]: se lanza a mano). Escribe en la consola una
    tabla de ms por resolución y nivel.
+
+## Skins procedurales: jugador y armas (SKINS_ARTE.md, bloques A y B)
+**Qué hay:** el soldado se viste con un modelo por piezas (uniforme con camuflaje woodland oscuro, chaleco ligero con tres portacargadores, radio con antena,
+correas, velcro y hebillas, hombreras finas, coderas, rodilleras, guantes con nudillos reforzados, cinturón con bolsa, funda de pistola en el muslo y botas
+con cordones) y la cabeza de su variante: **Calavera** (casco tipo FAST con cubierta de tela, rieles, montura de visión nocturna levantada, orejeras con
+micrófono, placa calavera con relieve propio y visor ahumado con un leve brillo), **Explorador** (gorra con cascos de radio, gafas y pañuelo, camuflaje claro),
+**Médico** (casco con parches de cruz propia, gafas, pañuelo y brazalete) y **Francotirador** (capucha con red y velo). Cada variante es un ScriptableObject en
+`Resources/Config/Variants` (paleta, cabeza y estadísticas, ver docs/BALANCE.md). 4 materiales URP Lit por soldado con atlas generados en hilos: color y
+máscara en BC, normales sin comprimir a media resolución. Las armas son piezas detalladas sobre un atlas compartido con un acento de color por rareza
+(común hueso, poco común oliva, rara azul acero, épica naranja óxido); la mira real (alza y guion, punto rojo o visor telescópico) da el SightPoint del ADS.
+
+**Medido (pruebas en el Test Runner real):** Calavera 11 968 triángulos y 4 materiales (Explorador 8 244, Médico 9 608, Francotirador 8 428, con 3); armas de
+192 (barra) a 2 276 (fusil) triángulos; texturas por variante ~24 MB en GPU (casco 2048 en color y máscara, normales 1024; uniforme y equipo 1024 y 512) y
+~2 s de generación en segundo plano por variante; banco de render (Apple M3, calidad Alta a escala 1.0) dentro del ruido del anterior: 1080p 12.1–13.7 ms
+(antes 12.4–13.3), 1440p 17.5–18.6 ms (antes ~17.1).
+
+1. Deja que Unity compile. Se crean solos `Resources/Config/Variants/*.asset` (variantes) y `Resources/Look/VariantKeepers/*.mat` (para que la build conserve
+   las variantes de shader de los materiales creados por código; menú 7Days > Crear materiales guardavariantes si faltan).
+2. Test Runner > EditMode > Run All: `SoldierArtTests` (presupuesto, materiales, texturas comprimidas) y `WeaponArtTests` (presupuesto, SightPoint en la
+   línea de mira, piezas animadas); siguen las de piernas y agarre.
+3. Play. Al empezar, el soldado se ve unos segundos con colores lisos mientras se generan sus texturas y después "se viste" (no se congela nada).
+4. **F6** > "Variante": Calavera, Explorador, Médico o Francotirador. Cambia ropa, cabeza, colores y estadísticas al momento (la vida se rellena) y queda guardada.
+   Debajo verás vida, velocidad, curación, balanceo y triángulos. Para cambiar colores o estadísticas sin código: edita el asset de la variante.
+5. **F7**: el ciclo enseña cada arma de cerca (sin apuntar, apuntando, recargando) y al soldado de frente y de lado.
+6. Panel Render de F6: compara GPU ms con la ventana grande con lo de antes (debería ser igual o casi).
+7. Capturas que necesito (Cmd+Shift+5): cada variante de frente, de lado y de espalda; el casco calavera de cerca; cada arma de cerca.

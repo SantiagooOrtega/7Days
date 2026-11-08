@@ -141,3 +141,13 @@ Los valores van en el ScriptableObject de cada arma (`Resources/Weapons/*.asset`
 - **La munición entra en el momento real de la animación**, no al final: cargador (pistola, subfusil, fusil) al 65 % del `reloadTime` (cargador nuevo); revólver al 62 % (meter las balas); francotirador al 62 % (cargador nuevo, con el cerrojo abierto entre el 12 y el 85 %). Cancelar antes (cambiar de arma) no da nada. La duración total no cambia.
 - **Escopeta cartucho a cartucho**: 0.25 s de inicio + un cartucho cada (3.2 − 0.55) / 6 ≈ 0.44 s + 0.3 s final con bombeo. Solo carga los que faltan (con 2 que faltan tarda ~1.4 s en vez de 3.2). Si disparas durante la recarga con algún cartucho ya dentro, deja de recargar y dispara; los cartuchos metidos se quedan.
 - **Cuerpo a cuerpo**: el daño se aplica en el impacto de la animación (0.14 s tras el clic en el golpe normal), no al pulsar. **Golpe cargado**: mantén el clic 0.45 s y suelta: daño x1.75 (barra: 38 → 66.5, dos golpes al cuerpo de un zombi común en vez de tres), empuje x1.5, impacto a 0.31 s y espera x1.6 antes del siguiente. Golpes seguidos alternan el lado (combo).
+
+## Variantes jugables (`Procedural/CharacterVariant.cs`, ScriptableObject en `Resources/Config/Variants`)
+La Calavera es la referencia; las demás cambian poco para no romper el balance de los días (el director no las distingue).
+| Variante | Vida | Velocidad | Curación (botiquín/venda) | Balanceo del arma |
+|----------|------|-----------|---------------------------|-------------------|
+| Calavera | 100 | ×1.00 | ×1.00 | ×1.00 |
+| Explorador | 90 | ×1.05 | ×1.00 | ×1.00 |
+| Médico | 100 | ×1.00 | ×1.30 | ×1.00 |
+| Francotirador | 95 | ×1.00 | ×1.00 | ×0.80 |
+Rangos válidos (Validate): vida 60-140, velocidad 0.85-1.15, curación 0.5-1.6, balanceo 0.5-1.5. Cambiar de variante en F6 rellena la vida al nuevo máximo.
