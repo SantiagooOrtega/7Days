@@ -811,3 +811,28 @@ dispara). Se mantiene el resto del HUD (vida, vendas, botiquines, reserva por ti
 
 **Arena:** se quitaron los blancos de práctica (cápsulas naranjas), `TargetDummy` y su entrada en la auditoría. La zona libre que ocupaban sigue sin vegetación para no
 mover lo ya repartido. Para probar el daño, usa zombis reales (Z). La auditoría de colisiones del Unity real da 154/154 sin avisos.
+
+## Selector vertical y cuerpo musculoso
+**Selector de armas vertical:** columna compacta en el borde derecho (a ~600 px del suelo a 1080p): iconos de 72×36 px las inactivas y 100×50 la activa (×1.39),
+que además se desplaza 18 px a la izquierda, tiene el color de su rareza y un leve brillo; las demás, semitransparentes; las vacías, un marco tenue. Munición
+(cargador / reserva) y modo de disparo, justo debajo de la columna, fijos; el nombre aparece 1.5 s a la izquierda de la activa. Animación con muelle crítico. Teclas
+1-5, rueda del ratón y rueda radial (mantén Tab) como antes. Las pruebas comprueban que la activa es mayor y que ninguna ranura (ni la munición, el modo o el nombre)
+se solapa, tampoco a mitad de un cambio.
+
+**Cuerpo musculoso unido al torso (diagnóstico medido):** cortando las mallas por planos horizontales, el hueco entre brazo y torso era de 3.3 cm en la cintura, 2–3 cm
+en el antebrazo y 3 cm sobre el hombro, donde no había nada que tapara la unión; en el juego, la pose libre del IK separaba la mano otros 5 cm. Ahora:
+- **Formas anatómicas por código** (anillos elípticos descentrados, `MeshBuilder.Loft`): deltoides redondeado, bíceps y tríceps, antebrazo que se ensancha cerca del
+  codo y se estrecha en la muñeca; glúteo y cuádriceps, rodilla definida (rótula), pantorrilla con gemelo y tobillo fino; pectoral hacia delante y V suave; trapecio entre el
+  cuello y el hombro; hombrera que cubre el deltoides con la base en el eje del hombro. Todo parentado a sus huesos con el pivote en cada articulación.
+- **Pliegues de tela** (mapa de normales) en codos y rodillas: bandas de crestas onduladas que se concentran en el pliegue interior de la articulación.
+- **Grosor:** brazos y piernas +10.5 % sobre la versión anterior (`limbThickness` 0.905 → 1.0) con las formas musculares encima. Hombros y cadera siguen al grosor de la
+  variante (Calavera ×1.04: hombros 0.50; las demás 0.48 ×su grosor) para que el hueco no cambie de una a otra. Alto total, largo de huesos, cámara y pies sin cambios.
+- **Brazo libre pegado al costado** (la mano cuelga 2 cm hacia dentro del hombro en vez de 5 cm hacia fuera) y **codos al sostener un arma** abajo y algo hacia fuera.
+- **Medido** (Test Runner real, soldado con sus mallas): hueco brazo-torso en reposo ≤ 0.5 cm y solape ≤ 1.6 cm (las 4 variantes); en los huesos de referencia ≤ 1.0 cm de hueco.
+  Brazos contra el chaleco apuntando y en cobertura ≤ 1.7 cm; el brazo de apoyo del francotirador y del subfusil se hunde 4.2 y 2.9 cm en la tela del pecho al apuntar
+  (el torso va girado 30°; el límite de la prueba es 4.5 cm), sin tocar las piezas del chaleco más de 1.6 cm.
+- **Triángulos por variante:** Calavera 13 196, Explorador 9 472, Médico 10 836, Francotirador 9 656 (límite 15 000). Banco de render sin cambios (1080p ≈ 13.5 ms, 1440p ≈ 18 ms).
+
+1. En **F6 > Complexión**: hombros, cadera, grosor general, torso, **brazos y piernas** y cabeza; "Aplicar complexión" reconstruye al momento. Los valores por defecto están
+   en `Resources/Config/ProportionSettings` (versión 3; los assets antiguos con los valores de fábrica de la esbelta o de la fuerte se migran solos al cargarlos).
+2. Compara de frente, de lado y de espalda con los brazos en reposo y apuntando (F7 recorre las armas y luego el soldado de frente y de lado).
