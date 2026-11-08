@@ -859,6 +859,6 @@ animación, hitboxes pegados a los huesos, heridas por cuartos de vida, emerger 
 abierto) y la IA en la arena real en `ZombieBehaviourTests` (PlayMode): persigue y golpea, muere de un headshot, el pool reutiliza el cuerpo, el explosivo detona, el lanzador lanza y el pool lleno reconstruye el cuerpo
 al cambiar de tipo. Las capturas se hicieron renderizando con URP en modo batch (`ZombieShowcase`, [Explicit]).
 
-**Carga con 30 zombis** (`ZombieLoadTest`, Apple M3, arena real, 1080p, resolución dinámica y gobernador de calidad vigentes): render del frame completo sin zombis ~13.2 ms y con 30 zombis ~14.9 ms (mejor de 3): el coste
-de dibujar los 30 es ~1.1 ms (de ellos ~0.8 ms las sombras de los que están cerca, ~0.4 ms los decals de heridas), con 13 en LOD 0 y 17 en LOD 1 (~115 k triángulos). La animación de los 31 rigs cuesta ~0.06 ms de CPU por frame
+**Carga con 30 zombis** (`ZombieLoadTest`, Apple M3, arena real, 1080p, resolución dinámica y gobernador de calidad vigentes): render del frame completo sin zombis ~13.6 ms y con 30 zombis ~14.7 ms (mediana de 30 renders): el coste
+de dibujar los 30 es ~1.1 ms (desglose, mejor de 3: unos 1.7 ms en total sobre el frame sin zombis, ~0.4 ms los decals de heridas y poco las sombras de los que están cerca), con 13 en LOD 0 y 17 en LOD 1 (~120 k triángulos). La animación de los 31 rigs cuesta ~0.06 ms de CPU por frame
 en total. El frame de la ventana va a 60 FPS (el tope del v-sync en modo batch); el margen real depende de tu Mac y de la resolución dinámica.

@@ -145,7 +145,7 @@ namespace SevenDays.Procedural
             float sockets = 0f;
             foreach (float sx in new[] { -0.058f, 0.058f })
             {
-                float d = (float)Math.Sqrt(((du - sx) / 0.045f) * ((du - sx) / 0.045f) + ((v - 0.545f) / 0.1f) * ((v - 0.545f) / 0.1f));
+                float d = (float)Math.Sqrt(((du - sx) / 0.05f) * ((du - sx) / 0.05f) + ((v - 0.463f) / 0.09f) * ((v - 0.463f) / 0.09f));   // v del loft del cráneo = longitud de arco: los ojos (y = 0.118) caen en 0.463
                 sockets = Math.Max(sockets, Smooth(1.5f, 0.6f, d));
             }
             o.Color = Rgb.Lerp(o.Color, new Rgb(0.22f, 0.13f, 0.17f), sockets * 0.75f);
