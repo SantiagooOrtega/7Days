@@ -38,7 +38,7 @@ En Unity:
 ## Qué revisar al probar
 1. Se mueve el jugador y la cámara va sobre el hombro derecho.
 2. Clic derecho: la cámara se acerca y la mira se cierra.
-3. Disparar a los blancos rojos: parpadean, mueren y reaparecen a los 4 s.
+3. Disparar a los zombis (tecla Z): reciben daño por zona y mueren.
 4. Munición baja en el HUD; recargar con R; cambiar a pistola con 2.
 5. Acércate a una caja o muro bajo y pulsa C: te agachas pegado a él; A/D te desliza y se detiene en los bordes.
 6. En cobertura, clic derecho te asoma para disparar por encima.
@@ -98,7 +98,7 @@ El look era demasiado oscuro. Cambios:
 - **Niebla y fondo:** gris azulado medio (antes casi negro) y densidad a la mitad (0.008).
 - **Post-procesado:** contraste de 28 a 14, saturación de -38 a -30 (sigue desaturado), viñeta 0.22 (tope 0.25).
 - **Texturas:** la paleta base es ~30% más clara y además escala con el brillo global. El asfalto sigue siendo lo más oscuro y la suciedad se mantiene.
-- **Jugador legible:** cuerpo y casco claros, franja y mochila naranjas, más una luz de contorno fría (`RimLight`) delante del jugador. Los blancos de práctica tienen cuerpo rojo claro, cabeza pálida y ojos brillantes.
+- **Jugador legible:** cuerpo y casco claros, franja y mochila naranjas, más una luz de contorno fría (`RimLight`) delante del jugador.
 - **Cajas y contenedores:**
   - Caja de madera: marco, tablas con veta, riostra diagonal, tornillos, nudos, marcas estarcidas, bordes gastados y manchas.
   - Caja de cartón: cinta, solapa, etiqueta, flechas, manchas de agua y esquinas aplastadas.
@@ -354,7 +354,7 @@ Si el jugador se queda dentro del radio de un fuego recibe `Fire.BurnDps` de da�
 |--------|----------|
 | Árboles muertos | **Capsule** de tronco |
 | Coches, cajas, muros, barreras, contenedores, pilares, vigas, techos, piso y marcos de la casa, muebles | **Box** |
-| Barriles, tuberías, postes de farola, poste caído, blancos de práctica | **Capsule** |
+| Barriles, tuberías, postes de farola, poste caído | **Capsule** |
 | Arbustos **grandes** (matorral con escala ≥ 1.1) | **Sphere** |
 | Hierba, arbustos pequeños, neumáticos, bolsas, escombros, postes finos de señal, skyline | **ninguno** (no frenan al jugador) |
 

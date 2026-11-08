@@ -64,7 +64,6 @@ namespace SevenDays.Procedural
             new SolidSpec { Name = "Pipe", Solid = true, Shape = ColliderShape.Capsule, Reason = "tuberías" },
             new SolidSpec { Name = "Car Wreck", Solid = true, Shape = ColliderShape.Box, Reason = "coches" },
             new SolidSpec { Name = "Fallen Pole", Solid = true, Shape = ColliderShape.Capsule, Reason = "poste caído" },
-            new SolidSpec { Name = "Dummy", Solid = true, Shape = ColliderShape.Capsule, Reason = "blancos de práctica" },
             // --- no sólidos
             new SolidSpec { Name = "Road", Exact = true, Solid = false, Shape = ColliderShape.None, Reason = "asfalto fino sobre el piso (el piso ya colisiona)" },
             new SolidSpec { Name = "Rubble", Solid = false, Shape = ColliderShape.None, Reason = "escombros pequeños: no deben frenar al jugador" },
