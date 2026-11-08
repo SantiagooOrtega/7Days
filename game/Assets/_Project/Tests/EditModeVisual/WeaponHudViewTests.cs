@@ -59,8 +59,11 @@ namespace SevenDays.Tests.Visual
             Bar.Set(4, 2, instant: true);
             Tick(1f);
             float wActive = SlotRect(2).sizeDelta.x, wOther = SlotRect(1).sizeDelta.x;
-            Assert.Greater(wActive, wOther * 1.4f, "la activa se agranda");
-            Assert.Greater(SlotRect(2).sizeDelta.y, SlotRect(3).sizeDelta.y * 1.4f);
+            Assert.Greater(wActive, wOther * 1.3f, "la activa se agranda (~1.4x)");
+            Assert.Greater(SlotRect(2).sizeDelta.y, SlotRect(3).sizeDelta.y * 1.3f);
+            Assert.AreEqual(72f, wOther, 0.5f); Assert.AreEqual(36f, SlotRect(1).sizeDelta.y, 0.5f);
+            Assert.AreEqual(100f, wActive, 1f); Assert.AreEqual(50f, SlotRect(2).sizeDelta.y, 1f);
+            Assert.Less(SlotRect(2).anchoredPosition.x, SlotRect(1).anchoredPosition.x - 10f, "la activa se desplaza a la izquierda");
             Assert.Greater(Glow(2), 0.2f, "brillo en la activa"); Assert.AreEqual(0f, Glow(1), 0.01f); Assert.AreEqual(0f, Glow(0), 0.01f);
             Assert.AreEqual(1f, IconAlpha(2), 0.01f); Assert.AreEqual(WeaponBarState.InactiveAlpha, IconAlpha(1), 0.02f, "las demás, semitransparentes");
             Assert.AreEqual(WeaponBarState.EmptyAlpha, IconAlpha(4), 0.02f, "ranura vacía tenue");
@@ -88,12 +91,44 @@ namespace SevenDays.Tests.Visual
                 float cur = SlotRect(3).sizeDelta.x; maxStep = Mathf.Max(maxStep, Mathf.Abs(cur - prev)); prev = cur;
             }
             Assert.Less(maxStep, 8f, "crece sin saltos (px de referencia por frame)");
-            Assert.Greater(SlotRect(3).sizeDelta.x, SlotRect(0).sizeDelta.x * 1.4f, "ahora la grande es la 4");
+            Assert.Greater(SlotRect(3).sizeDelta.x, SlotRect(0).sizeDelta.x * 1.3f, "ahora la grande es la 4");
             Assert.Greater(Glow(3), 0.2f); Assert.AreEqual(0f, Glow(0), 0.02f);
             Assert.AreEqual("30 / 90", Prop<string>("AmmoText")); Assert.AreEqual("Fusil de asalto", Prop<string>("NameText"));
             // el nombre se vio ~1.5 s y se fue
             Tick(0.2f); Assert.Greater(Prop<float>("NameAlpha"), 0.9f, "a ~1.2 s aún se ve entero");
             Tick(0.6f); Assert.AreEqual(0f, Prop<float>("NameAlpha"), 0.01f, "pasados 1.5 s se oculta");
+        }
+
+        private static Rect World(RectTransform r)
+        {
+            var c = new Vector3[4]; r.GetWorldCorners(c);
+            return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y);
+        }
+
+        [Test]
+        public void NoSlotOverlaps_AndAmmoModeAndNameStayClearOfTheColumn_EvenWhileSwitching()
+        {
+            Slots(WeaponCatalog.Defaults().GetRange(0, 5));
+            Bar.Set(5, 0, instant: true); Tick(0.3f);
+            _vt.GetMethod("SetTexts").Invoke(_view, new object[] { "30 / 120", "AUTO  [X]", "Fusil de asalto" });
+            var ammo = (RectTransform)_vt.GetProperty("AmmoRect").GetValue(_view); var mode = (RectTransform)_vt.GetProperty("ModeRect").GetValue(_view); var name = (RectTransform)_vt.GetProperty("NameRect").GetValue(_view);
+            foreach (int target in new[] { 4, 2, 0, 3 })
+            {
+                Bar.Set(5, target);
+                for (int f = 0; f < 45; f++)
+                {
+                    Tick(1f / 60f);
+                    for (int i = 0; i < 5; i++)
+                    {
+                        var a = World(SlotRect(i));
+                        for (int j = i + 1; j < 5; j++) Assert.IsFalse(a.Overlaps(World(SlotRect(j))), "las ranuras " + (i + 1) + " y " + (j + 1) + " se solapan (cambiando a " + (target + 1) + ", frame " + f + ")");
+                        Assert.IsFalse(a.Overlaps(World(ammo)), "la munición pisa la ranura " + (i + 1));
+                        Assert.IsFalse(a.Overlaps(World(mode)), "el modo pisa la ranura " + (i + 1));
+                        if (i != target) Assert.IsFalse(a.Overlaps(World(name)), "el nombre pisa la ranura " + (i + 1));
+                    }
+                    Assert.IsFalse(World(ammo).Overlaps(World(mode)), "munición y modo se solapan");
+                }
+            }
         }
 
         [Test]

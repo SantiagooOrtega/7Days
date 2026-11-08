@@ -5,16 +5,18 @@ using SevenDays.Procedural;
 namespace SevenDays.UI
 {
     /// <summary>
-    /// Vista uGUI del selector de armas (diseño propio): barra compacta abajo a la derecha con el icono de cada arma y su número de tecla; la activa se agranda, se
-    /// resalta con el color de su rareza y un leve brillo, las demás quedan semitransparentes y las vacías con un marco tenue. Debajo de la activa, solo la
-    /// munición (cargador / reserva) y el modo de disparo; el nombre aparece 1.5 s al cambiar. La rueda radial (Tab) muestra los iconos grandes en círculo.
+    /// Vista uGUI del selector de armas (diseño propio): columna vertical compacta en el borde derecho con el icono de cada arma y su número de tecla; la activa se
+    /// agranda (~1.4x), se desplaza a la izquierda y se resalta con el color de su rareza y un leve brillo; las demás quedan pequeñas y semitransparentes y las vacías
+    /// con un marco tenue. Justo debajo de la columna, solo la munición (cargador / reserva) y el modo de disparo; el nombre aparece 1.5 s a la izquierda de la activa
+    /// al cambiar. La rueda radial (Tab) muestra los iconos grandes en círculo.
     /// Canvas con Scale With Screen Size (referencia 1920x1080): resolución independiente. Sin alocaciones por frame: los textos solo se reasignan si cambian y
     /// todo lo demás son colores y rectángulos. No sabe nada del juego: lo alimenta WeaponHud (o las pruebas).
     /// </summary>
     public class WeaponHudView : MonoBehaviour
     {
         public static readonly Vector2 Reference = new Vector2(1920f, 1080f);
-        public const float MarginRight = 48f, BarBottom = 150f, WheelRadius = 250f;
+        public const float MarginRight = 36f, ColumnTop = 600f, WheelRadius = 250f;   // ColumnTop: altura (desde abajo) de lo alto de la columna a 1080p
+        public const float AmmoGap = 14f;
 
         public WeaponBarState Bar { get; } = new WeaponBarState();
         public Canvas Canvas { get; private set; }
@@ -72,17 +74,22 @@ namespace SevenDays.UI
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 1f;   // como el resto del HUD: manda la altura
 
-            BarRoot = Rect("Barra", transform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f));
-            BarRoot.anchoredPosition = new Vector2(-MarginRight, BarBottom);
+            BarRoot = Rect("Columna", transform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f));
+            BarRoot.anchoredPosition = new Vector2(-MarginRight, ColumnTop);
             for (int i = 0; i < _slots.Length; i++) _slots[i] = BuildSlot(i);
 
             _name = Label("Nombre", BarRoot, 30, FontStyle.Bold, TextAnchor.LowerRight);
-            var nr = _name.rectTransform; nr.anchorMin = nr.anchorMax = new Vector2(1f, 0f); nr.pivot = new Vector2(1f, 0f);
-            nr.sizeDelta = new Vector2(560f, 40f);
+            _name.alignment = TextAnchor.MiddleRight;
+            var nr = _name.rectTransform; nr.anchorMin = nr.anchorMax = new Vector2(1f, 1f); nr.pivot = new Vector2(1f, 0.5f);
+            nr.sizeDelta = new Vector2(520f, 40f);
             _ammo = Label("Munición", transform, 46, FontStyle.Bold, TextAnchor.UpperCenter);
-            _ammoRect = _ammo.rectTransform; _ammoRect.anchorMin = _ammoRect.anchorMax = new Vector2(1f, 0f); _ammoRect.pivot = new Vector2(0.5f, 1f); _ammoRect.sizeDelta = new Vector2(260f, 56f);
+            _ammo.alignment = TextAnchor.UpperRight;
+            _ammoRect = _ammo.rectTransform; _ammoRect.anchorMin = _ammoRect.anchorMax = new Vector2(1f, 0f); _ammoRect.pivot = new Vector2(1f, 1f); _ammoRect.sizeDelta = new Vector2(260f, 56f);
             _mode = Label("Modo", transform, 22, FontStyle.Normal, TextAnchor.UpperCenter);
-            _modeRect = _mode.rectTransform; _modeRect.anchorMin = _modeRect.anchorMax = new Vector2(1f, 0f); _modeRect.pivot = new Vector2(0.5f, 1f); _modeRect.sizeDelta = new Vector2(260f, 30f);
+            _mode.alignment = TextAnchor.UpperRight;
+            _modeRect = _mode.rectTransform; _modeRect.anchorMin = _modeRect.anchorMax = new Vector2(1f, 0f); _modeRect.pivot = new Vector2(1f, 1f); _modeRect.sizeDelta = new Vector2(260f, 30f);
+            _ammoRect.anchoredPosition = new Vector2(-MarginRight, ColumnTop - WeaponBarState.ColumnHeight - AmmoGap);
+            _modeRect.anchoredPosition = new Vector2(-MarginRight, ColumnTop - WeaponBarState.ColumnHeight - AmmoGap - 56f);
 
             BuildWheel();
             ApplyEmpty();
@@ -91,7 +98,7 @@ namespace SevenDays.UI
         private Slot BuildSlot(int i)
         {
             var s = new Slot();
-            s.Rect = Rect("Ranura " + (i + 1), BarRoot, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f));
+            s.Rect = Rect("Ranura " + (i + 1), BarRoot, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f));
             s.Back = Img("Fondo", s.Rect, new Color(0f, 0f, 0f, 0.38f));
             s.Glow = Img("Brillo", s.Rect, new Color(1f, 1f, 1f, 0f));
             s.Stripe = Img("Franja", s.Rect, Color.white);
@@ -100,7 +107,7 @@ namespace SevenDays.UI
             go.transform.SetParent(s.Rect, false);
             s.Icon = go.GetComponent<RawImage>(); s.Icon.raycastTarget = false;
             s.IconRect = s.Icon.rectTransform; Stretch(s.IconRect, 4f);
-            s.Number = Label("Número", s.Rect, 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            s.Number = Label("Número", s.Rect, 14, FontStyle.Bold, TextAnchor.UpperLeft);
             Stretch(s.Number.rectTransform, 6f);
             s.Number.text = (i + 1).ToString();
             return s;
@@ -156,6 +163,9 @@ namespace SevenDays.UI
         public Color RarityOf(int slot) => _rarity[slot];
         public float GlowAlpha(int slot) => _slots[slot].Glow.color.a;
         public float IconAlpha(int slot) => _slots[slot].Icon.color.a;
+        public RectTransform AmmoRect => _ammoRect;
+        public RectTransform ModeRect => _modeRect;
+        public RectTransform NameRect => _name.rectTransform;
         public string AmmoText => _ammo.text;
         public string ModeText => _mode.text;
         public string NameText => _name.text;
@@ -189,7 +199,7 @@ namespace SevenDays.UI
             {
                 var s = _slots[i]; var r = _rects[i];
                 float hl = Mathf.Clamp01(Bar.Highlight[i]);
-                s.Rect.anchoredPosition = new Vector2(-r.Right, 0f);
+                s.Rect.anchoredPosition = new Vector2(-r.Shift, -r.Top);
                 s.Rect.sizeDelta = new Vector2(r.Width, r.Height);
                 Color rc = _rarity[i];
                 bool has = _occupied[i];
@@ -201,21 +211,15 @@ namespace SevenDays.UI
                 s.Glow.color = new Color(rc.r, rc.g, rc.b, has ? hl * 0.28f * pulse : 0f);
                 s.Stripe.color = new Color(rc.r, rc.g, rc.b, has ? Mathf.Lerp(0.25f, 1f, hl) * (hl > 0.01f || has ? 1f : 0f) : 0f);
                 s.Number.color = new Color(1f, 1f, 1f, Mathf.Lerp(0.55f, 1f, hl) * (has ? 1f : 0.45f));
-                s.Number.fontSize = hl > 0.5f ? 24 : 20;
+                s.Number.fontSize = hl > 0.5f ? 17 : 14;
             }
-            // munición y modo debajo del icono activo
-            if (Bar.Count > 0)
-            {
-                var a = _rects[Bar.Active];
-                float cx = -(MarginRight + a.CenterFromRight);
-                _ammoRect.anchoredPosition = new Vector2(cx, BarBottom - 8f);
-                _modeRect.anchoredPosition = new Vector2(cx, BarBottom - 62f);
-            }
+            // munición y modo fijos justo debajo de la columna (su sitio no se mueve, así no saltan al cambiar de arma)
             _ammo.color = Color.white;
             _mode.color = new Color(1f, 1f, 1f, 0.75f);
             Color nc = Bar.Count > 0 ? _rarity[Bar.Active] : Color.white;
             _name.color = new Color(nc.r, nc.g, nc.b, Bar.NameAlpha);
-            _name.rectTransform.anchoredPosition = new Vector2(0f, _rects[Bar.Active].Height + 14f);   // sobre la ranura activa, alineado a la derecha de la barra
+            var act = _rects[Bar.Active];
+            _name.rectTransform.anchoredPosition = new Vector2(-(act.Shift + act.Width + 14f), -act.CenterY);   // a la izquierda de la ranura activa
 
             // rueda radial: se funde al abrir y cerrar
             float target = _wheelOpen ? 1f : 0f;
