@@ -28,7 +28,6 @@ namespace SevenDays.Procedural
         public int seed = 1;
         public float[] skinTone = { 1f, 1f, 1f };          // multiplica el color de piel de la textura del tipo
         public float[] clothTone = { 1f, 1f, 1f };         // multiplica el color de la ropa
-        public float[] hairColor = { 0.12f, 0.1f, 0.08f };
         public float[] eyeTint = { 0.75f, 0.8f, 0.6f };    // brillo tenue del ojo con velo lechoso
         public float eyeGlow = 0.18f;                      // 0..1
         public float grime = 0.5f;                         // 0..1 suciedad general (oscurece la ropa)
@@ -112,12 +111,11 @@ namespace SevenDays.Procedural
     public static class ZombieVariants
     {
         private static ZombieVariantData V(string id, string type, string name, ZombieHeadStyle head, ZombieHairStyle hair, ZombieClothing cloth, ZombieFootwear feet, int seed,
-            float[] skin = null, float[] clothTone = null, float[] hairColor = null, ZombieArmor armor = ZombieArmor.None, float grime = 0.5f, float blood = 0.4f, float eyeGlow = 0.18f, float[] eye = null)
+            float[] skin = null, float[] clothTone = null, ZombieArmor armor = ZombieArmor.None, float grime = 0.5f, float blood = 0.4f, float eyeGlow = 0.18f, float[] eye = null)
         {
             var v = new ZombieVariantData { id = id, typeId = type, displayName = name, head = head, hair = hair, clothing = cloth, footwear = feet, seed = seed, armor = armor, grime = grime, bloodiness = blood, eyeGlow = eyeGlow };
             if (skin != null) v.skinTone = skin;
             if (clothTone != null) v.clothTone = clothTone;
-            if (hairColor != null) v.hairColor = hairColor;
             if (eye != null) v.eyeTint = eye;
             return v;
         }
@@ -130,17 +128,17 @@ namespace SevenDays.Procedural
             var bare = ZombieFootwear.Bare; var boots = ZombieFootwear.BrokenBoots;
             return new List<ZombieVariantData>
             {
-                V("common_shirt", ZombieIds.Common, "Zombi con camisa", H, Tufts, ZombieClothing.Shirt, bare, 11, clothTone: new[] { 0.95f, 0.9f, 0.85f }, hairColor: new[] { 0.14f, 0.11f, 0.08f }),
+                V("common_shirt", ZombieIds.Common, "Zombi con camisa", H, Tufts, ZombieClothing.Shirt, bare, 11, clothTone: new[] { 0.95f, 0.9f, 0.85f }),
                 V("common_lab", ZombieIds.Common, "Zombi con bata", JB, Bald, ZombieClothing.LabCoat, bare, 12, skin: new[] { 0.95f, 1f, 0.95f }, blood: 0.7f, eyeGlow: 0.22f),
-                V("common_suit", ZombieIds.Common, "Zombi con traje", S, Matted, ZombieClothing.Suit, boots, 13, hairColor: new[] { 0.2f, 0.19f, 0.17f }, grime: 0.7f),
+                V("common_suit", ZombieIds.Common, "Zombi con traje", S, Matted, ZombieClothing.Suit, boots, 13, grime: 0.7f),
                 V("common_work", ZombieIds.Common, "Zombi de obra", JE, Tufts, ZombieClothing.Workwear, boots, 14, skin: new[] { 1f, 0.95f, 0.92f }, blood: 0.6f, grime: 0.8f),
 
-                V("runner_rags", ZombieIds.Runner, "Corredor en harapos", S, Matted, ZombieClothing.Rags, bare, 21, skin: new[] { 1.02f, 0.98f, 0.9f }, hairColor: new[] { 0.08f, 0.07f, 0.06f }, eyeGlow: 0.3f, eye: new[] { 0.9f, 0.55f, 0.3f }),
+                V("runner_rags", ZombieIds.Runner, "Corredor en harapos", S, Matted, ZombieClothing.Rags, bare, 21, skin: new[] { 1.02f, 0.98f, 0.9f }, eyeGlow: 0.3f, eye: new[] { 0.9f, 0.55f, 0.3f }),
                 V("runner_shirt", ZombieIds.Runner, "Corredor sin mangas", JB, Bald, ZombieClothing.Shirt, bare, 22, blood: 0.7f, eyeGlow: 0.28f, eye: new[] { 0.9f, 0.6f, 0.35f }),
-                V("runner_military", ZombieIds.Runner, "Corredor con restos de uniforme", H, Tufts, ZombieClothing.Military, boots, 23, hairColor: new[] { 0.16f, 0.12f, 0.08f }, eyeGlow: 0.3f),
+                V("runner_military", ZombieIds.Runner, "Corredor con restos de uniforme", H, Tufts, ZombieClothing.Military, boots, 23, eyeGlow: 0.3f),
 
                 V("tank_rags", ZombieIds.Tank, "Tanque en harapos", S, Bald, ZombieClothing.Rags, bare, 31, skin: new[] { 0.95f, 1f, 0.92f }, blood: 0.6f, grime: 0.8f, eyeGlow: 0.25f),
-                V("tank_work", ZombieIds.Tank, "Tanque con mono de obra", JB, Tufts, ZombieClothing.Workwear, bare, 32, hairColor: new[] { 0.1f, 0.09f, 0.08f }, grime: 0.9f),
+                V("tank_work", ZombieIds.Tank, "Tanque con mono de obra", JB, Tufts, ZombieClothing.Workwear, bare, 32, grime: 0.9f),
                 V("tank_scarred", ZombieIds.Tank, "Tanque cicatrizado", JE, Matted, ZombieClothing.Rags, bare, 33, skin: new[] { 1f, 0.94f, 0.9f }, blood: 0.8f, eyeGlow: 0.3f),
 
                 V("armored_vest", ZombieIds.Armored, "Blindado con chaleco", H, Bald, ZombieClothing.Military, boots, 41, armor: ZombieArmor.VestPlates),
@@ -189,7 +187,7 @@ namespace SevenDays.Procedural
                 if (v.armor != ZombieArmor.None && v.typeId != ZombieIds.Armored) errors.Add(n + "solo el blindado lleva armor");
                 if (v.typeId == ZombieIds.Armored && v.armor == ZombieArmor.None) errors.Add(n + "el blindado necesita armor");
                 CheckColor(errors, n + "skinTone", v.skinTone, 0.5f, 1.5f); CheckColor(errors, n + "clothTone", v.clothTone, 0.3f, 1.6f);
-                CheckColor(errors, n + "hairColor", v.hairColor, 0f, 1f); CheckColor(errors, n + "eyeTint", v.eyeTint, 0f, 1f);
+                CheckColor(errors, n + "eyeTint", v.eyeTint, 0f, 1f);
                 if (!(v.eyeGlow >= 0f && v.eyeGlow <= 1f)) errors.Add(n + "eyeGlow fuera de 0..1");
                 if (!(v.grime >= 0f && v.grime <= 1f)) errors.Add(n + "grime fuera de 0..1");
                 if (!(v.bloodiness >= 0f && v.bloodiness <= 1f)) errors.Add(n + "bloodiness fuera de 0..1");
