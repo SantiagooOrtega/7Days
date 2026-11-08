@@ -50,3 +50,25 @@ Hoy el *aim offset* es procedural sobre las primitivas: el arma (`WeaponPose`) s
 4. Dos hijos con **Two Bone IK Constraint**: mano derecha (Root = brazo, Mid = antebrazo, Tip = mano, Target = un hijo de `WeaponPose` en la empuñadura) y mano izquierda (Target = un hijo de `WeaponPose` en el guardamanos).
 5. Mueve el `SightPoint` (hijo de `WeaponPose`) a la mira real del arma importada: es donde se coloca la cámara de primera persona del francotirador.
 6. Asigna el `Animator` del modelo al campo **Animator** de `PlayerAnimatorHooks` y el controlador generado arriba.
+
+
+# Animación procedural de los zombis (mismo `ProceduralRig`)
+
+Los zombis usan el esqueleto del jugador con las proporciones de su tipo (`ZombieAnatomies`) y **no necesitan Animator ni clips**. `Combat/ZombieBody` (cuerpo) lo alimenta cada frame con `ZombieAnimState`
+(lo rellena `ZombieController`): ritmo y estado de la IA, aturdimiento, fase del ataque (0..1, el daño del juego cae en 0.5) y distancia a la cámara. El rig sigue midiendo la velocidad REAL del `NavMeshAgent`
+(la zancada se acopla a ella y los pies no patinan) y se le añadieron entradas aditivas que valen 0 por defecto (el soldado no cambia): `PelvisRoll`, `PelvisOffset`, `TorsoExtra` y `HeadExtra` en `RigInputs`.
+
+| Animación | Cómo se hace | Dónde |
+|-----------|--------------|-------|
+| Idle | respiración, cabeza que cuelga y se ladea según el individuo, hombros desiguales, torso girado, brazos algo adelantados | `ZombieBody.Step` |
+| Caminar / correr | zancada por distancia real; corredor encorvado y desbocado (`Hunch`, brazos que se agitan); tanque con la cabeza baja al cargar | rig + `ZombieBody` |
+| Cojera | 45 % de los zombis: la cadera cae hacia un lado al apoyar y el torso lo compensa (`ZombieMotion.Limp`) | `Procedural/ZombieMotion.cs` |
+| Atacar | `Swipe` (zarpazo), `DoubleClaw`, `Bite`, `Smash` (golpe de suelo del tanque con onda de polvo) y `Throw` (lanzador, la mano suelta justo en t = 0.5 con el proyectil); anticipación 0 a 0.45, golpe 0.45 a 0.55, seguimiento | `ZombieMotion.Attack` |
+| Impactos por zona | cabeza hacia atrás, torso doblado, brazo que se encoge, pierna que cede (muelles críticos que vuelven a cero) | `ZombieMotion.FlinchFor` |
+| Aturdido | torso doblado, cabeza colgando, brazos caídos, vaivén lento | `ZombieMotion.Stunned` |
+| Aparecer | emerge del suelo en 1.3 s (la cadera sube desde bajo tierra, el torso se endereza); el zombi no se mueve hasta terminar | `ZombieMotion.Emerge` |
+| Morir | de espaldas (golpe de frente), hacia delante (por detrás) o de rodillas (piernas); poses finales **ajustadas al suelo con la malla real** (`ZombiePoses.FitToGround`: el punto más bajo toca el suelo); headshot: la cabeza desaparece | `ZombiePoses` |
+| Explosivo | `SetFuse(inflado, brillo, temblor)`: el hueso extra `Belly` crece hasta ×1.35 y las venas pulsan de 4 a 16 Hz con la mecha de 1.35 s | `ZombieController.UpdateFuse` |
+No se incluyen trepar ni saltar vallas: el mapa no tiene vallas que los zombis crucen.
+
+El controlador solo habla con la interfaz `IZombieRig` (`Setup`, `Animate`, `OnHit`, `OnDeath`, `SetFuse`...): la implementan el cuerpo procedural y el antiguo de primitivas (jefes).

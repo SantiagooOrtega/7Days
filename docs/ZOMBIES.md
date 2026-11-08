@@ -94,3 +94,66 @@ export const zombieFile = z.object({ types: z.array(zombieType).min(1) })
   .refine(f => new Set(f.types.map(t => t.id)).size === f.types.length, 'ids repetidos');
 ```
 El validador equivalente en C# es `ZombieValidator` (`Procedural/ZombieData.cs`), probado en `BalanceTests` y `SpitterTests`.
+
+
+## Cuerpo y aspecto de los zombis (procedural, bloque C de ZOMBIS_SKINS.md)
+
+Los 6 tipos de zombi (no los jefes, que siguen con el cuerpo antiguo de primitivas hasta el bloque D) usan **el mismo esqueleto y la misma animación por capas del soldado** (`ProceduralRig`)
+con otras proporciones, una sola malla con pesos de hueso (`SkinnedMeshRenderer`, piel + ropa = 2 llamadas de dibujo) y texturas procedurales. Todo es código propio, sin assets externos.
+
+| Tipo | Altura | Rasgos del cuerpo | Triángulos LOD 0 / 1 / 2 | Presupuesto |
+|------|--------|-------------------|--------------------------|-------------|
+| Común (`common`) | 1.78 m | persona descompuesta, hombros caídos y cabeza ladeada, costillas a la vista | 4 786–5 388 / 2 788–3 274 / 1 458–1 728 | 6 000 |
+| Corredor (`runner`) | 1.74 m | delgado y tenso, muy encorvado, brazos largos, columna y costillas marcadas | 4 712–5 814 / 2 536–3 228 / 1 332–1 738 | 6 000 |
+| Tanque (`tank`) | 2.64 m | torso enorme, brazo derecho 1.55 veces más grueso, placas de tejido cicatrizado | 5 142–6 208 / 3 178–3 880 / 1 222–1 648 | 12 000 |
+| Blindado (`armored`) | 1.82 m | chaleco con placas, puerta atada, neumáticos o chatarra; la cabeza queda expuesta | 5 170–5 910 / 3 078–3 596 / 1 614–1 894 | 6 000 |
+| Lanzador (`spitter`) | 1.76 m | bolsas y bultos en espalda y hombros, brazo derecho largo, pústulas verdosas | 4 980–5 908 / 2 934–3 602 / 1 302–1 658 | 6 000 |
+| Explosivo (`explosive`) | 1.72 m | abdomen hinchado en un hueso extra (`Belly`) con pústulas y venas naranjas que brillan y pulsan durante la mecha | 4 960–5 672 / 2 854–3 334 / 1 444–1 690 | 6 000 |
+
+(Rangos entre las 3-4 variantes de cada tipo. Código: `Procedural/ZombieLook.cs`, `ZombieModel.cs`, `ZombieTypeFeatures.cs`, `ZombieSkinning.cs`; probado en `ZombieModelTests`.)
+
+**Variantes:** 3 a 4 por tipo (20 en total) con cabeza (`Intact`, `Sunken`, `JawBroken`, `JawExposed`), pelo (`Bald`, `Tufts`, `Matted`), ropa (camisa, uniforme militar, bata, traje, ropa de trabajo, harapos),
+calzado (descalzo o botas rotas), armadura (solo el blindado), tonos de piel y ropa, brillo de ojos, suciedad y sangre. **Cada zombi concreto** tira al aparecer (`ZombieIndividual`): variante,
+tono de piel (±8 %), suciedad, qué marcas del repertorio lleva (8 posibles: mordidas, tajo, mancha, moratón, costra, salpicadura, chorreras), cojera (45 % de los zombis, en el pie izquierdo o derecho),
+desfase de balanceo, cabeza ladeada y hombros desiguales. Cada cuerpo del pool nace con una **altura -6 %, 0 o +6 %** (3 cubos: el rig se construye con las piernas reales, así las zancadas y los pies
+siguen siendo exactos). Los tonos y el brillo de los ojos se aplican con `MaterialPropertyBlock` (un bloque por submalla), de modo que todos los zombis de un tipo comparten sus 2 materiales.
+
+**Variantes en JSON (offline, validable):** `Resources/Zombies/zombie_variants.json` (opcional) sustituye a las de fábrica si pasa la validación; el ejemplo con las 20 por defecto está en
+`docs/zombie_variants.default.json`. Los enums van como enteros (`JsonUtility`): `head` 0 Intact, 1 Sunken, 2 JawBroken, 3 JawExposed; `hair` 0 Bald, 1 Tufts, 2 Matted; `clothing` 0 Shirt, 1 Military,
+2 LabCoat, 3 Suit, 4 Workwear, 5 Rags; `footwear` 0 Bare, 1 BrokenBoots; `armor` 0 None, 1 VestPlates, 2 DoorShield, 3 TireRings, 4 MixedScrap. Esquema zod (para el backend o Gemini offline):
+
+```ts
+import { z } from 'zod';
+const TYPE_IDS = ['common', 'runner', 'tank', 'armored', 'spitter', 'explosive'] as const;
+const tone = (lo: number, hi: number) => z.tuple([z.number().min(lo).max(hi), z.number().min(lo).max(hi), z.number().min(lo).max(hi)]);
+
+export const zombieVariant = z.object({
+  id: z.string().min(1), typeId: z.enum(TYPE_IDS), displayName: z.string(),
+  head: z.number().int().min(0).max(3), hair: z.number().int().min(0).max(2), clothing: z.number().int().min(0).max(5),
+  footwear: z.number().int().min(0).max(1), armor: z.number().int().min(0).max(4), seed: z.number().int(),
+  skinTone: tone(0.5, 1.5), clothTone: tone(0.3, 1.6), eyeTint: tone(0, 1),
+  eyeGlow: z.number().min(0).max(1), grime: z.number().min(0).max(1), bloodiness: z.number().min(0).max(1),
+}).superRefine((v, ctx) => {
+  if (v.armor !== 0 && v.typeId !== 'armored') ctx.addIssue({ code: 'custom', message: 'solo el blindado lleva armor' });
+  if (v.typeId === 'armored' && v.armor === 0) ctx.addIssue({ code: 'custom', message: 'el blindado necesita armor' });
+});
+
+export const zombieVariantFile = z.object({ variants: z.array(zombieVariant).min(1) })
+  .refine(f => new Set(f.variants.map(v => v.id)).size === f.variants.length, 'ids repetidos')
+  .refine(f => TYPE_IDS.every(t => f.variants.some(v => v.typeId === t)), 'cada tipo necesita al menos una variante');
+```
+El validador equivalente en C# es `ZombieLookValidator` (`Procedural/ZombieLook.cs`), probado en `ZombieLookTests`.
+
+**Texturas (512 px, hilos de fondo, caché, mipmaps; color y máscara comprimidos BC3, normales y emisión sin pérdida de tipo):** un atlas de piel por tipo (cuerpo y cabeza a 256 px; manos, pies, hueso/dientes, ojo con velo lechoso,
+pelo, tejido y los rasgos del tipo a 128 px), un atlas de ropa común (16 telas: camisa, camiseta, uniforme, bata, traje, pantalón, vaquero, mono, harapos, cuero, chapa oxidada, goma, cinta, puerta, venda, saco; el alfa
+recorta agujeros y desgarros) y un atlas de heridas (decals con alfa). Memoria medida: 15.7 MB las 8 texturas más 23 MB de mallas con todas las variantes usadas. Código: `ZombieTextures.cs`, `ZombieAtlas.cs`, `Animation/ZombieArt.cs`.
+
+**Capa de daño progresiva (`ZombieDamageLayer`):** al cruzar el 75, 50 y 25 % de vida aparece una herida en la zona del golpe (cabeza, torso, brazos o piernas: las mismas zonas de los hitbox), proyectada con rayos sobre la
+malla real (si hay ropa, sale como desgarro). Un headshot mortal hace desaparecer la cabeza (queda el muñón del cuello) y el cuerpo cae.
+
+**Hitboxes:** cabeza (esfera sobre el cráneo), torso (cápsula del pecho y esfera de la pelvis), brazos (brazo y antebrazo+mano por separado, más gruesos en el brazo grande del tanque) y piernas (muslo y
+pantorrilla+pie), todos hijos de su hueso: siguen a la animación. Los multiplicadores por zona y la tabla de `BALANCE.md` **no cambian** (las pruebas de balance y de combate pasan sin tocar).
+
+**Rendimiento:** LOD de malla (3 niveles por distancia a la cámara con histéresis, decals solo hasta el LOD 1, sombras solo en el LOD 0), LOD y congelado de animación (cada 1/2/3/6 frames según la distancia; sin animar
+a más de 90 m ni fuera de pantalla), pooling por tipo (el pool reutiliza un zombi libre del mismo cuerpo; si está lleno de otros tipos, reconstruye el cuerpo de uno libre), texturas y mallas en caché. Medido
+con 30 zombis en la arena real: ver `UNITY_SETUP.md` (sección de zombis procedurales).

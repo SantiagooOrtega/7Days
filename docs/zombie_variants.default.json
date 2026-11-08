@@ -1,0 +1,584 @@
+{
+  "variants": [
+    {
+      "id": "common_shirt",
+      "typeId": "common",
+      "displayName": "Zombi con camisa",
+      "head": 0,
+      "hair": 1,
+      "clothing": 0,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 11,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        0.95,
+        0.9,
+        0.85
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "common_lab",
+      "typeId": "common",
+      "displayName": "Zombi con bata",
+      "head": 2,
+      "hair": 0,
+      "clothing": 2,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 12,
+      "skinTone": [
+        0.95,
+        1,
+        0.95
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.22,
+      "grime": 0.5,
+      "bloodiness": 0.7
+    },
+    {
+      "id": "common_suit",
+      "typeId": "common",
+      "displayName": "Zombi con traje",
+      "head": 1,
+      "hair": 2,
+      "clothing": 3,
+      "footwear": 1,
+      "armor": 0,
+      "seed": 13,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.7,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "common_work",
+      "typeId": "common",
+      "displayName": "Zombi de obra",
+      "head": 3,
+      "hair": 1,
+      "clothing": 4,
+      "footwear": 1,
+      "armor": 0,
+      "seed": 14,
+      "skinTone": [
+        1,
+        0.95,
+        0.92
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.8,
+      "bloodiness": 0.6
+    },
+    {
+      "id": "runner_rags",
+      "typeId": "runner",
+      "displayName": "Corredor en harapos",
+      "head": 1,
+      "hair": 2,
+      "clothing": 5,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 21,
+      "skinTone": [
+        1.02,
+        0.98,
+        0.9
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.9,
+        0.55,
+        0.3
+      ],
+      "eyeGlow": 0.3,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "runner_shirt",
+      "typeId": "runner",
+      "displayName": "Corredor sin mangas",
+      "head": 2,
+      "hair": 0,
+      "clothing": 0,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 22,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.9,
+        0.6,
+        0.35
+      ],
+      "eyeGlow": 0.28,
+      "grime": 0.5,
+      "bloodiness": 0.7
+    },
+    {
+      "id": "runner_military",
+      "typeId": "runner",
+      "displayName": "Corredor con restos de uniforme",
+      "head": 0,
+      "hair": 1,
+      "clothing": 1,
+      "footwear": 1,
+      "armor": 0,
+      "seed": 23,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.3,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "tank_rags",
+      "typeId": "tank",
+      "displayName": "Tanque en harapos",
+      "head": 1,
+      "hair": 0,
+      "clothing": 5,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 31,
+      "skinTone": [
+        0.95,
+        1,
+        0.92
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.25,
+      "grime": 0.8,
+      "bloodiness": 0.6
+    },
+    {
+      "id": "tank_work",
+      "typeId": "tank",
+      "displayName": "Tanque con mono de obra",
+      "head": 2,
+      "hair": 1,
+      "clothing": 4,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 32,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.9,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "tank_scarred",
+      "typeId": "tank",
+      "displayName": "Tanque cicatrizado",
+      "head": 3,
+      "hair": 2,
+      "clothing": 5,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 33,
+      "skinTone": [
+        1,
+        0.94,
+        0.9
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.3,
+      "grime": 0.5,
+      "bloodiness": 0.8
+    },
+    {
+      "id": "armored_vest",
+      "typeId": "armored",
+      "displayName": "Blindado con chaleco",
+      "head": 0,
+      "hair": 0,
+      "clothing": 1,
+      "footwear": 1,
+      "armor": 1,
+      "seed": 41,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "armored_door",
+      "typeId": "armored",
+      "displayName": "Blindado con puerta",
+      "head": 2,
+      "hair": 1,
+      "clothing": 4,
+      "footwear": 1,
+      "armor": 2,
+      "seed": 42,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.8,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "armored_tires",
+      "typeId": "armored",
+      "displayName": "Blindado con neum\u00E1ticos",
+      "head": 1,
+      "hair": 2,
+      "clothing": 0,
+      "footwear": 0,
+      "armor": 3,
+      "seed": 43,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.5,
+      "bloodiness": 0.6
+    },
+    {
+      "id": "armored_scrap",
+      "typeId": "armored",
+      "displayName": "Blindado de chatarra",
+      "head": 3,
+      "hair": 0,
+      "clothing": 5,
+      "footwear": 1,
+      "armor": 4,
+      "seed": 44,
+      "skinTone": [
+        1,
+        1,
+        1
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.75,
+        0.8,
+        0.6
+      ],
+      "eyeGlow": 0.18,
+      "grime": 0.9,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "spitter_work",
+      "typeId": "spitter",
+      "displayName": "Lanzador de obra",
+      "head": 2,
+      "hair": 1,
+      "clothing": 4,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 51,
+      "skinTone": [
+        0.92,
+        1,
+        0.85
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.6,
+        0.9,
+        0.3
+      ],
+      "eyeGlow": 0.3,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "spitter_lab",
+      "typeId": "spitter",
+      "displayName": "Lanzador con bata",
+      "head": 1,
+      "hair": 2,
+      "clothing": 2,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 52,
+      "skinTone": [
+        0.9,
+        1,
+        0.82
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.55,
+        0.95,
+        0.35
+      ],
+      "eyeGlow": 0.34,
+      "grime": 0.5,
+      "bloodiness": 0.5
+    },
+    {
+      "id": "spitter_rags",
+      "typeId": "spitter",
+      "displayName": "Lanzador en harapos",
+      "head": 3,
+      "hair": 0,
+      "clothing": 5,
+      "footwear": 1,
+      "armor": 0,
+      "seed": 53,
+      "skinTone": [
+        0.95,
+        1,
+        0.8
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        0.7,
+        0.9,
+        0.3
+      ],
+      "eyeGlow": 0.3,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "explosive_shirt",
+      "typeId": "explosive",
+      "displayName": "Explosivo con camisa rota",
+      "head": 0,
+      "hair": 1,
+      "clothing": 0,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 61,
+      "skinTone": [
+        1,
+        0.96,
+        0.9
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        1,
+        0.55,
+        0.2
+      ],
+      "eyeGlow": 0.35,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "explosive_work",
+      "typeId": "explosive",
+      "displayName": "Explosivo de obra",
+      "head": 2,
+      "hair": 0,
+      "clothing": 4,
+      "footwear": 1,
+      "armor": 0,
+      "seed": 62,
+      "skinTone": [
+        1,
+        0.94,
+        0.88
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        1,
+        0.5,
+        0.15
+      ],
+      "eyeGlow": 0.4,
+      "grime": 0.7,
+      "bloodiness": 0.4
+    },
+    {
+      "id": "explosive_rags",
+      "typeId": "explosive",
+      "displayName": "Explosivo en harapos",
+      "head": 1,
+      "hair": 2,
+      "clothing": 5,
+      "footwear": 0,
+      "armor": 0,
+      "seed": 63,
+      "skinTone": [
+        1.02,
+        0.92,
+        0.86
+      ],
+      "clothTone": [
+        1,
+        1,
+        1
+      ],
+      "eyeTint": [
+        1,
+        0.6,
+        0.2
+      ],
+      "eyeGlow": 0.4,
+      "grime": 0.5,
+      "bloodiness": 0.4
+    }
+  ]
+}
