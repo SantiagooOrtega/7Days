@@ -199,6 +199,10 @@ namespace SevenDays.Procedural
                 Lf(nk, default, default, new[] { -0.03f * s, nr * 1.5f, nr * 1.45f, 0f, 0f, 0.0f, nr * 1.15f, nr * 1.1f, 0f, 0.002f * s, neck * 0.5f, nr, nr * 0.98f, 0f, 0.004f * s, neck + 0.02f * s, nr * 0.95f, nr * 0.93f, 0f, 0.004f * s },
                     10, SK(ZombieAtlas.SkBody), 0.3f);
                 Add(BoneId.Neck, "cuello", SlotSkin, nk, 2, true);
+                // muñón de la herida (solo se ve si la cabeza desaparece de un disparo): tapa el cuello con tejido
+                var stump = new MeshBuilder();
+                stump.Lathe(new V3(0f, neck + 0.018f * s, 0f), default, new[] { -0.004f * s, nr * 0.97f, 0.004f * s, nr * 0.95f }, 6, 1f, true, true, SK(ZombieAtlas.SkTissue), 0.08f);
+                Add(BoneId.Neck, "munon", SlotSkin, stump, 1, false, false);
                 var tendons = new MeshBuilder();
                 foreach (float sx in new[] { -1f, 1f })
                     tendons.Loft(new V3(sx * nr * 0.55f, 0f, nr * 0.62f), new V3(0f, 0f, sx * -14f), new[] { 0.0f, 0.010f * s, 0.008f * s, 0f, 0f, neck * 0.5f, 0.012f * s, 0.009f * s, 0f, 0f, neck * 1.05f, 0.007f * s, 0.006f * s, 0f, 0f },
