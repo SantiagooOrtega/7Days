@@ -330,8 +330,8 @@ namespace SevenDays.Animation
                 // cargador por fuera (fusil, subfusil, francotirador): la mano lo envuelve. Dentro de la empuñadura (pistola): lo empuja desde abajo, palma arriba
                 bool inGrip = parts.Mag.localPosition.z < 0.08f;
                 mag = inGrip
-                    ? new Handle { Point = parts.MagWorldRest - up * (parts.Mag.lossyScale.y * 0.5f + 0.035f), Axis = wf, Back = -up, Fingers = wr, Radius = 0.02f }
-                    : new Handle { Point = parts.MagWorldRest, Axis = up, Back = -wr, Fingers = wf, Radius = new Vector2(parts.Mag.lossyScale.x, parts.Mag.lossyScale.z).magnitude * 0.5f + 0.008f };   // cubre la diagonal de la caja (inclinada)
+                    ? new Handle { Point = parts.MagWorldRest - up * (GunParts.SizeOf(parts.Mag).y * 0.5f + 0.035f), Axis = wf, Back = -up, Fingers = wr, Radius = 0.02f }
+                    : new Handle { Point = parts.MagWorldRest, Axis = up, Back = -wr, Fingers = wf, Radius = new Vector2(GunParts.SizeOf(parts.Mag).x, GunParts.SizeOf(parts.Mag).z).magnitude * 0.5f + 0.008f };   // cubre la diagonal de la caja (inclinada)
             }
             switch (rl.Style)
             {
@@ -340,14 +340,14 @@ namespace SevenDays.Animation
                     if (rl.Elapsed < ReloadState.ShellLead) return support;
                     float local = ((rl.Elapsed - ReloadState.ShellLead) % rl.ShellTime) / rl.ShellTime;
                     var port = parts != null && parts.Pump != null
-                        ? new Handle { Point = parts.Pump.position - wu * (parts.Pump.lossyScale.y * 0.5f + 0.03f), Axis = wf, Back = -wu, Fingers = wr, Radius = 0.02f }   // empuja el cartucho desde abajo
+                        ? new Handle { Point = parts.Pump.position - wu * (GunParts.SizeOf(parts.Pump).y * 0.5f + 0.03f), Axis = wf, Back = -wu, Fingers = wr, Radius = 0.02f }   // empuja el cartucho desde abajo
                         : support;
                     return local < 0.45f ? belt : port;
                 }
                 case ReloadStyle.Cylinder:
                 {
                     var cyl = parts != null && parts.Cylinder != null
-                        ? new Handle { Point = parts.Cylinder.position - wr * (parts.transform.Find("Body").lossyScale.x * 0.5f + 0.035f), Axis = wf, Back = -wr, Fingers = -wu, Radius = 0.02f }   // sujeta el tambor por el lado izquierdo
+                        ? new Handle { Point = parts.Cylinder.position - wr * (GunParts.SizeOf(parts.Body).x * 0.5f + 0.035f), Axis = wf, Back = -wr, Fingers = -wu, Radius = 0.02f }   // sujeta el tambor por el lado izquierdo
                         : support;
                     switch (rl.LastEvent)
                     {
