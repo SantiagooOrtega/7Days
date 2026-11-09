@@ -24,3 +24,20 @@ Habilidades (`BossAbilityData`): `a` y `b` dependen de la habilidad.
 | throw | radio de impacto (m) | daño |
 | shockwave | radio (m) | daño |
 | summon / summon_wave | - | - (cantidad en `boss.summonCount`, tipo en `boss.summonType`) |
+
+## Aspecto y animación (bloque D de ZOMBIS_SKINS.md)
+Los jefes ya no son de primitivas: usan el cuerpo procedural de los zombis (`Combat/ZombieBody.cs`) con anatomía, piezas y texturas propias (`Procedural/ZombieLook.cs`, `ZombieBossFeatures.cs`, `ZombieTextures.cs`).
+
+| Jefe | Altura | Triángulos (LOD 0 / 1 / 2) | Historia visual |
+|------|--------|----------------------------|-----------------|
+| Bruto Titán | 4.0 m | 9 712 / 5 286 / 2 496 | hombros enormes; armadura soldada (placas de chapa con cordones de soldadura, hombreras con varillas de obra); cadenas en bandolera y a la cintura; casco de obra amarillo incrustado y agrietado; antebrazos y puños como mazas con placa y pernos; brazos al aire con quemaduras; ojos rojos |
+| Lanzador Colosal | 3.64 m | 9 316 / 4 884 / 2 592 | torso hipertrofiado; brazo derecho gigante con vendajes y dos neumáticos; espalda con bolsas y un depósito de residuos atado con correas (franja de aviso); pústulas verdosas que brillan; piel verdosa con granos |
+| El Devorador | 4.37 m | 7 910 / 3 970 / 2 350 | alto y deformado (brazos y piernas largos); mandíbula doble que se abre hacia los lados con colmillos; columna expuesta con púas; bultos mutados; garras; músculo a la vista; **núcleo naranja en el pecho tras unas costillas que se abren como puertas** cuando el punto débil se expone |
+
+- **Texturas de 1024 px** (la piel; ropa y heridas son las comunes de 512), generadas en hilos de fondo con color, normales, rugosidad, oclusión y emisión (ojos, venas, pústulas, núcleo).
+- **Telegraph con animación propia** (`ZombieMotion.Boss`): preparar la carga (cabeza baja, se encoge, escarba) y embestir; golpe de suelo (puños arriba, tiembla, cae); lanzar (el brazo grande atrás y arriba, suelta delante); rugir para invocar (se arquea con los brazos abiertos y la boca abierta); onda expansiva (se agacha cruzando los brazos y estalla con un pisotón). La pose avanza con el telegraph del cerebro y **el golpe cae exactamente cuando se dispara la habilidad** (t = 0.5): las marcas del suelo, el texto de la barra y el sonido de aviso siguen igual y sincronizados (`BossBodyTests`: desfase medido 0.000).
+- **Furia** (50 % y 25 %): rugido con los brazos abiertos, ojos y venas que brillan (x2.8 y x4.6), pose más encorvada y vapor que sale de la espalda. El cuerpo antiguo de respaldo conserva el cambio de color y tamaño.
+- **Reacción al daño contenida**: los impactos mueven al jefe un 25-30 % de lo que mueven a un zombi (su resistencia al aturdimiento); el choque contra un muro sigue dejándolo aturdido con su pose de aturdido.
+- **Voz**: rugido, gruñidos, pisadas pesadas con temblor de cámara, dolor y muerte con la voz sintetizada de cada jefe (más grave que el tanque).
+- **Muerte**: cae tumbado ajustado al suelo con la malla completa; el Lanzador nunca cae de espaldas (llevaría el depósito debajo).
+- Prueba en Play: **B** genera los jefes en orden (día 3, 5 y 7) a 20 m. Capturas: `ZombieShowcase.Bosses_FrontSide_Fury_AndTelegraphs` (PlayMode, a mano).
