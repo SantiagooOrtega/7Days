@@ -18,7 +18,7 @@ namespace SevenDays.Combat
         public ZombieTypeData Type { get; private set; }
         public Health Health { get; private set; }
         public IZombieRig Rig { get; private set; }
-        /// <summary>Cuerpo con el que se construyó: el id del tipo (cuerpo procedural) o "legacy" (jefes, hasta el bloque D). El pool reutiliza zombis del mismo cuerpo.</summary>
+        /// <summary>Cuerpo con el que se construyó: el id del tipo (cuerpo procedural, también los jefes) o "legacy" (tipos sin anatomía). El pool reutiliza zombis del mismo cuerpo.</summary>
         public string BodyKey { get; private set; }
         public bool Procedural => Rig is ZombieBody;
         public ZombieState State => _sm.State;
@@ -34,6 +34,9 @@ namespace SevenDays.Combat
         public Color BodyColor { get; set; }
         /// <summary>Si es >= 0 sustituye a la animación de ataque (los jefes alzan los brazos mientras avisan de un ataque).</summary>
         public float PoseAttackOverride { get; set; } = -1f;
+        /// <summary>Habilidad de jefe que se está animando (telegraph y golpe) y su avance 0..1 (el golpe cae en 0.5). La pone BossBehaviour.</summary>
+        public BossPose BossPose { get; set; }
+        public float BossPoseT { get; set; }
         public Transform PlayerTransform => _player;
         public Health PlayerHealth => _playerHealth;
         public NavMeshAgent Agent => _agent;
@@ -71,7 +74,7 @@ namespace SevenDays.Combat
         /// <summary>Voz y sonidos de este zombi (panel F6 y pruebas).</summary>
         public ZombieSounds Sounds => _sounds;
 
-        public static string KeyFor(ZombieTypeData type) => !type.isBoss && ZombieAnatomies.Has(type.id) ? type.id : "legacy";
+        public static string KeyFor(ZombieTypeData type) => ZombieAnatomies.Has(type.id) ? type.id : "legacy";
 
         public void Build(ZombieTypeData type)
         {
@@ -103,7 +106,8 @@ namespace SevenDays.Combat
         {
             BodyKey = KeyFor(type);
             // cada cuerpo del pool nace con una altura (-6 %, 0 o +6 %) al azar: la población no es toda igual
-            Rig = BodyKey == "legacy" ? (IZombieRig)ZombieRig.Build(transform, Health) : ZombieBody.Build(transform, Health, type, UnityEngine.Random.Range(0, ZombieAnatomies.ScaleBuckets.Length));
+            var buckets = ZombieAnatomies.Buckets(type.id);   // los jefes solo tienen la altura del medio
+            Rig = BodyKey == "legacy" ? (IZombieRig)ZombieRig.Build(transform, Health) : ZombieBody.Build(transform, Health, type, buckets[UnityEngine.Random.Range(0, buckets.Length)]);
         }
 
         /// <summary>Cambia el cuerpo de un zombi libre del pool por el de otro tipo (cuando el pool está lleno de otros tipos).</summary>
@@ -170,7 +174,8 @@ namespace SevenDays.Combat
             bool emerge = !type.isBoss && !ignoreEmerge;
             Rig.Setup(type, seed, emerge);
             _prevState = _sm.State;
-            _sounds.Begin(transform, type.id, seed, emerge, !type.isBoss);   // los jefes tienen sus propios rugidos (BossBehaviour)
+            BossPose = BossPose.None; BossPoseT = 0f;
+            _sounds.Begin(transform, type.id, seed, emerge);
         }
 
         public void Deactivate()
@@ -309,6 +314,7 @@ namespace SevenDays.Combat
             {
                 Dt = dt, WalkPhase = _walkPhase, MoveAmount = amount, Time = Time.time + GetInstanceID() * 0.01f, Lunge = _sm.State == ZombieState.Chase ? 1f : 0f,
                 Chasing = _sm.State == ZombieState.Chase, Stunned = Health.IsStunned, Dead = false, AttackT = attackT, AttackKind = _attackKind,
+                BossPose = BossPose, BossT = BossPoseT,
                 DistanceToCamera = _animCam != null ? Vector3.Distance(_animCam.transform.position, transform.position) : 0f,
             };
             Rig.Animate(s);

@@ -34,6 +34,13 @@ namespace SevenDays.Combat
         private Transform _root;
         private Transform[] _bones;
         private Transform _belly;
+        // jefes: mandíbula doble y núcleo con costillas del Devorador, punto débil, furia y vapor
+        private Transform _jawL, _jawR, _core, _ribL, _ribR;
+        private Hitbox _weak;
+        private bool _weakOn;
+        private float _weakOpen, _jaw, _lastEmissionOpen = -1f;
+        private int _fury;
+        private ParticleSystem _steam;
         private Health _owner;
         private Renderer[] _decals;                     // un MeshRenderer por herida posible (se enciende al revelarse)
         private bool[] _decalWanted;
@@ -94,7 +101,15 @@ namespace SevenDays.Combat
                 var lp = bundle.Model.Extras[e].LocalPos;
                 x.localPosition = new Vector3(lp.X, lp.Y, lp.Z);
                 _bones[HumanoidRigSpec.BoneCount + e] = x;
-                if (bundle.Model.Extras[e].Name == "Belly") _belly = x;
+                switch (bundle.Model.Extras[e].Name)
+                {
+                    case "Belly": _belly = x; break;
+                    case ZombieBossBones.JawL: _jawL = x; break;
+                    case ZombieBossBones.JawR: _jawR = x; break;
+                    case ZombieBossBones.Core: _core = x; break;
+                    case ZombieBossBones.RibL: _ribL = x; break;
+                    case ZombieBossBones.RibR: _ribR = x; break;
+                }
             }
             Renderer = Visual.gameObject.AddComponent<SkinnedMeshRenderer>();
             Renderer.bones = _bones; Renderer.rootBone = Visual;
@@ -108,6 +123,11 @@ namespace SevenDays.Combat
             _skinBlock = new MaterialPropertyBlock(); _clothBlock = new MaterialPropertyBlock();
             BuildHitboxes();
             BuildDecals(bundle);
+            if (Anatomy.IsBoss)
+            {
+                float uc = Rig.Spec[(int)BoneId.UpperChest].Length;
+                _steam = SevenDays.Look.Particles.CreateSteam(Rig.Bone(BoneId.UpperChest), new Vector3(0f, uc * 0.8f, -0.15f * Anatomy.Size), Anatomy.Size);
+            }
             foreach (var t in Visual.GetComponentsInChildren<Transform>(true)) if (t.GetComponent<Hitbox>() == null) t.gameObject.layer = 2;
             _armLen = Rig.Spec[(int)BoneId.LeftUpperArm].Length + Rig.Spec[(int)BoneId.LeftLowerArm].Length;
             _frameOffset = Random.Range(0, 6);
@@ -140,17 +160,24 @@ namespace SevenDays.Combat
             var sc = hgo.AddComponent<SphereCollider>(); sc.center = new Vector3(0f, 0.106f * hs, 0.01f * hs); sc.radius = 0.112f * hs;
             Add(Rig.Bone(BoneId.Head), HitZone.Head, sc);
             // torso: pecho y vientre en una cápsula sobre el pecho, y la pelvis aparte
-            float tr = 0.155f * k * s * (1f - 0.1f * Anatomy.Emaciation) * (Anatomy.ScarPlates ? 1.15f : 1f);
+            float tr = 0.155f * k * s * (1f - 0.1f * Anatomy.Emaciation) * (Anatomy.ScarPlates ? 1.15f : 1f) * (Anatomy.Boss == ZombieBossKind.Brute ? 1.12f : 1f);   // placas soldadas del Bruto
             float bottom = -L(BoneId.Spine) * 0.85f, top = L(BoneId.Chest) + L(BoneId.UpperChest) * 0.8f;
             Add(Rig.Bone(BoneId.Chest), HitZone.Torso, Capsule(Rig.Bone(BoneId.Chest), new Vector3(0f, (bottom + top) * 0.5f, 0.005f * s), tr, top - bottom));
             var pgo = new GameObject("hb"); pgo.transform.SetParent(Rig.Bone(BoneId.Hips), false);
-            var ps = pgo.AddComponent<SphereCollider>(); ps.center = new Vector3(0f, 0.01f * s, 0f); ps.radius = 0.15f * k * s;
+            var ps = pgo.AddComponent<SphereCollider>(); ps.center = new Vector3(0f, 0.01f * s, 0f); ps.radius = 0.15f * k * s * (Anatomy.Boss == ZombieBossKind.Brute ? 1.12f : 1f);   // cadena de la cintura
             Add(Rig.Bone(BoneId.Hips), HitZone.Torso, ps);
             // cuello (cuenta como torso) y hombros: una cápsula horizontal sobre el pecho alto, del ancho de los hombros
             float neckLen = L(BoneId.Neck);
             Add(Rig.Bone(BoneId.Neck), HitZone.Torso, Capsule(Rig.Bone(BoneId.Neck), new Vector3(0f, neckLen * 0.5f, 0f), 0.058f * k * s, neckLen + 0.05f * s));
             float uc = L(BoneId.UpperChest);
             Add(Rig.Bone(BoneId.UpperChest), HitZone.Torso, Capsule(Rig.Bone(BoneId.UpperChest), new Vector3(0f, uc * 0.78f, 0f), 0.075f * s * Mathf.Max(0.9f, k), pr.shoulderWidth * 1.05f, 0));
+            // depósito y bolsas de la espalda del Lanzador Colosal (cuentan como torso)
+            if (Anatomy.Boss == ZombieBossKind.Launcher)
+            {
+                var bgo2 = new GameObject("hb"); bgo2.transform.SetParent(Rig.Bone(BoneId.UpperChest), false);
+                var bb = bgo2.AddComponent<BoxCollider>(); bb.center = new Vector3(0f, uc * 0.45f, -(tr * 0.75f + 0.16f * s)); bb.size = new Vector3(0.55f * s, uc * 1.1f, 0.34f * s);
+                Add(Rig.Bone(BoneId.UpperChest), HitZone.Torso, bb);
+            }
             // vientre hinchado del explosivo: esfera sobre su hueso extra (crece con el inflado)
             if (_belly != null)
             {
@@ -165,10 +192,13 @@ namespace SevenDays.Combat
                 float g = (Anatomy.BigArmScale > 1f && (Anatomy.BigArmSide < 0) == left) ? Anatomy.BigArmScale : 1f;
                 BoneId ua = left ? BoneId.LeftUpperArm : BoneId.RightUpperArm, la = left ? BoneId.LeftLowerArm : BoneId.RightLowerArm;
                 float lu = L(ua), ll = L(la), ex = (Anatomy.LongArmExtra > 0f && !left) ? Anatomy.LongArmExtra * s : 0f;
-                Add(Rig.Bone(ua), HitZone.Arms, Capsule(Rig.Bone(ua), new Vector3(0f, -lu * 0.5f, 0f), 0.062f * f * g, lu + 0.04f * f * g));
-                Add(Rig.Bone(la), HitZone.Arms, Capsule(Rig.Bone(la), new Vector3(0f, -(ll + ex) * 0.5f - 0.01f * s, 0f), 0.05f * f * g, ll + ex + 0.02f * s));
+                // hombreras del Bruto y neumático y vendas del brazo grande del Lanzador: el brazo es más gordo por fuera
+                float gear = Anatomy.Boss == ZombieBossKind.Brute ? 1.4f : (Anatomy.Boss == ZombieBossKind.Launcher && g > 1f ? 1.25f : 1f);
+                Add(Rig.Bone(ua), HitZone.Arms, Capsule(Rig.Bone(ua), new Vector3(0f, -lu * 0.5f, 0f), 0.062f * f * g * gear, lu + 0.04f * f * g));
+                float fs = Anatomy.ForearmScale;   // antebrazos-maza del Bruto
+                Add(Rig.Bone(la), HitZone.Arms, Capsule(Rig.Bone(la), new Vector3(0f, -(ll + ex) * 0.5f - 0.01f * s, 0f), 0.05f * f * g * fs, ll + ex + 0.02f * s));
                 // mano: esfera sobre el hueso de la mano (los dedos largos quedaban fuera del antebrazo)
-                float hk = Mathf.Max(1f, g * 0.9f);
+                float hk = Mathf.Max(1f, g * 0.9f) * fs;
                 var hgo2 = new GameObject("hb"); hgo2.transform.SetParent(Rig.Bone(left ? BoneId.LeftHand : BoneId.RightHand), false);
                 var hs2 = hgo2.AddComponent<SphereCollider>(); hs2.center = new Vector3(0f, -(0.055f * s * hk + ex), 0f); hs2.radius = 0.07f * s * hk;
                 Add(Rig.Bone(left ? BoneId.LeftHand : BoneId.RightHand), HitZone.Arms, hs2);
@@ -184,6 +214,15 @@ namespace SevenDays.Combat
                 Add(Rig.Bone(fb), HitZone.Legs, fbox);
             }
             Hitboxes = list.ToArray();
+            // punto débil del Devorador: esfera sobre el núcleo del pecho, del mismo tamaño que el del cuerpo antiguo (0.16 m x escala); solo existe mientras está expuesto
+            if (_core != null)
+            {
+                var wgo = new GameObject("hb"); wgo.transform.SetParent(_core, false);
+                var ws = wgo.AddComponent<SphereCollider>(); ws.radius = 0.16f * Anatomy.Size;
+                _weak = wgo.AddComponent<Hitbox>(); _weak.Zone = HitZone.WeakPoint; _weak.Owner = _owner;
+                wgo.name = "Hitbox_WeakPoint"; wgo.layer = HitboxLayer.Index; ws.isTrigger = false;
+                wgo.SetActive(false);
+            }
         }
 
         private void BuildDecals(ZombieMeshBundle bundle)
@@ -224,6 +263,10 @@ namespace SevenDays.Combat
                 var lp = spec[i].LocalPosition; _bones[i].localPosition = new Vector3(lp.X, lp.Y, lp.Z);
             }
             if (_belly != null) _belly.localScale = Vector3.one;
+            foreach (var x in new[] { _jawL, _jawR, _core, _ribL, _ribR }) if (x != null) { x.localRotation = Quaternion.identity; x.localScale = Vector3.one; }
+            _fury = 0; _weakOn = false; _weakOpen = 0f; _jaw = 0f; _lastEmissionOpen = -1f;
+            if (_weak != null) _weak.gameObject.SetActive(false);
+            if (_steam != null) { var em = _steam.emission; em.rateOverTime = 0f; _steam.Clear(); }
             Visual.localPosition = Vector3.zero; Visual.localRotation = Quaternion.identity; Visual.localScale = Vector3.one;
             Rig.SetFootShape(Bundle.Foot);
             Rig.Inputs = default; Rig.Inputs.Grounded = true;
@@ -274,6 +317,8 @@ namespace SevenDays.Combat
             // ojos con brillo tenue; el explosivo suma las venas y pústulas luminosas, que se encienden con la mecha
             float baseGlow = 0.35f + 0.9f * Individual.EyeGlow;
             Color e = tint * baseGlow;
+            // jefes: la furia enciende ojos y venas (x2.8 y x4.6), y el núcleo expuesto del Devorador late
+            if (Anatomy.IsBoss) e *= (1f + 1.8f * _fury) * (1f + 1.6f * _weakOpen);
             if (Anatomy.Belly) e += new Color(1f, 0.45f, 0.12f) * (0.25f + 3.2f * fuseGlow);
             _skinBlock.SetColor(EmissionId, e);
         }
@@ -295,7 +340,19 @@ namespace SevenDays.Combat
             Renderer.SetPropertyBlock(null, 0); Renderer.SetPropertyBlock(null, 1);
         }
 
-        public void SetWeakPoint(bool on) { }
+        public void SetWeakPoint(bool on)
+        {
+            _weakOn = on && !_dead;
+            if (_weak != null) _weak.gameObject.SetActive(_weakOn);
+        }
+
+        public void SetFury(int phase)
+        {
+            if (phase == _fury) return;
+            _fury = phase;
+            if (!_flashing) { ApplyEmission(_glow); Renderer.SetPropertyBlock(_skinBlock, 0); }
+            if (_steam != null) { var em = _steam.emission; em.rateOverTime = 10f * phase; }
+        }
 
         public void SetHitboxesEnabled(bool on) { foreach (var h in Hitboxes) { var c = h.GetComponent<Collider>(); if (c != null) c.enabled = on; } }
 
@@ -315,6 +372,7 @@ namespace SevenDays.Combat
             if (_dead) return;
             // dirección hacia donde miraba el disparo, en el espacio del cuerpo: z positiva = viene de frente
             Vector3 local = -Visual.InverseTransformDirection(dirWorld);
+            if (Anatomy.IsBoss && _type != null) strength *= 1f - 0.75f * _type.stunResistance;   // los jefes apenas se inmutan
             var f = ZombieMotion.FlinchFor(zone, new V3(local.x, local.y, local.z), strength);
             const float k = 4f;   // el muelle crítico pasa por un máximo de velocidad / 30
             _fTorsoX.Kick(f.Torso.X * k); _fTorsoY.Kick(f.Torso.Y * k); _fTorsoZ.Kick(f.Torso.Z * k);
@@ -343,6 +401,7 @@ namespace SevenDays.Combat
             if (_dead) return;
             Vector3 local = -Visual.InverseTransformDirection(dirWorld);
             _form = ZombieMotion.DeathFor(zone, new V3(local.x, local.y, local.z), headshot, Individual.Seed);
+            if (Anatomy.Boss == ZombieBossKind.Launcher && _form == ZombieDeathForm.FallBack) _form = ZombieDeathForm.FallForward;   // con el depósito a la espalda no cae de espaldas
             _target = Bundle.Lying[(int)_form];
             _startRot = new Quaternion[HumanoidRigSpec.BoneCount];
             for (int i = 0; i < _startRot.Length; i++) _startRot[i] = _bones[i].localRotation;
@@ -351,6 +410,8 @@ namespace SevenDays.Combat
             _dead = true; _emerge = EmergeSeconds;
             if (headshot) _bones[(int)BoneId.Head].localScale = Vector3.zero;   // golpe seco: la cabeza desaparece y queda el muñón del cuello
             if (_belly != null) _belly.localScale = Vector3.one;
+            SetWeakPoint(false);
+            if (_steam != null) { var em = _steam.emission; em.rateOverTime = 0f; }
         }
 
         // ================================================================== cada frame
@@ -413,6 +474,11 @@ namespace SevenDays.Combat
                 _emerge += dt; f = ZombieMotion.Emerge(_emerge / EmergeSeconds);
             }
             else if (s.Stunned) f = ZombieMotion.Stunned(_time, ind.Phase);
+            else if (s.BossPose != BossPose.None)
+            {
+                f = ZombieMotion.Boss(s.BossPose, s.BossT, _time, _fury, _armGuardL, _armGuardR);
+                attacking = true; _lastAttackT = -1f;
+            }
             else if (attacking)
             {
                 if (_lastAttackT < 0f || s.AttackT < _lastAttackT - 0.2f) _attackIndex++;
@@ -439,7 +505,9 @@ namespace SevenDays.Combat
                 if (engaged && TypeId == ZombieIds.Tank) { f.Head = new V3(f.Head.X + 26f, f.Head.Y, f.Head.Z); f.Torso = new V3(14f, f.Torso.Y, f.Torso.Z); }
                 if (engaged && TypeId == ZombieIds.Runner) f.Torso = new V3(f.Torso.X + 8f, f.Torso.Y, f.Torso.Z);
             }
-            else if (attacking && s.AttackKind != ZombieAttackKind.Smash) { f.Head = new V3(f.Head.X + 10f, f.Head.Y, f.Head.Z + ind.HeadTilt * 0.5f); }
+            else if (attacking && s.BossPose == BossPose.None && s.AttackKind != ZombieAttackKind.Smash) { f.Head = new V3(f.Head.X + 10f, f.Head.Y, f.Head.Z + ind.HeadTilt * 0.5f); }
+            if (_fury > 0 && !attacking && !s.Stunned) { f.Torso = new V3(f.Torso.X + 6f * _fury, f.Torso.Y, f.Torso.Z); f.Head = new V3(f.Head.X - 4f * _fury, f.Head.Y, f.Head.Z); }   // furia: encorvado y mirando al frente
+            if (Anatomy.IsBoss) BossExtras(dt, f.JawOpen);
             // cojera
             ZombieMotion.Limp(ind.Limp, ind.LimpSide, Rig.GaitPhase, out float limpRoll, out float limpTorso);
             // reacciones a impactos (muelles que vuelven a cero)
@@ -451,7 +519,7 @@ namespace SevenDays.Combat
 
             var I = Rig.Inputs;
             I.Grounded = true; I.Dead = false;
-            I.Hunch = s.Chasing && TypeId == ZombieIds.Runner ? 0.4f : (s.Chasing ? 0.1f : 0f);
+            I.Hunch = (s.Chasing && TypeId == ZombieIds.Runner ? 0.4f : (s.Chasing ? 0.1f : 0f)) + 0.12f * _fury;
             I.Fatigue = 0.15f + 0.5f * ind.Limp;
             I.PelvisRoll = f.PelvisRoll + limpRoll + pr;
             I.PelvisOffset = new Vector3(f.PelvisOffset.X, f.PelvisOffset.Y, f.PelvisOffset.Z) * Anatomy.Proportions.height + new Vector3(0f, pd, 0f);
@@ -462,6 +530,24 @@ namespace SevenDays.Combat
             _frame = f;
             Rig.Inputs = I;
             Rig.Tick(dt);
+        }
+
+        // mandíbula doble que se abre (rugidos, onda), costillas que se abren sobre el núcleo expuesto y su latido
+        private void BossExtras(float dt, float jawOpen)
+        {
+            float idle = 0.08f + 0.06f * Mathf.Sin(_time * 1.7f) + 0.12f * _fury;
+            _jaw = Mathf.MoveTowards(_jaw, Mathf.Max(idle, jawOpen), dt * 4f);
+            if (_jawL != null) _jawL.localRotation = Quaternion.Euler(_jaw * 34f, -_jaw * 26f, -_jaw * 12f);
+            if (_jawR != null) _jawR.localRotation = Quaternion.Euler(_jaw * 34f, _jaw * 26f, _jaw * 12f);
+            _weakOpen = Mathf.MoveTowards(_weakOpen, _weakOn ? 1f : 0f, dt * 3f);
+            if (_ribL != null) _ribL.localRotation = Quaternion.Euler(0f, -72f * _weakOpen, 0f);
+            if (_ribR != null) _ribR.localRotation = Quaternion.Euler(0f, 72f * _weakOpen, 0f);
+            if (_core != null) _core.localScale = Vector3.one * (0.85f + 0.15f * _weakOpen + 0.06f * _weakOpen * Mathf.Sin(_time * 7f));
+            if (_core != null && Mathf.Abs(_weakOpen - _lastEmissionOpen) > 0.04f && !_flashing)
+            {
+                _lastEmissionOpen = _weakOpen;
+                ApplyEmission(_glow); Renderer.SetPropertyBlock(_skinBlock, 0);
+            }
         }
 
         // las manos se colocan con el pecho de este frame (después del torso y antes del IK de los brazos)

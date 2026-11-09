@@ -56,6 +56,36 @@ namespace SevenDays.Look
             return go.transform;
         }
 
+        /// <summary>Vapor de la furia de un jefe: humo claro que sale de la espalda y sube (empieza sin emitir; el cuerpo sube el ritmo con la furia).</summary>
+        public static ParticleSystem CreateSteam(Transform parent, Vector3 localPos, float size)
+        {
+            var go = new GameObject("Vapor");
+            go.SetActive(false);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            var ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.loop = true; main.playOnAwake = true;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f * size, 1.4f * size);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.25f * size, 0.5f * size);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.8f, 0.78f, 0.74f, 0.18f), new Color(0.9f, 0.88f, 0.85f, 0.32f));
+            main.maxParticles = 60;
+            main.gravityModifier = -0.05f;
+            var emission = ps.emission; emission.rateOverTime = 0f;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Sphere; shape.radius = 0.25f * size;
+            var grow = ps.sizeOverLifetime; grow.enabled = true; grow.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.6f, 1f, 1.8f));
+            var fade = ps.colorOverLifetime; fade.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) }, new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(0f, 1f) });
+            fade.color = g;
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.sharedMaterial = DefaultParticleMaterial; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
+            go.SetActive(true);
+            return ps;
+        }
+
         /// <summary>Chispas que saltan de un barril encendido: rayitas brillantes (aditivas, color HDR para el Bloom) que suben y caen.</summary>
         public static ParticleSystem CreateSparks(Transform parent, Vector3 pos, float amount)
         {

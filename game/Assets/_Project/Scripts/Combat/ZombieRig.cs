@@ -118,7 +118,7 @@ namespace SevenDays.Combat
             for (int i = 0; i < _cloth.Length; i++) _cloth[i].sharedMaterial = on ? flash : _clothMat;
         }
 
-        // ---- IZombieRig (cuerpo antiguo de primitivas: lo usan los jefes hasta el bloque D)
+        // ---- IZombieRig (cuerpo antiguo de primitivas: respaldo para tipos sin anatomía procedural)
         public void Setup(ZombieTypeData type, int seed, bool emerge)
         {
             _baseScale = type.scale;
@@ -140,6 +140,7 @@ namespace SevenDays.Combat
         public bool ConsumeImpact() => false;
 
         public void SetWeakPoint(bool on) { if (WeakPoint != null) WeakPoint.SetActive(on); }
+        public void SetFury(int phase) { Visual.localScale = Vector3.one * _baseScale * (1f + 0.05f * phase); }
 
         public void SetHitboxesEnabled(bool on) { foreach (var h in Hitboxes) { var c = h.GetComponent<Collider>(); if (c != null) c.enabled = on; } }
 
