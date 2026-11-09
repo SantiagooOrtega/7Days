@@ -5,6 +5,8 @@ namespace SevenDays.Procedural
 {
     public enum ZombieAttackKind { Swipe, DoubleClaw, Bite, Smash, Throw }
     public enum ZombieDeathForm { FallBack, FallForward, Kneel }
+    /// <summary>Animación de habilidad de un jefe (telegraph y ejecución): preparar la carga, correr cargando, golpe de suelo, lanzar, rugir (invocar, furia) y onda expansiva.</summary>
+    public enum BossPose { None, ChargeWindup, ChargeRun, Slam, Throw, Roar, Shockwave }
 
     /// <summary>
     /// Objetivos y extras de una fase de la animación de un zombi (todo puro). Las manos van en espacio del cuerpo relativas a su hombro y en fracciones de la longitud del brazo
@@ -18,6 +20,7 @@ namespace SevenDays.Procedural
         public V3 PelvisOffset;         // en fracciones de la altura
         public float PelvisRoll;        // grados
         public float Impact;            // 1 durante el instante del golpe (para efectos y sonido)
+        public float JawOpen;           // 0..1 mandíbula abierta (la doble del Devorador)
     }
 
     public static class ZombieMotion
@@ -39,6 +42,9 @@ namespace SevenDays.Procedural
                 case ZombieIds.Armored: return new V3(side * 0.2f, -0.1f, 0.75f);
                 case ZombieIds.Explosive: return new V3(side * 0.5f, -0.05f, 0.55f);
                 case ZombieIds.Spitter: return side > 0 ? new V3(0.22f, 0.05f, 0.35f) : new V3(-0.2f, -0.1f, 0.7f);
+                case ZombieIds.BossBrute: return new V3(side * (0.32f + 0.1f * aggression), -0.38f + 0.12f * aggression, 0.45f);          // puños-maza cerrados delante
+                case ZombieIds.BossLauncher: return side > 0 ? new V3(0.3f, -0.62f, 0.22f) : new V3(-0.22f, -0.1f + 0.1f * aggression, 0.6f);   // brazo gigante colgando
+                case ZombieIds.BossFinal: return new V3(side * (0.45f + 0.1f * aggression), 0.05f + 0.1f * aggression, 0.7f);              // garras abiertas hacia delante
                 default: return new V3(side * 0.12f, -0.15f + 0.1f * aggression, 0.82f);
             }
         }
@@ -53,6 +59,9 @@ namespace SevenDays.Procedural
                 case ZombieIds.Spitter: return ZombieAttackKind.Swipe;
                 case ZombieIds.Explosive: return ZombieAttackKind.DoubleClaw;
                 case ZombieIds.Armored: return attackIndex % 2 == 0 ? ZombieAttackKind.Swipe : ZombieAttackKind.Smash;
+                case ZombieIds.BossBrute: return ZombieAttackKind.Smash;
+                case ZombieIds.BossLauncher: return attackIndex % 2 == 0 ? ZombieAttackKind.Swipe : ZombieAttackKind.Smash;
+                case ZombieIds.BossFinal: return attackIndex % 2 == 0 ? ZombieAttackKind.DoubleClaw : ZombieAttackKind.Bite;
                 default: return (ZombieAttackKind)(attackIndex % 3);
             }
         }
@@ -128,6 +137,97 @@ namespace SevenDays.Procedural
             return f;
         }
 
+        /// <summary>Instante (t) en que cae el golpe de una habilidad de jefe: el final del telegraph. El cerebro dispara la habilidad justo ahí.</summary>
+        public const float BossImpactT = 0.5f;
+
+        /// <summary>
+        /// Habilidad de un jefe en t = 0..1: de 0 a 0.5 es el telegraph (dura lo que diga el cerebro) y el golpe cae exactamente en 0.5, cuando se dispara la habilidad;
+        /// de 0.5 a 1 la recuperación. La carga, en cambio, se mantiene (ChargeRun) mientras corre. "time" anima los temblores; "fury" (0..2) exagera la pose.
+        /// </summary>
+        public static ZombieMotionFrame Boss(BossPose pose, float t, float time, int fury, V3 guardL, V3 guardR)
+        {
+            t = Math.Max(0f, Math.Min(1f, t));
+            float wind = S(0f, 0.42f, t), strike = S(0.42f, 0.5f, t), recover = S(0.55f, 1f, t);
+            float am = wind * (1f - recover), tremble = (float)Math.Sin(time * 38f) * (1f + 0.5f * fury);
+            var f = new ZombieMotionFrame { LeftHand = guardL, RightHand = guardR, LeftWeight = 1f, RightWeight = 1f };
+            f.Impact = Math.Max(0f, 1f - Math.Abs(t - BossImpactT) / 0.04f);
+            switch (pose)
+            {
+                case BossPose.ChargeWindup:
+                {
+                    // agacha la cabeza, se encoge y echa los brazos atrás; escarba el suelo con la cadera
+                    float k = S(0f, 0.5f, t);
+                    f.Torso = new V3(30f * k, 0f, 3f * (float)Math.Sin(time * 9f) * k);
+                    f.Head = new V3(22f * k, 0f, 0f);
+                    f.PelvisOffset = new V3(0f, -0.045f * k, -0.02f * k);
+                    f.PelvisRoll = 4f * (float)Math.Sin(time * 9f) * k;
+                    f.LeftHand = Lerp(guardL, new V3(-0.38f, -0.3f, -0.35f), k);
+                    f.RightHand = Lerp(guardR, new V3(0.38f, -0.3f, -0.35f), k);
+                    break;
+                }
+                case BossPose.ChargeRun:
+                {
+                    // embiste: torso muy inclinado, cabeza baja, brazos atrás bombeando
+                    float pump = (float)Math.Sin(time * 14f);
+                    f.Torso = new V3(36f, 4f * pump, 0f);
+                    f.Head = new V3(26f, 0f, 0f);
+                    f.LeftHand = new V3(-0.32f, -0.32f + 0.1f * pump, -0.3f);
+                    f.RightHand = new V3(0.32f, -0.32f - 0.1f * pump, -0.3f);
+                    break;
+                }
+                case BossPose.Slam:
+                {
+                    // dos puños por encima de la cabeza, tiembla en lo alto y cae con todo el cuerpo justo en 0.5
+                    V3 high = new V3(0.15f, 1.1f, 0.1f), low = new V3(0.12f, -0.9f, 0.75f);
+                    f.LeftHand = Lerp(guardL, Lerp(new V3(-high.X, high.Y, high.Z), new V3(-low.X, low.Y, low.Z), strike), am);
+                    f.RightHand = Lerp(guardR, Lerp(high, low, strike), am);
+                    f.Torso = new V3(Lerp(-20f * wind + tremble * wind * (1f - strike), 42f, strike) * (1f - recover), 0f, 0f);
+                    f.Head = new V3(Lerp(-14f * wind, 22f, strike) * (1f - recover), 0f, 0f);
+                    f.PelvisOffset = new V3(0f, Lerp(0.01f * wind, -0.06f, strike) * (1f - recover), 0.05f * strike * (1f - recover));
+                    break;
+                }
+                case BossPose.Throw:
+                {
+                    // el brazo grande atrás y arriba con el torso girado; suelta delante en 0.5 (sale el proyectil)
+                    V3 back = new V3(0.45f, 0.75f, -0.55f), release = new V3(0.05f, 0.45f, 1.05f);
+                    f.RightHand = Lerp(guardR, Lerp(back, release, strike), am);
+                    f.LeftHand = Lerp(guardL, new V3(-0.3f, 0.35f, 0.7f), am);
+                    f.Torso = new V3(Lerp(-8f * wind, 18f, strike) * (1f - recover), Lerp(-38f * wind, 30f, strike) * (1f - recover), 0f);
+                    f.Head = new V3(Lerp(-10f * wind, 6f, strike) * (1f - recover), Lerp(20f * wind, -10f, strike) * (1f - recover), 0f);
+                    break;
+                }
+                case BossPose.Roar:
+                {
+                    // se arquea hacia atrás con los brazos abiertos y la boca abierta, tiembla, y baja los puños
+                    float rise = S(0f, 0.35f, t), drop = S(0.5f, 0.75f, t);
+                    float k = rise * (1f - recover);
+                    V3 wideL = new V3(-0.85f, 0.45f, 0.25f), wideR = new V3(0.85f, 0.45f, 0.25f), fistL = new V3(-0.35f, -0.5f, 0.3f), fistR = new V3(0.35f, -0.5f, 0.3f);
+                    f.LeftHand = Lerp(guardL, Lerp(wideL, fistL, drop), k);
+                    f.RightHand = Lerp(guardR, Lerp(wideR, fistR, drop), k);
+                    f.Torso = new V3(Lerp(-26f + 2f * tremble, 18f, drop) * k, 0f, 2f * tremble * k);
+                    f.Head = new V3(Lerp(-34f, 10f, drop) * k + 2f * tremble * k, 0f, 0f);
+                    f.PelvisOffset = new V3(0f, -0.02f * k, 0f);
+                    f.JawOpen = k * (1f - 0.6f * drop);
+                    break;
+                }
+                case BossPose.Shockwave:
+                {
+                    // se agacha cruzando los brazos y estalla hacia arriba con un pisotón en 0.5: brazos abiertos hacia abajo
+                    V3 crossL = new V3(0.25f, 0.1f, 0.5f), crossR = new V3(-0.25f, 0.1f, 0.5f), flungL = new V3(-0.9f, -0.2f, 0.2f), flungR = new V3(0.9f, -0.2f, 0.2f);
+                    f.LeftHand = Lerp(guardL, Lerp(crossL, flungL, strike), am);
+                    f.RightHand = Lerp(guardR, Lerp(crossR, flungR, strike), am);
+                    f.Torso = new V3(Lerp(30f * wind + tremble * wind * (1f - strike), -18f, strike) * (1f - recover), 0f, 0f);
+                    f.Head = new V3(Lerp(20f * wind, -22f, strike) * (1f - recover), 0f, 0f);
+                    f.PelvisOffset = new V3(0f, Lerp(-0.1f * wind, 0.015f, strike) * (1f - recover), 0f);
+                    f.JawOpen = strike * (1f - recover);
+                    break;
+                }
+            }
+            // la furia exagera: más inclinado hacia delante y la cabeza más baja
+            if (fury > 0 && pose != BossPose.Roar) f.Torso = new V3(f.Torso.X + 4f * fury * (1f - am), f.Torso.Y, f.Torso.Z);
+            return f;
+        }
+
         /// <summary>Reacción al impacto (aturdimiento ligero): impulsos en grados/s para los muelles del cuerpo y desplazamiento de la cadera.</summary>
         public struct Flinch
         {
@@ -199,7 +299,7 @@ namespace SevenDays.Procedural
     }
 
     /// <summary>
-    /// Poses finales de la muerte (de espaldas, hacia delante y de rodillas) y su ajuste al suelo: se calcula con la malla real de menor detalle (piel y ropa con sus pesos) la
+    /// Poses finales de la muerte (de espaldas, hacia delante y de rodillas) y su ajuste al suelo: se calcula con la malla real completa (piel y ropa con sus pesos) la
     /// altura de la cadera a la que el punto más bajo del cuerpo toca el suelo. Así el cuerpo nunca queda bajo el asfalto ni flotando, sea cual sea el tipo o la altura.
     /// </summary>
     public static class ZombiePoses

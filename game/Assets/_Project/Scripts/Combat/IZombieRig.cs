@@ -12,11 +12,13 @@ namespace SevenDays.Combat
         public float AttackT;                                // -1 sin ataque; 0..1 a lo largo del ataque (el daño cae en 0.5)
         public ZombieAttackKind AttackKind;
         public float DistanceToCamera;
+        public BossPose BossPose;                            // habilidad de jefe en curso (None = ninguna)
+        public float BossT;                                  // 0..1 a lo largo de la habilidad (el golpe cae en 0.5, al final del telegraph)
     }
 
     /// <summary>
     /// Cuerpo visual del zombi. Lo implementan el cuerpo procedural (ZombieBody: esqueleto del ProceduralRig, malla con pesos, decals de heridas) y el antiguo de primitivas
-    /// (ZombieRig), que siguen usando los jefes hasta que tengan el suyo. El controlador solo habla con esta interfaz.
+    /// (ZombieRig, de respaldo para tipos sin anatomía). El controlador solo habla con esta interfaz.
     /// </summary>
     public interface IZombieRig
     {
@@ -38,5 +40,7 @@ namespace SevenDays.Combat
         bool Emerging { get; }
         /// <summary>true cuando acaba de ocurrir el instante del golpe de un ataque pesado (golpe de suelo): se consume al leerlo.</summary>
         bool ConsumeImpact();
+        /// <summary>Fase de furia de un jefe (0, 1 al 50 %, 2 al 25 %): ojos y venas más brillantes, pose agresiva y vapor.</summary>
+        void SetFury(int phase);
     }
 }

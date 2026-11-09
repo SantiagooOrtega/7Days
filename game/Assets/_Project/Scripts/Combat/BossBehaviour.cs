@@ -35,12 +35,18 @@ namespace SevenDays.Combat
         private float _baseSpeedMult;
         private int _lastPhaseShown;
         private float _labelUntil;
+        // animación de la habilidad: telegraph (0..0.5) y recuperación tras el golpe (0.5..1, ReleaseSeconds)
+        private const float ReleaseSeconds = 0.6f, RoarSeconds = 1.3f;
+        private BossPose _pose;
+        private float _released = -1f, _roarStart = -1f;
 
         public void Begin(ZombieController z, ZombieTypeData type)
         {
             _z = z; Type = type; _health = z.Health;
             Brain = new BossBrain(type.boss, Random.Range(1, 100000));
             Active = true; _exec = Exec.None; _lastPhaseShown = 0; TelegraphLabel = "";
+            _pose = BossPose.None; _released = -1f; _roarStart = -1f; z.BossPose = BossPose.None;
+            _z.Rig.SetFury(0);
             _baseSpeedMult = z.SpeedMultiplier;
             _health.ZoneFilter = Brain.ResolveZone;
             _z.Rig.SetWeakPoint(false);
@@ -69,9 +75,10 @@ namespace SevenDays.Combat
             _exec = Exec.None;
             TelegraphLabel = "";
             _z.PoseAttackOverride = -1f;
+            _z.BossPose = BossPose.None;
             _z.Rig.SetWeakPoint(false);
             if (_health != null) _health.ZoneFilter = null;
-            _audio.PlayOneShot(_roar, 1f);
+            Roar(1f);
             if (ZombieManager.Instance != null) HudMessages.Add(Type.displayName + " derrotado", new Color(1f, 0.85f, 0.3f), 4f);
         }
 
@@ -86,20 +93,64 @@ namespace SevenDays.Combat
             _z.SpeedMultiplier = _baseSpeedMult * Brain.SpeedMultiplier;
             if (Time.time > _labelUntil && !Brain.Busy) TelegraphLabel = Brain.WallStunned ? "¡ATURDIDO! ¡DISPARA!" : "";
 
-            if (_exec == Exec.Charging) { Charge(dt); return true; }
+            UpdatePose();
+            if (_exec == Exec.Charging) { Charge(dt); moveAmount = 1f; return true; }
 
             if (Brain.WallStunned) { _z.Stop(); _z.PoseAttackOverride = -1f; return true; }
 
             if (Brain.Busy)
             {
-                // de pie, mirando al jugador y alzando los brazos: el aviso
+                // de pie, mirando al jugador y preparando el golpe: el aviso (la pose avanza con el telegraph y el golpe cae al dispararse la habilidad)
                 _z.Stop();
                 Face(toPlayer, dt, _current != null && _current.id == "charge" ? 0f : 360f);
-                _z.PoseAttackOverride = Mathf.Clamp01(1f - Brain.TelegraphRemaining / Mathf.Max(0.1f, _telegraphTotal)) * 0.5f;
+                float p = Mathf.Clamp01(1f - Brain.TelegraphRemaining / Mathf.Max(0.1f, _telegraphTotal));
+                if (_z.Procedural) { _z.BossPose = _pose; _z.BossPoseT = p * ZombieMotion.BossImpactT; }
+                else _z.PoseAttackOverride = p * 0.5f;
                 return true;
             }
             _z.PoseAttackOverride = -1f;
-            return false;
+            return _released >= 0f && _pose == BossPose.Roar;   // tras invocar se queda rugiendo un momento
+        }
+
+        /// <summary>Recuperación tras el golpe (t de 0.5 a 1) y rugido de furia; cuando termina, vuelve a la locomoción normal.</summary>
+        private void UpdatePose()
+        {
+            if (!_z.Procedural) return;
+            if (_exec == Exec.Charging) { _z.BossPose = BossPose.ChargeRun; _z.BossPoseT = 0.5f; return; }
+            if (Brain.Busy) return;
+            if (_roarStart >= 0f)
+            {
+                float k = (Time.time - _roarStart) / RoarSeconds;
+                if (k >= 1f) { _roarStart = -1f; _z.BossPose = BossPose.None; }
+                else { _z.BossPose = BossPose.Roar; _z.BossPoseT = k; }
+                return;
+            }
+            if (_released >= 0f)
+            {
+                float k = (Time.time - _released) / ReleaseSeconds;
+                if (k >= 1f) { _released = -1f; _z.BossPose = BossPose.None; }
+                else { _z.BossPose = _pose; _z.BossPoseT = ZombieMotion.BossImpactT + (1f - ZombieMotion.BossImpactT) * k; }
+                return;
+            }
+            _z.BossPose = BossPose.None;
+        }
+
+        private static BossPose PoseFor(string abilityId)
+        {
+            switch (abilityId)
+            {
+                case "charge": return BossPose.ChargeWindup;
+                case "slam": return BossPose.Slam;
+                case "throw": return BossPose.Throw;
+                case "shockwave": return BossPose.Shockwave;
+                default: return BossPose.Roar;   // summon, summon_wave
+            }
+        }
+
+        /// <summary>Rugido del jefe con su voz sintetizada (si aún no está generada, el sonido de respaldo).</summary>
+        private void Roar(float volume)
+        {
+            if (!_z.Sounds.Play(ZombieSound.Roar, volume, true)) _audio.PlayOneShot(_roar, volume);
         }
 
         // ------------------------------------------------------------------ eventos del cerebro
@@ -122,13 +173,14 @@ namespace SevenDays.Combat
         {
             if (phase <= _lastPhaseShown) return;
             _lastPhaseShown = phase;
-            _audio.PlayOneShot(_roar, 1f);
+            Roar(1f);
             Shake(0.6f);
-            // más rojo en cada fase de furia y un poco más grande
+            // ojos y venas brillantes, pose agresiva y vapor (cuerpo procedural); el de respaldo se pone más rojo y algo más grande
             Color baseColor = new Color(Type.color[0], Type.color[1], Type.color[2]);
             _z.BodyColor = Color.Lerp(baseColor, new Color(0.9f, 0.1f, 0.08f), 0.28f * phase);
             _z.Rig.SetColor(_z.BodyColor);
-            _z.Rig.Visual.localScale = Vector3.one * Type.scale * (1f + 0.05f * phase);
+            _z.Rig.SetFury(phase);
+            if (!Brain.Busy && _exec == Exec.None) _roarStart = Time.time;   // ruge con los brazos abiertos (si no está avisando de otro ataque)
             TelegraphLabel = phase == 1 ? "¡FURIA!" : "¡FURIA TOTAL!";
             _labelUntil = Time.time + 2f;
             HudMessages.Add(Type.displayName + (phase == 1 ? " se enfurece" : " entra en furia total"), new Color(1f, 0.3f, 0.25f), 3f);
@@ -139,6 +191,7 @@ namespace SevenDays.Combat
         {
             _current = System.Array.Find(Type.boss.abilities, a => a.id == e.AbilityId);
             _telegraphTotal = e.Seconds;
+            _pose = PoseFor(e.AbilityId); _released = -1f; _roarStart = -1f;
             _audio.PlayOneShot(_warn, 0.9f);
             Vector3 pos = transform.position;
             Vector3 dir = toPlayer.sqrMagnitude > 0.01f ? toPlayer.normalized : transform.forward;
@@ -162,6 +215,7 @@ namespace SevenDays.Combat
         private void Execute(string id)
         {
             _z.PoseAttackOverride = -1f;
+            _released = id == "charge" ? -1f : Time.time;   // el golpe ya cayó (t = 0.5): ahora la recuperación
             var a = System.Array.Find(Type.boss.abilities, x => x.id == id);
             if (a == null) return;
             var player = _z.PlayerTransform; var ph = _z.PlayerHealth;
@@ -223,12 +277,13 @@ namespace SevenDays.Combat
             if (Physics.Raycast(next + Vector3.up * 2f, Vector3.down, out RaycastHit g, 5f, ~((1 << 2) | HitboxLayer.Mask), QueryTriggerInteraction.Ignore)) next.y = g.point.y;
             transform.position = next;
             _chargeLeft -= step;
-            if (_chargeLeft <= 0f) { _exec = Exec.None; ResumeAgent(); }
+            if (_chargeLeft <= 0f) { _exec = Exec.None; _z.BossPose = BossPose.None; ResumeAgent(); }
         }
 
         private void EndChargeOnWall(Vector3 point)
         {
             _exec = Exec.None;
+            _z.BossPose = BossPose.None;
             ResumeAgent();
             Brain.WallStun();
             _health.Stun(Type.boss.wallStunSeconds, false);     // se queda aturdido: ventana de daño extra
@@ -256,6 +311,7 @@ namespace SevenDays.Combat
         {
             _audio.PlayOneShot(_whoosh, 1f);
             Vector3 hand = transform.position + Vector3.up * (2.3f * Type.scale / 2f) + transform.forward * 0.6f;
+            if (_z.Rig is ZombieBody zb) hand = zb.Rig.Bone(BoneId.RightHand).position + transform.forward * 0.3f;   // sale de la mano del brazo grande, que está delante en t = 0.5
             Projectile.Launch(ProjectileMode.Arc, hand, player.position, Type.projectileSpeed > 0f ? Type.projectileSpeed : 14f, a.b * _z.DamageMultiplier, a.a, "debris", player, ph, gameObject, true, 4f);
         }
 
@@ -263,7 +319,7 @@ namespace SevenDays.Combat
         {
             var mgr = ZombieManager.Instance;
             if (mgr == null) return;
-            _audio.PlayOneShot(_roar, 0.8f);
+            Roar(0.8f);
             for (int i = 0; i < count; i++)
             {
                 float ang = (i + Random.value * 0.4f) / Mathf.Max(1, count) * Mathf.PI * 2f;
