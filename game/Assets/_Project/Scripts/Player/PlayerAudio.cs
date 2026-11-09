@@ -13,6 +13,7 @@ namespace SevenDays.Player
         private PlayerCamera _camera;
         private PlayerMotor _motor;
         private int _variant;
+        private float _breathLevel;
 
         private void Start()
         {
@@ -20,6 +21,7 @@ namespace SevenDays.Player
             _motor = GetComponent<PlayerMotor>();
             _steps = gameObject.AddComponent<AudioSource>();
             _steps.playOnAwake = false; _steps.spatialBlend = 0.2f;
+            SevenDays.Core.AudioMix.Route(_steps, SevenDays.Core.AudioGroup.Ambient);
             _breath = gameObject.AddComponent<AudioSource>();
             _breath.playOnAwake = false; _breath.loop = true; _breath.spatialBlend = 0f; _breath.volume = 0f;
             _breath.clip = ProceduralAudio.Breath();
@@ -39,7 +41,8 @@ namespace SevenDays.Player
             // respiración: casi inaudible descansado, clara con fatiga; el ritmo sube (pitch) con el cansancio
             float fatigue = _camera.RunCam.Fatigue;
             float target = 0.04f + 0.5f * fatigue + (_motor.IsSprinting ? 0.08f : 0f);
-            _breath.volume = Mathf.MoveTowards(_breath.volume, target, Time.deltaTime * 0.6f);
+            _breathLevel = Mathf.MoveTowards(_breathLevel, target, Time.deltaTime * 0.6f);
+            _breath.volume = _breathLevel * SevenDays.Core.AudioMix.Volume(SevenDays.Core.AudioGroup.Ambient);
             _breath.pitch = 1f + 0.35f * fatigue;
         }
     }
