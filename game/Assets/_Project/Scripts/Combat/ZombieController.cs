@@ -65,6 +65,11 @@ namespace SevenDays.Combat
         private HitZone _lastHitZone = HitZone.Torso;
         private Vector3 _lastHitDir;
         private static Camera _animCam;
+        private readonly ZombieSounds _sounds = new ZombieSounds();
+        private ZombieState _prevState;
+        private SevenDays.Player.PlayerImpulse _impulse;
+        /// <summary>Voz y sonidos de este zombi (panel F6 y pruebas).</summary>
+        public ZombieSounds Sounds => _sounds;
 
         public static string KeyFor(ZombieTypeData type) => !type.isBoss && ZombieAnatomies.Has(type.id) ? type.id : "legacy";
 
@@ -108,7 +113,7 @@ namespace SevenDays.Combat
             MakeBody(type);
         }
 
-        public void SetPlayer(Transform player, Health health) { _player = player; _playerHealth = health; }
+        public void SetPlayer(Transform player, Health health) { _player = player; _playerHealth = health; _impulse = player != null ? player.GetComponent<SevenDays.Player.PlayerImpulse>() : null; }
 
         public void Activate(ZombieTypeData type, Vector3 position, float healthMultiplier = 1f, float speedMultiplier = 1f, float damageMultiplier = 1f, bool ignoreEmerge = false)
         {
@@ -161,12 +166,17 @@ namespace SevenDays.Combat
             if (_useAgent) { _agent.speed = type.patrolSpeed * speedMultiplier; _agent.isStopped = false; }
             _attackCount = UnityEngine.Random.Range(0, 3); _attackKind = ZombieMotion.KindFor(type.id, _attackCount);
             // aparece: elige variante y rasgos propios y sale del suelo (los jefes y los invocados no esperan)
-            Rig.Setup(type, UnityEngine.Random.Range(1, int.MaxValue), !type.isBoss && !ignoreEmerge);
+            int seed = UnityEngine.Random.Range(1, int.MaxValue);
+            bool emerge = !type.isBoss && !ignoreEmerge;
+            Rig.Setup(type, seed, emerge);
+            _prevState = _sm.State;
+            _sounds.Begin(transform, type.id, seed, emerge, !type.isBoss);   // los jefes tienen sus propios rugidos (BossBehaviour)
         }
 
         public void Deactivate()
         {
             InUse = false;
+            _sounds.Stop(); StopHiss();
             if (_agent != null) _agent.enabled = false;
             gameObject.SetActive(false);
         }
@@ -188,6 +198,7 @@ namespace SevenDays.Combat
             if (BloodFx.Instance != null)
                 BloodFx.Instance.Spray(info.Point, info.Direction, report.Headshot ? 14 : 7);
             if (report.Killed) return;
+            _sounds.Pain(report.Zone, report.Headshot);
             var reaction = HitReaction.Compute(report.FinalDamage, Health.Max, report.Zone, info.Knockback, Type.stunResistance);
             Vector3 dir = info.Direction; dir.y = 0f;
             if (dir.sqrMagnitude > 0.001f) _knock += dir.normalized * (reaction.KnockbackMeters * 7f * (Type.isBoss ? 0.15f : 1f));
@@ -201,6 +212,7 @@ namespace SevenDays.Combat
             if (Health.KilledByHeadshot) HeadDestroyed = true;   // la cabeza desaparece (el cuerpo lo hace en OnDeath)
             Vector3 shot = _lastHitDir.sqrMagnitude > 0.01f ? _lastHitDir : (_player != null ? transform.position - _player.position : transform.forward);
             shot.y = 0f;
+            _sounds.Death(Health.KilledByHeadshot);
             Rig.OnDeath(_lastHitZone, shot.sqrMagnitude > 0.001f ? shot.normalized : transform.forward, Health.KilledByHeadshot);
             if (BloodFx.Instance != null)
                 BloodFx.Instance.Spray(transform.position + Vector3.up * (Health.KilledByHeadshot ? 1.7f : 1.2f) * Type.scale, Vector3.up + (_player != null ? (transform.position - _player.position).normalized : Vector3.zero), Health.KilledByHeadshot ? 40 : 24);
@@ -252,6 +264,8 @@ namespace SevenDays.Combat
                 _canSee = dist < 3f || (dist <= seen && HasLineOfSight());
             }
             _sm.Tick(dt, dist, _canSee, Health.IsStunned, false, playerDead);
+            if (_sm.State == ZombieState.Chase && _prevState == ZombieState.Patrol) _sounds.Alert();   // aviso al detectar al jugador
+            _prevState = _sm.State;
             bool bossHandled = false; float bossMove = 0f;
             if (Boss != null && Boss.Active) bossHandled = Boss.Tick(dt, toPlayer, dist, out bossMove);
             if (_sm.State == ZombieState.Chase) _canSee = _canSee || dist < _sm.AggroRange;
@@ -277,6 +291,7 @@ namespace SevenDays.Combat
             if (_cam == null) _cam = Camera.main;
             Bar.Tick(dist, _cam);
             AnimateBody(dt, amount, attackT, dist);
+            _sounds.Tick(dist, _sm.State == ZombieState.Chase, amount, _walkPhase, _impulse);
             // golpe de suelo del tanque: onda de polvo y sacudida en el instante exacto del impacto visual
             if (Rig.ConsumeImpact()) GroundImpact(dist);
         }
@@ -342,6 +357,7 @@ namespace SevenDays.Combat
                 _attackStart = Time.time;
                 _damageDone = false;
                 _attackKind = ZombieMotion.KindFor(Type.id, ++_attackCount);
+                _sounds.Attack(_attackKind);
             }
             // el golpe cae a mitad de la animación; si el jugador se alejó, falla
             if (!_damageDone && _attackStart > 0f && Time.time - _attackStart >= 0.35f)
@@ -400,6 +416,7 @@ namespace SevenDays.Combat
         private void ThrowProjectile()
         {
             _attackKind = ZombieAttackKind.Throw;
+            _sounds.Throw();
             _attackStart = Time.time - 0.35f;   // el proyectil sale justo en t = 0.5 de la animación de lanzar: la mano está delante
             Vector3 hand = transform.position + Vector3.up * (1.4f * Type.scale) + transform.forward * 0.4f;
             if (Rig is ZombieBody zb) hand = zb.Rig.Bone(BoneId.RightHand).position + transform.forward * 0.1f;
@@ -453,6 +470,8 @@ namespace SevenDays.Combat
                 bool on = _fuse.FlashWhite(Time.time);
                 Rig.SetFuse(_fuse.Inflate(Time.time), Mathf.Lerp(0.35f, 1f, _fuse.Progress) * (on ? 1f : 0.4f), _fuse.Progress);
             }
+            // el siseo y el burbujeo crecen con la mecha: más agudo y más fuerte
+            if (_hiss != null) { _hiss.pitch = Mathf.Lerp(0.85f, 1.6f, _fuse.Progress); _hiss.volume = Mathf.Lerp(0.35f, 1f, _fuse.Progress) * AudioMix.Volume(AudioGroup.Zombies); }
             else
             {
                 Rig.Visual.localScale = Vector3.one * Type.scale * _fuse.Inflate(Time.time);
@@ -469,10 +488,12 @@ namespace SevenDays.Combat
             if (_hiss == null)
             {
                 _hiss = gameObject.AddComponent<AudioSource>();
-                _hiss.spatialBlend = 1f; _hiss.maxDistance = 40f; _hiss.rolloffMode = AudioRolloffMode.Linear; _hiss.loop = true; _hiss.playOnAwake = false;
+                _hiss.spatialBlend = 1f; _hiss.minDistance = 1.5f; _hiss.maxDistance = ZombieAudio.MaxDistance; _hiss.rolloffMode = AudioRolloffMode.Logarithmic; _hiss.loop = true; _hiss.playOnAwake = false;
+                _hiss.dopplerLevel = 0f;
             }
-            if (BlastFx.HissClip == null) return;
-            _hiss.clip = BlastFx.HissClip; _hiss.pitch = 0.9f; _hiss.Play();
+            var clip = _sounds.FuseClip() ?? BlastFx.HissClip;
+            if (clip == null) return;
+            _hiss.clip = clip; _hiss.pitch = 0.85f; _hiss.volume = 0.35f * AudioMix.Volume(AudioGroup.Zombies); _hiss.Play();
         }
 
         private void StopHiss() { if (_hiss != null && _hiss.isPlaying) _hiss.Stop(); }
@@ -502,6 +523,7 @@ namespace SevenDays.Combat
             float radius = Type.explosionRadius;
             int solid = ~((1 << 2) | HitboxLayer.Mask);
             BlastFx.Instance?.Explode(center, radius);
+            _sounds.Blast(center);
 
             // jugador: daño con caída por distancia (una pared sólida entre los dos deja pasar solo una fracción), empuje y sacudida de cámara
             if (_player != null && _playerHealth != null && !_playerHealth.IsDead)
