@@ -74,3 +74,12 @@ export const lootLayout = z.object({
 El arma se define con `WeaponData`: `id, displayName, kind, rarity, ammoType, damage, pellets, roundsPerMinute, magazineSize, reloadTime, recoil, spreadHip, spreadAim, range, automatic, color[3], length, thickness`.
 
 > Daño por disparo recalibrado en la Fase 3 (Bloque 2); caída por distancia, penetración y multiplicador de cabeza de cada arma en `docs/BALANCE.md`.
+
+## Visibilidad de los suministros (solo se ve mejor: la cantidad no cambia)
+Los topes, las tablas, las probabilidades de drop y la munición inicial **no cambian** (`LootDefaults`, `LootDirector`, `BALANCE.md`; `SupplyTests.Scarcity_IsUnchanged`).
+- **Modelo propio por tipo** (`Procedural/SupplyModel.cs`, puro): caja de cartón amarilla con puntas de bala (pistola), caja roja con cartuchos de pie (escopeta), lata verde de munición con asa y cierre (rifle), rollo de vendas con el extremo suelto, estuche pequeño con cremallera, maletín mediano con asa y cierres, y mochila de médico con correas y bolsillo (el botiquín grande). La cruz es naranja y propia (no el emblema de la Cruz Roja). El arma usa su modelo real con el acento de su rareza.
+- **En el suelo**: un 30 % más grande, flotando 25 cm sobre el suelo real (raycast), girando despacio; contorno que late con el color del tipo (un material compartido por tipo, actualizado una vez por frame); destello de pocas partículas solo a menos de 25 m; luz suave sin sombras con el tope de 8 y prioridad por cercanía (los drops cuentan como más cercanos).
+- **Marcador flotante** (icono del tipo, `SupplyVisibility`): a menos de 15 m; si algo tapa la línea de visión solo se ve a menos de 6 m (el propio jugador no cuenta como obstáculo). Crece algo con la distancia para leerse igual.
+- **HUD** (`UI/SupplyHud.cs`): flechas en el borde de la pantalla hacia los 4 suministros más cercanos fuera de la vista (a menos de 25 m) con su icono y distancia; un "ping" suave (grupo Interfaz) la primera vez que uno entra a menos de 15 m; al mirar uno a menos de 4.5 m, su nombre, cantidad, rareza y "E recoger". Ahora todo se puede recoger con E (munición y botiquines siguen recogiéndose solos al pasar por encima).
+- **Drops de zombis y del jefe**: columna de luz de 3.5 s. **Contenedores** sin buscar: luz tenue que late.
+- **Rendimiento** (M3, arena real, 1080p, `ZombieLoadTest`): con 30 zombis y 12 suministros visibles el render sube +0.05-0.4 ms sobre los 30 zombis; el frame sigue en 60 FPS. Sin colliders (no bloquean balas ni al jugador; `ArenaAuditTests` y `SupplyVisibilityTests`).

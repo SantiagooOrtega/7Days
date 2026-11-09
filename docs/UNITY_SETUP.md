@@ -862,3 +862,24 @@ al cambiar de tipo. Las capturas se hicieron renderizando con URP en modo batch 
 **Carga con 30 zombis** (`ZombieLoadTest`, Apple M3, arena real, 1080p, resolución dinámica y gobernador de calidad vigentes): render del frame completo sin zombis ~13.6 ms y con 30 zombis ~14.7 ms (mediana de 30 renders): el coste
 de dibujar los 30 es ~1.1 ms (desglose, mejor de 3: unos 1.7 ms en total sobre el frame sin zombis, ~0.4 ms los decals de heridas y poco las sombras de los que están cerca), con 13 en LOD 0 y 17 en LOD 1 (~120 k triángulos). La animación de los 31 rigs cuesta ~0.06 ms de CPU por frame
 en total. El frame de la ventana va a 60 FPS (el tope del v-sync en modo batch); el margen real depende de tu Mac y de la resolución dinámica.
+
+## Sonido de zombis, jefes con cuerpo propio y suministros visibles
+No hay que importar nada: todo se genera por código al dar Play en la escena `Game` (Assets/Scenes/Game.unity).
+
+**Sonido de los zombis**
+1. Play. Pulsa **Z** (uno de cada tipo) o **V** (oleada). Cada tipo suena distinto: el corredor jadea y chilla al verte, el tanque ruge y sus pisadas hacen temblar la cámara, el blindado chirría, el lanzador gorgotea y hace una arcada al lanzar, y el explosivo sisea cada vez más agudo con la mecha.
+2. Pulsa **Esc** para soltar el ratón: en el panel de ajustes de la derecha hay volumen **General, Zombis, Armas, Ambiente e Interfaz** (se guardan).
+3. Pulsa **F6** y, con el ratón suelto, usa el panel **SONIDOS DE ZOMBI** (abajo a la derecha): elige tipo y garganta y pulsa cualquier evento para escucharlo. Arriba ves las voces en uso (máximo 12), los descartados, los clips y su memoria.
+4. Opcional: clips CC0 propios en `Assets/_Project/Audio/Zombies/` (nombres en `docs/ASSETS.md`).
+
+**Jefes**
+1. Pulsa **B** varias veces: aparecen el Bruto Titán (día 3), el Lanzador Colosal (día 5) y El Devorador (día 7) a 20 m.
+2. Fíjate en los avisos: la pose de cada habilidad (carga, golpe de suelo, lanzamiento, rugido, onda) avanza mientras está la marca roja en el suelo y el golpe cae al terminar.
+3. Bájales vida (dispara): al 50 % y al 25 % rugen, se encorvan, brillan los ojos y las venas y sale vapor de la espalda. El Devorador abre las costillas y deja ver el núcleo naranja (el punto débil x4) cada 14 s y tras la onda expansiva.
+
+**Suministros**
+1. Los objetos del suelo tienen modelo propio (caja de balas amarilla, caja de cartuchos roja, lata verde de rifle, rollo de vendas, botiquín pequeño y mediano, mochila de médico con cruz naranja) y el arma su modelo real; flotan unos 25 cm, giran, laten con su color y sueltan un destello.
+2. A menos de 15 m aparece su icono flotante (se oculta si algo lo tapa de lejos). Los cercanos que quedan fuera de la vista se señalan con flechas en el borde de la pantalla, con un "ping" suave la primera vez que te acercas.
+3. Míralos de cerca: sale el nombre, la cantidad, la rareza y "E recoger". Munición y botiquines también se recogen al pasar por encima.
+4. **L** suelta un drop de prueba: tiene una columna de luz durante 3.5 s. Los contenedores sin buscar laten con una luz tenue.
+5. **F6 > RENDER**: línea "Suministros" con los objetos en el suelo, marcadores visibles, luces encendidas (máximo 8) y destellos.
