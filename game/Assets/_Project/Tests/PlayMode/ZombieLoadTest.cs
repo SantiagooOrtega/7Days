@@ -107,6 +107,39 @@ namespace SevenDays.Tests.PlayMode
             sb.Append("Con 30 zombis:  ").Append(Stats(withZ)).Append("  | hilo principal ").Append(Avg(zMain)).Append("  CPU frame ").Append(Avg(zCpu)).Append("  GPU frame ").Append(Avg(zGpu)).Append("  | render 1080p ").Append(zRender.ToString("0.00")).Append(" ms\n");
             sb.Append("Coste de 30 zombis: render +" + (zRender - bRender).ToString("0.00") + " ms\n");
 
+            // + suministros visibles: uno de cada tipo y otros tantos repetidos delante (con marcador, contorno, destello, luz y la columna de luz de los drops)
+            var lootT = T("SevenDays.World.Loot.LootManager"); var loot = lootT.GetProperty("Instance").GetValue(null);
+            var lspawn = lootT.GetMethod("Spawn");
+            var supplies = new[] { SevenDays.Procedural.LootItem.Ammo(SevenDays.Procedural.AmmoType.Pistol, 6), SevenDays.Procedural.LootItem.Ammo(SevenDays.Procedural.AmmoType.Shotgun, 4),
+                SevenDays.Procedural.LootItem.Ammo(SevenDays.Procedural.AmmoType.Rifle, 8), SevenDays.Procedural.LootItem.Medkit(SevenDays.Procedural.MedkitKind.Bandage),
+                SevenDays.Procedural.LootItem.Medkit(SevenDays.Procedural.MedkitKind.Small), SevenDays.Procedural.LootItem.Medkit(SevenDays.Procedural.MedkitKind.Medium),
+                SevenDays.Procedural.LootItem.Medkit(SevenDays.Procedural.MedkitKind.Large), SevenDays.Procedural.LootItem.Weapon("smg") };
+            var camFwd = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized; var camRight = Vector3.Cross(Vector3.up, camFwd);
+            int placed = 0;
+            for (int i = 0; i < 12; i++)
+                if (lspawn.Invoke(loot, new object[] { supplies[i % supplies.Length], player.transform.position + camFwd * (3f + i % 4 * 2.5f) + camRight * ((i % 3 - 1) * 2.2f) + Vector3.up * 0.35f, i % 3 == 0 ? null : "carga" + i }) != null) placed++;
+            for (int i = 0; i < 30; i++) yield return null;
+            var withS = new List<float>(); yield return Frames(240, withS);
+            var sMain = new List<float>(); var sCpu = new List<float>(); var sGpu = new List<float>(); yield return Measure(120, sMain, sCpu, sGpu);
+            float sRender = RenderMs(cam);
+            sb.Append("Con 30 zombis + " + placed + " suministros visibles (marcadores " + T("SevenDays.World.Loot.LootPickup").GetField("VisibleMarkers").GetValue(null) + ", luces " + lootT.GetProperty("LightsOn").GetValue(loot) + "): ")
+              .Append(Stats(withS)).Append("  | hilo principal ").Append(Avg(sMain)).Append("  | render 1080p ").Append(sRender.ToString("0.00")).Append(" ms (suministros +" + (sRender - zRender).ToString("0.00") + " ms)\n");
+            {
+                // desglose de los suministros: apagando cada efecto por separado (mejor de 3)
+                float BestS() { float b = float.MaxValue; for (int i = 0; i < 3; i++) b = Mathf.Min(b, RenderMs(cam)); return b; }
+                var pickups = UnityEngine.Object.FindObjectsByType(T("SevenDays.World.Loot.LootPickup"), FindObjectsSortMode.None);
+                float fullS = BestS();
+                sb.Append("  suministros completo " + fullS.ToString("0.00") + " ms;");
+                foreach (var part in new[] { "Glow", "Contorno", "Destello", "Columna de luz", "Marcador", "Modelo" })
+                {
+                    var off = new List<GameObject>();
+                    foreach (Component pk in pickups) foreach (var t in pk.GetComponentsInChildren<Transform>()) if (t.name == part && t.gameObject.activeSelf) { t.gameObject.SetActive(false); off.Add(t.gameObject); }
+                    sb.Append("  sin " + part + " " + BestS().ToString("0.00") + ";");
+                    foreach (var g in off) g.SetActive(true);
+                }
+                sb.Append("\n");
+            }
+
             // reparto: LOD, triángulos, coste de los rigs
             var all = (System.Collections.IEnumerable)mgrType.GetProperty("All").GetValue(mgr);
             int[] lods = new int[3]; long tris = 0; int bodies = 0; int active = 0;
