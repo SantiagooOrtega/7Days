@@ -16,6 +16,7 @@ namespace SevenDays.Combat
         private Transform _at;
         private string _type;
         private int _timbre;
+        private bool _heavy;
         private float _pitch, _cutoff, _idleScale, _near, _nextIdle, _nextMetal, _nextPain, _stepHalf;
 
         public bool Enabled { get; private set; }
@@ -32,7 +33,8 @@ namespace SevenDays.Combat
             _pitch = 0.88f + (float)rng.NextDouble() * 0.24f;
             _cutoff = 2600f + (float)rng.NextDouble() * 4400f;
             _idleScale = 0.75f + (float)rng.NextDouble() * 0.6f;
-            _near = typeId == ZombieIds.Tank ? 3.5f : 1.5f;
+            _heavy = typeId == ZombieIds.Tank || ZombieAnatomies.IsBoss(typeId);
+            _near = ZombieAnatomies.IsBoss(typeId) ? 5f : (typeId == ZombieIds.Tank ? 3.5f : 1.5f);
             for (int i = 0; i < _last.Length; i++) _last[i] = -1;
             _nextIdle = Time.time + 1.5f + (float)rng.NextDouble() * 5f;
             _nextMetal = Time.time + 1f; _nextPain = 0f; _stepHalf = -1f;
@@ -58,7 +60,7 @@ namespace SevenDays.Combat
             }
             if (moveAmount > 0.15f)
             {
-                if (_type == ZombieIds.Tank)
+                if (_heavy)
                 {
                     // una pisada por medio ciclo de la zancada, con temblor de cámara si está cerca
                     float half = Mathf.Floor(walkPhase / Mathf.PI);
