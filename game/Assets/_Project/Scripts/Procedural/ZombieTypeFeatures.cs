@@ -34,6 +34,7 @@ namespace SevenDays.Procedural
                 case ZombieIds.Armored: Armored(); break;
                 case ZombieIds.Spitter: Spitter(); break;
                 case ZombieIds.Explosive: Explosive(); break;
+                default: if (_a.IsBoss) new ZombieBossFeatures(_b, _a, _v, _lod).Build(); break;
             }
         }
 
