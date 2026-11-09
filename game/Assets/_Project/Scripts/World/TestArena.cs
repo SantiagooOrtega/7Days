@@ -23,6 +23,9 @@ namespace SevenDays.World
         private FireManager _fire;
         private LookSettings _look;
         private SevenDays.Procedural.PropLayoutData _layout;
+        private SevenDays.Procedural.MapData _map;
+        /// <summary>Mapa que se está jugando (datos del JSON).</summary>
+        public SevenDays.Procedural.MapData Map => _map;
         private bool _loading;
         private Transform _levelRoot;
         private SevenDays.Procedural.LootLayoutData _lootLayout;
@@ -54,21 +57,25 @@ namespace SevenDays.World
 
             // Primero el look (niebla, post-procesado) y luego las texturas procedurales, que se generan
             // en hilos de fondo mientras se muestra "Generando texturas...".
+            // el mapa es un JSON (Resources/Maps o el backend): su ambientación se aplica antes de todo lo visual
             _look = new LookSettings();
+            _map = MapIO.Load(MapIO.SelectedId, _look);
+            MapIO.ApplyAmbience(_map.ambience, _look);
             LookAndFeel.Apply(cam, _look);
             _loading = true;
-            _layout = Vegetation.BuildLayout(_look);
+            _layout = _map.vegetation;   // árboles, arbustos, coches, señales y demás piezas sueltas del mapa
             // texturas del mapa y piso se generan a la vez, en hilos de fondo
             yield return Coroutines.All(SurfaceLibrary.Build(_look.EffectiveSurface()), GroundLibrary.Build(_look.Ground, Mathf.Pow(_look.GlobalBrightness, 0.6f)));
             yield return SignLibrary.Build(TrafficSigns.Needed(_layout.items), _look.Signs.TextureSize, _look.Signs.Seed);
             _loading = false;
 
             _fire = FireManager.Create(transform, _look.Fire); // antes del mapa: los barriles, fogatas, coches y antorchas lo usan
-            _lootLayout = LootIO.Load(_layout.items, HouseIO.Load()); // botín: tablas, drops y puntos (coches y arbustos de este mapa)
+            _lootLayout = _map.loot; // botín del mapa: tablas, drops y puntos (coches y arbustos de este mapa)
             _lootManager = LootManager.Create(transform, _lootLayout, 20240517);
             BuildLevel();
 
-            var player = PlayerFactory.Create(new Vector3(0f, 0.1f, -14f), 0f, cam, _lootLayout, _look.Movement);
+            var ps = _map.playerStart;
+            var player = PlayerFactory.Create(new Vector3(ps[0], ps[1], ps[2]), ps[3], cam, _lootLayout, _look.Movement);
             _playerHealth = player.GetComponent<Health>();
             _player = player;
             _fire.SetPlayer(player);
@@ -88,7 +95,7 @@ namespace SevenDays.World
             CombatMetricsTracker.Create(transform, player, _zombies);
             CombatFeedback.Create(transform, player.GetComponent<SevenDays.Player.PlayerShooting>());
 
-            Particles.CreateDust(player.transform);
+            if (_map.ambience.dust) Particles.CreateDust(player.transform);
             Atmosphere.Build(transform, player.transform, _look);
 
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
@@ -183,13 +190,13 @@ namespace SevenDays.World
         {
             var root = new GameObject("Level").transform;
             _levelRoot = root;
-            IndustrialRuins.Build(root, _look);
-            Skyline.Build(root, _look);
-            if (_look.House.Enabled) IndustrialRuins.Anchors.AddRange(HouseIO.PerimeterAnchors(HouseIO.Load())); // maleza y sangre también junto a la casa
+            IndustrialRuins.Build(root, _look, _map);   // piezas del kit en el orden del JSON
+            if (_map.ambience.skyline) Skyline.Build(root, _look);
+            if (_look.House.Enabled) foreach (var h in _map.houses) IndustrialRuins.Anchors.AddRange(HouseIO.PerimeterAnchors(h)); // maleza y sangre también junto a la casa
             GroundDetails.Build(root, _look, IndustrialRuins.Anchors);
             Vegetation.Build(root, _look, _layout);
-            RoadMarkings.Build(root, _look);
-            if (_look.House.Enabled) _house = House.Build(root, _look, HouseIO.Load());
+            if (_map.ambience.roadMarkings) RoadMarkings.Build(root, _look);
+            if (_look.House.Enabled && _map.houses.Length > 0) _house = House.Build(root, _look, _map.houses[0]);
         }
     }
 }
