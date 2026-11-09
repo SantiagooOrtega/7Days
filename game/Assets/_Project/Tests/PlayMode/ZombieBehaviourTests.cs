@@ -25,6 +25,7 @@ namespace SevenDays.Tests.PlayMode
             // cada prueba levanta su propia arena: se limpia (si no, los proyectiles de una prueba chocan con los pools de la siguiente)
             foreach (var p in UnityEngine.Object.FindObjectsByType(T("SevenDays.Combat.Projectile"), FindObjectsSortMode.None)) UnityEngine.Object.Destroy(((Component)p).gameObject);
             if (_arena != null) UnityEngine.Object.Destroy(_arena);
+            foreach (var pl in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(pl);   // el jugador vive fuera de la arena
             yield return null; yield return null;
         }
 
