@@ -98,6 +98,7 @@ namespace SevenDays.World
             hud.gameObject.AddComponent<RigDebugPanel>().Initialize(player.GetComponentInChildren<SevenDays.Animation.ProceduralRig>());
             hud.gameObject.AddComponent<RigDemoCycle>().Initialize(player.transform);
             hud.gameObject.AddComponent<WeaponHud>().Initialize(player);   // selector de armas con iconos y rueda radial (Tab)
+            hud.gameObject.AddComponent<SupplyHud>();   // flechas en el borde, ping y texto al mirar los suministros
             hud.gameObject.AddComponent<ZombieSoundPanel>();   // F6: probar cada sonido de zombi
             hud.gameObject.AddComponent<RenderDebugPanel>();   // F6: panel Render (resolución, ms de CPU/GPU, draw calls, luces, calidad)   // F7: ciclo automático de piernas con cámara lateral
             hud.gameObject.AddComponent<ScopeOverlay>().Initialize(player.GetComponent<PlayerCamera>());
