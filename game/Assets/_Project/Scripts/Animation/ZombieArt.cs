@@ -12,7 +12,7 @@ namespace SevenDays.Animation
     /// </summary>
     public static class ZombieArt
     {
-        public const int TextureSize = 512;
+        public const int TextureSize = 512, BossTextureSize = 1024;   // la piel de los jefes, a 1024 px
         public static readonly int BaseColor = Shader.PropertyToID("_BaseColor"), EmissionColor = Shader.PropertyToID("_EmissionColor");
 
         private sealed class Job { public Material Target; public ZombieAtlasKind Kind; public Task<ZombieMaps> Task; public string Name; }
@@ -32,6 +32,7 @@ namespace SevenDays.Animation
         public static void PrewarmAll()
         {
             foreach (string t in ZombieAnatomies.Types) Skin(t);
+            foreach (string t in ZombieAnatomies.BossTypes) Skin(t);   // 1024 px: los jefes se ven de cerca y son enormes
             var c = Cloth; var w = Wounds;
         }
 
@@ -92,7 +93,8 @@ namespace SevenDays.Animation
 
         private static void Start(Material target, ZombieAtlasKind kind, string typeId)
         {
-            Jobs.Add(new Job { Target = target, Kind = kind, Name = kind + " " + typeId, Task = Task.Run(() => ZombieTextures.Generate(kind, typeId, TextureSize)) });
+            int size = kind == ZombieAtlasKind.Skin && ZombieAnatomies.IsBoss(typeId) ? BossTextureSize : TextureSize;
+            Jobs.Add(new Job { Target = target, Kind = kind, Name = kind + " " + typeId, Task = Task.Run(() => ZombieTextures.Generate(kind, typeId, size)) });
             CharacterArtLoader.Ensure();
         }
 
