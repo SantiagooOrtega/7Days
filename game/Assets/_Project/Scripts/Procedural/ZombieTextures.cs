@@ -133,6 +133,49 @@ namespace SevenDays.Procedural
             o.Color = c.Scale(0.95f + 0.1f * pores);
             o.Height = 0.25f * pores + 0.35f * vein * (a.SkinTension) - 0.6f * sore + 0.3f * scab + 0.2f * (1f - Smooth(0.2f, 0.7f, Fbm(u, v, 14, 2, seed + 12)));
             o.Smooth = 0.32f - 0.12f * scab + 0.25f * sore; o.Ao = 1f - 0.15f * livor - 0.2f * sore;
+            if (a.IsBoss) BossSkin(u, v, seed, a, vein, ref o);
+        }
+
+        /// <summary>
+        /// Piel de los jefes encima de la común: el Bruto con quemaduras (parches rosados brillantes con bordes en relieve), el Lanzador con piel verdosa y granos,
+        /// el Devorador con músculo expuesto (fibras rojas) y piel violácea. Las venas emiten un poco (el material las enciende en las fases de furia).
+        /// </summary>
+        private static void BossSkin(float u, float v, int seed, ZombieAnatomy a, float vein, ref ZSample o)
+        {
+            switch (a.Boss)
+            {
+                case ZombieBossKind.Brute:
+                {
+                    float burn = Smooth(0.58f, 0.66f, Fbm(u, v, 3, 4, seed + 40));
+                    float rim = Smooth(0.54f, 0.58f, Fbm(u, v, 3, 4, seed + 40)) * (1f - burn);
+                    Rgb bc = Rgb.Lerp(new Rgb(0.62f, 0.36f, 0.32f), new Rgb(0.32f, 0.16f, 0.12f), Fbm(u, v, 12, 3, seed + 41));
+                    o.Color = Rgb.Lerp(o.Color, bc, burn * 0.9f);
+                    o.Color = Rgb.Lerp(o.Color, new Rgb(0.14f, 0.08f, 0.06f), rim * 0.6f);   // borde chamuscado
+                    o.Height += 0.5f * rim + 0.25f * burn * Ridged(u, v, 18, 2, seed + 42);
+                    o.Smooth = o.Smooth * (1f - burn) + 0.55f * burn;
+                    o.Emit = new Rgb(0.06f * vein, 0.012f * vein, 0.008f * vein);
+                    break;
+                }
+                case ZombieBossKind.Launcher:
+                {
+                    float bumps = Smooth(0.6f, 0.75f, Fbm(u, v, 22, 2, seed + 50));
+                    o.Color = Rgb.Lerp(o.Color, new Rgb(0.42f, 0.5f, 0.24f), 0.25f + 0.3f * bumps);
+                    o.Height += 0.4f * bumps;
+                    o.Emit = new Rgb(0.02f * vein, 0.06f * vein, 0.012f * vein);
+                    break;
+                }
+                case ZombieBossKind.Devourer:
+                {
+                    float muscle = Smooth(0.64f, 0.7f, Fbm(u, v, 5, 4, seed + 60));
+                    float fiber = 0.5f + 0.5f * (float)Math.Sin(v * 700f + u * 90f + Fbm(u, v, 9, 3, seed + 61) * 30f);   // fibras finas y torcidas
+                    Rgb mc = Rgb.Lerp(new Rgb(0.34f, 0.07f, 0.08f), new Rgb(0.5f, 0.16f, 0.15f), 0.6f * fiber + 0.4f * Fbm(u, v, 14, 2, seed + 62));
+                    o.Color = Rgb.Lerp(Rgb.Lerp(o.Color, new Rgb(0.4f, 0.3f, 0.42f), 0.3f), mc, muscle);
+                    o.Height += 0.3f * fiber * muscle - 0.3f * muscle;
+                    o.Smooth = o.Smooth * (1f - muscle) + 0.6f * muscle;
+                    o.Emit = new Rgb(0.07f * vein, 0.025f * vein, 0.006f * vein);
+                    break;
+                }
+            }
         }
 
         /// <summary>Cabeza: u=0.5 es la cara de frente, v=0 el mentón y v=1 la coronilla. Cuencas hundidas, nariz, labios agrietados, sangre en la boca, pómulos y cuero cabelludo con costras.</summary>
@@ -252,6 +295,26 @@ namespace SevenDays.Procedural
             int seed = ts * 23 + 900;
             switch (typeId)
             {
+                case ZombieIds.BossBrute:
+                {
+                    // tejido quemado y cicatrizado en relieve (bultos de los hombros)
+                    float ridge = Ridged(u, v, 6, 3, seed);
+                    Rgb c = Rgb.Lerp(new Rgb(0.5f, 0.26f, 0.22f), new Rgb(0.7f, 0.45f, 0.4f), ridge);
+                    c = Rgb.Lerp(c, new Rgb(0.12f, 0.07f, 0.05f), Smooth(0.6f, 0.85f, Fbm(u, v, 5, 3, seed + 1)) * 0.7f);
+                    o.Color = c; o.Height = 0.8f * ridge; o.Smooth = 0.5f; o.Ao = 0.9f + 0.1f * ridge;
+                    return;
+                }
+                case ZombieIds.BossFinal:
+                {
+                    // bultos mutados: carne violácea con venas oscuras y tejido brillante
+                    float vein = Smooth(0.86f, 0.95f, Ridged(u, v, 4, 3, seed + 1));
+                    Rgb c = Rgb.Lerp(new Rgb(0.42f, 0.22f, 0.3f), new Rgb(0.62f, 0.3f, 0.34f), Fbm(u, v, 7, 3, seed));
+                    c = Rgb.Lerp(c, new Rgb(0.16f, 0.04f, 0.1f), vein * 0.8f);
+                    o.Color = c; o.Height = 0.4f * vein + 0.3f * Fbm(u, v, 20, 2, seed + 2); o.Smooth = 0.6f; o.Ao = 1f;
+                    o.Emit = new Rgb(0.08f * vein, 0.02f * vein, 0.006f * vein);
+                    return;
+                }
+                case ZombieIds.BossLauncher: typeId = ZombieIds.Spitter; goto case ZombieIds.Spitter;
                 case ZombieIds.Tank:
                 {
                     // placas de tejido cicatrizado: celdas tipo grietas con bordes elevados, cuero grisáceo
@@ -302,6 +365,39 @@ namespace SevenDays.Procedural
             float d = Dist(u, v, 0.5f, 0.5f);
             switch (typeId)
             {
+                case ZombieIds.BossBrute:
+                {
+                    // casco de obra: plástico amarillo rayado, sucio y con grietas
+                    float crack = Smooth(0.03f, 0f, Math.Abs(Fbm(u, v, 3, 3, seed) - 0.5f)) * Smooth(0.4f, 0.7f, Fbm(u, v, 4, 2, seed + 1));
+                    float scratch = CharacterTextures.Scratches(u, v, seed + 2);
+                    Rgb c = Rgb.Lerp(new Rgb(0.86f, 0.62f, 0.08f), new Rgb(0.72f, 0.5f, 0.06f), Fbm(u, v, 8, 3, seed + 3));
+                    c = Rgb.Lerp(c, new Rgb(0.25f, 0.2f, 0.12f), Smooth(0.55f, 0.85f, Fbm(u, v, 5, 3, seed + 4)) * 0.6f);   // mugre
+                    c = Rgb.Lerp(c, new Rgb(0.3f, 0.06f, 0.04f), Smooth(0.7f, 0.85f, Fbm(u, v, 6, 3, seed + 5)) * 0.7f);   // sangre seca
+                    c = Rgb.Lerp(c, new Rgb(0.95f, 0.9f, 0.7f), scratch * 0.5f);
+                    c = Rgb.Lerp(c, new Rgb(0.08f, 0.06f, 0.04f), crack);
+                    o.Color = c; o.Height = 0.2f * Fbm(u, v, 30, 2, seed + 6) - 0.6f * crack - 0.2f * scratch; o.Smooth = 0.55f - 0.25f * scratch; o.Ao = 1f - 0.4f * crack;
+                    return;
+                }
+                case ZombieIds.BossLauncher:
+                {
+                    // pústula verdosa grande con el centro encendido
+                    Rgb c = Rgb.Lerp(new Rgb(0.4f, 0.55f, 0.18f), new Rgb(0.75f, 0.85f, 0.3f), Smooth(0.5f, 0.05f, d));
+                    o.Color = c; o.Height = 0.5f * Smooth(0.45f, 0.05f, d); o.Smooth = 0.75f; o.Ao = 1f;
+                    float core = Smooth(0.3f, 0.02f, d) * 0.8f;
+                    o.Emit = new Rgb(core * 0.45f, core, core * 0.15f);
+                    return;
+                }
+                case ZombieIds.BossFinal:
+                {
+                    // núcleo: esfera naranja incandescente con venas oscuras que laten (el punto débil)
+                    float vein = Smooth(0.9f, 0.97f, Ridged(u, v, 5, 3, seed + 1));
+                    Rgb c = Rgb.Lerp(new Rgb(1f, 0.6f, 0.15f), new Rgb(0.95f, 0.35f, 0.06f), Fbm(u, v, 6, 3, seed));
+                    c = Rgb.Lerp(c, new Rgb(0.3f, 0.06f, 0.03f), vein * 0.7f);
+                    o.Color = c; o.Height = 0.3f * vein; o.Smooth = 0.8f; o.Ao = 1f;
+                    float glow = 1f - 0.7f * vein;
+                    o.Emit = new Rgb(glow, glow * 0.5f, glow * 0.1f);
+                    return;
+                }
                 case ZombieIds.Explosive:
                 {
                     // pústula naranja con el centro encendido
