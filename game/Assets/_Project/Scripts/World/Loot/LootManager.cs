@@ -20,6 +20,10 @@ namespace SevenDays.World.Loot
         public LootDirectorState State { get; private set; }
         public int ActiveCount => _active.Count;
         public int MaxGlintLights = 8;
+        /// <summary>Luces de botín encendidas ahora (panel F6).</summary>
+        public int LightsOn { get; private set; }
+        /// <summary>Distancia a la que un objeto suelta su destello de partículas.</summary>
+        public const float SparkleRange = 25f;
 
         private ObjectPool<LootPickup> _pool;
         private readonly List<LootPickup> _active = new List<LootPickup>();
@@ -211,6 +215,8 @@ namespace SevenDays.World.Loot
         // ---------------------------------------------------------------- bucle
         private void Update()
         {
+            LootPickup.VisibleMarkers = 0;   // los cuenta cada pickup en su LateUpdate (panel F6)
+            PulseContainers();
             _pickTimer -= Time.deltaTime;
             if (_pickTimer <= 0f) { _pickTimer = 0.1f; AutoPickup(); }
             _glintTimer -= Time.deltaTime;
@@ -250,7 +256,7 @@ namespace SevenDays.World.Loot
             // los drops de zombis (sin punto de origen) cuentan como si estuvieran más cerca: su brillo suave tiene prioridad para localizarlos
             float Key(ILootGlint g) => (g.GlintPosition - _player.position).sqrMagnitude * (g is LootPickup lp && lp.SourcePointId == null ? 0.25f : 1f);
             order.Sort((a, b) => Key(a).CompareTo(Key(b)));
-            int on = 0;
+            int on = 0, sparkles = 0;
             foreach (var g in order)
             {
                 if (g.GlintLight == null) continue;
@@ -258,8 +264,31 @@ namespace SevenDays.World.Loot
                 bool enable = !searched && on < MaxGlintLights;
                 g.GlintLight.enabled = enable;
                 if (enable) on++;
+                // destello de partículas: solo los que están a menos de SparkleRange (los de lejos no se distinguen y cuestan)
+                if (g is LootPickup pickup)
+                {
+                    bool near = (g.GlintPosition - _player.position).sqrMagnitude < SparkleRange * SparkleRange;
+                    pickup.SetSparkles(near);
+                    if (near) sparkles++;
+                }
+            }
+            LightsOn = on;
+            LootPickup.EmittingSparkles = sparkles;
+        }
+
+        /// <summary>Los contenedores sin buscar laten con un brillo tenue (solo los que tienen la luz encendida, como mucho MaxGlintLights).</summary>
+        private void PulseContainers()
+        {
+            foreach (var kv in _containers)
+            {
+                var c = kv.Value;
+                if (c == null || c.Searched || c.GlintLight == null || !c.GlintLight.enabled) continue;
+                c.GlintLight.intensity = 0.4f + 0.3f * SupplyVisibility.Pulse(Time.time * 0.8f, (kv.Key.GetHashCode() & 255) / 255f);
             }
         }
+
+        /// <summary>Pickups activos (para el HUD de suministros).</summary>
+        public System.Collections.Generic.IReadOnlyList<LootPickup> Active => _active;
 
         private void OnDestroy() { if (Instance == this) Instance = null; }
     }
