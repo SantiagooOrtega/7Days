@@ -158,3 +158,10 @@ Con el cuerpo procedural (`ZOMBIS_SKINS.md`, bloque C) los colliders de cabeza, 
 1.55 veces más grueso; el corredor es delgado). **Los multiplicadores por zona, las resistencias y la tabla de este documento no cambian**: `ZoneMultipliers`, `ZombieCatalog.Defaults()` y los tiempos de matar por arma y
 tipo salen de `Procedural/CombatModel.cs`, que no se tocó, y `BalanceTests` / `CombatTests` pasan sin modificarse. Lo único que cambia es DÓNDE hay que apuntar: los colliders siguen la animación hueso a hueso y cubren
 entre el 88 % (tanque) y el 100 % (corredor) de la malla a menos de 5 cm (18 colliders por zombi: cabeza, cuello, torso, pelvis, hombros, brazos, manos, muslos, pantorrillas y pies, más el vientre del explosivo) (`ZombieBodyTests.Hitboxes_FollowTheBones_AndCoverTheBody`).
+
+### Jefes (bloque D)
+Los tres jefes usan ahora el mismo cuerpo procedural (miden 1.82 m x su escala: Bruto 4.0 m, Lanzador Colosal 3.64 m, El Devorador 4.37 m, igual que la cápsula de movimiento). Su vida, resistencias,
+multiplicadores por zona, habilidades y tiempos **no cambian** (`ZombieCatalog.Defaults()`, `BossTests`). Los colliders siguen a los huesos y cubren también el equipo que llevan encima (placas y cadenas del Bruto
+cuentan como torso, sus hombreras como brazo; el depósito y las bolsas del Lanzador como torso): 89-92 % de la malla a menos de 6-7 cm (la misma proporción que 5 cm en un zombi de 1.8 m). El **punto débil** del
+Devorador (x4) es una esfera en el núcleo del pecho del mismo tamaño que antes (0.16 m x 2.4 = 0.38 m) y solo existe mientras está expuesto; un disparo de frente al núcleo le da antes que al torso
+(`ZombieBodyTests.Devourer_WeakPoint_OnlyWhileExposed_RibsOpen_AndItIsHitFromTheFront`).
