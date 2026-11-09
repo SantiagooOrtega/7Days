@@ -24,6 +24,7 @@ namespace SevenDays.Tests.PlayMode
         {
             foreach (var p in UnityEngine.Object.FindObjectsByType(T("SevenDays.Combat.Projectile"), FindObjectsSortMode.None)) UnityEngine.Object.Destroy(((Component)p).gameObject);
             if (_arena != null) UnityEngine.Object.Destroy(_arena);
+            foreach (var pl in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(pl);   // el jugador vive fuera de la arena: si no, la siguiente prueba encuentra el viejo
             yield return null; yield return null;
         }
 

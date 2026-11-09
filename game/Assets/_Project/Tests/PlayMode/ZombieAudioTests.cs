@@ -23,6 +23,7 @@ namespace SevenDays.Tests.PlayMode
         {
             foreach (var p in UnityEngine.Object.FindObjectsByType(T("SevenDays.Combat.Projectile"), FindObjectsSortMode.None)) UnityEngine.Object.Destroy(((Component)p).gameObject);
             if (_arena != null) UnityEngine.Object.Destroy(_arena);
+            foreach (var pl in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(pl);   // el jugador vive fuera de la arena: si no, la siguiente prueba encuentra el viejo
             if (_cam != null) UnityEngine.Object.Destroy(_cam);
             yield return null; yield return null;
         }
@@ -35,6 +36,7 @@ namespace SevenDays.Tests.PlayMode
         {
             _cam = new GameObject("Cam") { tag = "MainCamera" }; _cam.AddComponent<Camera>(); _cam.AddComponent<AudioListener>();
             var bank = T("SevenDays.Combat.ZombieSoundBank"); var audio = T("SevenDays.Combat.ZombieAudio");
+            Call(audio, "StopAll");   // voces que quedaran sonando de otra prueba
             foreach (string t in ZombieAnatomies.Types) Call(bank, "Prewarm", t);
             Call(bank, "WaitAll");
             AudioClip sample = null;
@@ -54,7 +56,8 @@ namespace SevenDays.Tests.PlayMode
             Assert.Less(mb, 40, "memoria de los clips");
 
             var play = audio.GetMethod("Play");
-            object Play(float dist) => play.Invoke(null, new object[] { 1, null, new Vector3(0f, 0f, dist), sample, 1f, 1f, 8000f, false, 1.5f });
+            var ear = Camera.main.transform.position;   // el oyente es la cámara principal (puede quedar otra de una prueba anterior)
+            object Play(float dist) => play.Invoke(null, new object[] { 1, null, ear + new Vector3(0f, 0f, dist), sample, 1f, 1f, 8000f, false, 1.5f });
             for (int i = 0; i < 12; i++) Assert.IsTrue((bool)Play(30f), "voz libre " + i);
             Assert.IsFalse((bool)Play(35f), "más lejos que todas: no entra");
             Assert.IsTrue((bool)Play(2f), "más cerca: le quita la voz al más lejano");

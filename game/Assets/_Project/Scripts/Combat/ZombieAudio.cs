@@ -116,6 +116,13 @@ namespace SevenDays.Combat
                 if (_instance._owner[i] == owner) { _instance._src[i].Stop(); _instance._until[i] = 0f; _instance._owner[i] = -1; _instance._follow[i] = null; }
         }
 
+        /// <summary>Calla todas las voces (cambio de escena, pruebas).</summary>
+        public static void StopAll()
+        {
+            if (_instance == null) return;
+            for (int i = 0; i < MaxVoices; i++) { _instance._src[i].Stop(); _instance._until[i] = 0f; _instance._owner[i] = -1; _instance._follow[i] = null; }
+        }
+
         private void LateUpdate()
         {
             float now = Time.unscaledTime;
