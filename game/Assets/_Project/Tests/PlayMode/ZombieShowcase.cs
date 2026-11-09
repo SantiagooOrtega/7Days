@@ -101,6 +101,50 @@ namespace SevenDays.Tests.PlayMode
             }
         }
 
+        private static object BossState(BossPose pose, float t)
+        {
+            var st = State(1f / 60f, true, false, -1f, ZombieAttackKind.Swipe);
+            st.GetType().GetField("BossPose").SetValue(st, pose); st.GetType().GetField("BossT").SetValue(st, t);
+            return st;
+        }
+
+        /// <summary>Los tres jefes: de frente, de lado y a 3/4; en furia total (el Devorador con el núcleo expuesto); y el telegraph de cada habilidad suya.</summary>
+        [UnityTest]
+        public IEnumerator Bosses_FrontSide_Fury_AndTelegraphs()
+        {
+            Stage();
+            _cam.fieldOfView = 34f;
+            T("SevenDays.Animation.ZombieArt").GetMethod("PrewarmAll").Invoke(null, null); T("SevenDays.Animation.ZombieArt").GetMethod("WaitAll").Invoke(null, null);
+            var poses = new Dictionary<string, BossPose[]> {
+                { ZombieIds.BossBrute, new[] { BossPose.ChargeWindup, BossPose.Slam } },
+                { ZombieIds.BossLauncher, new[] { BossPose.Throw, BossPose.Roar } },
+                { ZombieIds.BossFinal, new[] { BossPose.Shockwave, BossPose.Roar } } };
+            foreach (var id in ZombieAnatomies.BossTypes)
+            {
+                var body = Make(id, 4, 1, Vector3.zero, 0f, out var root);
+                yield return Settle(body, 45);
+                float h = ZombieAnatomies.For(id).Proportions.height, dist = h * 2.6f;
+                var lookAt = new Vector3(0, h * 0.5f, 0);
+                yield return Shoot(id + "_front", lookAt, new Vector3(0, h * 0.55f, dist));
+                yield return Shoot(id + "_side", lookAt, new Vector3(dist, h * 0.55f, 0));
+                yield return Shoot(id + "_34", lookAt, new Vector3(dist * 0.7f, h * 0.6f, dist * 0.7f));
+                yield return Shoot(id + "_head", new Vector3(0, h * 0.86f, 0), new Vector3(h * 0.25f, h * 0.9f, h * 0.55f));
+                body.GetType().GetMethod("SetFury").Invoke(body, new object[] { 2 });
+                body.GetType().GetMethod("SetWeakPoint").Invoke(body, new object[] { true });
+                yield return Settle(body, 60, true);
+                yield return Shoot(id + "_fury", lookAt, new Vector3(dist * 0.45f, h * 0.6f, dist * 0.85f));
+                body.GetType().GetMethod("SetWeakPoint").Invoke(body, new object[] { false });
+                foreach (var pose in poses[id])
+                    foreach (float t in new[] { 0.3f, 0.5f })
+                    {
+                        for (int i = 0; i < 25; i++) { Animate(body, BossState(pose, t * Mathf.Clamp01(i / 15f))); yield return null; }
+                        yield return Shoot(id + "_" + pose + "_" + t.ToString("0.0").Replace(',', '.'), lookAt, new Vector3(dist * 0.85f, h * 0.55f, dist * 0.55f));
+                    }
+                UnityEngine.Object.Destroy(root);
+                yield return null;
+            }
+        }
+
         [UnityTest]
         public IEnumerator InTheArena_WithTheRealCamera()
         {
