@@ -48,6 +48,7 @@ namespace SevenDays.Combat
             {
                 _audio = gameObject.AddComponent<AudioSource>();
                 _audio.spatialBlend = 1f; _audio.maxDistance = 80f; _audio.rolloffMode = AudioRolloffMode.Linear; _audio.playOnAwake = false;
+                AudioMix.Route(_audio, AudioGroup.Zombies);
             }
             _roar ??= Synth("roar", 1.3f, 85f, 38f, 0.9f, 0.55f);
             _warn ??= Synth("warn", 0.5f, 260f, 640f, 0.55f, 0.08f);

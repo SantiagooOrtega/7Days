@@ -34,6 +34,7 @@ namespace SevenDays.Combat
             l.type = LightType.Point; l.range = 12f; l.color = new Color(1f, 0.6f, 0.25f); l.shadows = LightShadows.None; l.enabled = false;
             fx._light = l;
             fx._audio = go.AddComponent<AudioSource>(); fx._audio.spatialBlend = 0.6f; fx._audio.playOnAwake = false; fx._audio.maxDistance = 80f; fx._audio.rolloffMode = AudioRolloffMode.Linear;
+            SevenDays.Core.AudioMix.Route(fx._audio, SevenDays.Core.AudioGroup.Zombies);
             fx._boom = Synth("blast", 0.9f, 120f, 30f, 1f, 0.6f);
             HissClip = Synth("hiss", 1.6f, 2600f, 5200f, 0.35f, 0.97f, true);
             return fx;

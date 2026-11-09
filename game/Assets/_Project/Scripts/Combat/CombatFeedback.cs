@@ -49,6 +49,7 @@ namespace SevenDays.Combat
             _shooting = shooting;
             _audio = gameObject.AddComponent<AudioSource>();
             _audio.spatialBlend = 0f; _audio.playOnAwake = false;
+            AudioMix.Route(_audio, AudioGroup.UI);
             _hit = Tone("hit", 0.06f, 520f, 260f, 0.35f, 0.5f);
             _head = Tone("head", 0.16f, 1500f, 900f, 0.5f, 0.1f);       // más agudo y largo: se distingue sin mirar
             _kill = Tone("kill", 0.18f, 180f, 70f, 0.6f, 0.35f);

@@ -108,6 +108,7 @@ namespace SevenDays.Player
             _flash = muzzle.gameObject.AddComponent<MuzzleFlash>();
             _audio = gameObject.AddComponent<AudioSource>();
             _audio.playOnAwake = false; _audio.spatialBlend = 0.15f;
+            AudioMix.Route(_audio, AudioGroup.Weapons);
             SightPoint = new GameObject("SightPoint").transform;    // punto de mira: al importar un modelo real, colócalo en la mira del arma
             SightPoint.SetParent(weaponPose, false);
             _inventory.WeaponAdded += OnWeaponAdded;
