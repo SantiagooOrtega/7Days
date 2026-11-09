@@ -15,6 +15,6 @@ namespace SevenDays.Animation
             _instance = go.AddComponent<CharacterArtLoader>();
         }
 
-        private void Update() { CharacterArt.Poll(); ZombieArt.Poll(); ZombieMeshes.Pump(); }
+        private void Update() { CharacterArt.Poll(); ZombieArt.Poll(); ZombieMeshes.Pump(); SevenDays.Combat.ZombieSoundBank.Pump(); }
     }
 }

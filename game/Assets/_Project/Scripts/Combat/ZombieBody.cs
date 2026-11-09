@@ -49,8 +49,6 @@ namespace SevenDays.Combat
         private int _attackIndex = -1;
         private float _lastAttackT = -1f;
         private ZombieMotionFrame _frame;
-        private AudioSource _voice;
-        private float _nextMoan;
         private ZombieAnimState _state;
         private readonly ZombieDamageLayer _damage = new ZombieDamageLayer();
         private readonly List<KeyValuePair<HitZone, int>> _revealed = new List<KeyValuePair<HitZone, int>>(4);
@@ -246,7 +244,6 @@ namespace SevenDays.Combat
             _fTorsoX = _fTorsoY = _fTorsoZ = _fHeadX = _fHeadY = _fHeadZ = _fPelvisY = _fPelvisRoll = _fArmL = _fArmR = default;
             _time = Random.value * 10f; _pendingDt = 0f; _inflate = 1f; _glow = 0f; _shake = 0f; _impactPending = false; _attackIndex = -1; _lastAttackT = -1f;
             _emerge = emerge ? 0f : EmergeSeconds;
-            _nextMoan = Time.time + 2f + Random.value * 6f;
             SetHitboxesEnabled(true);
             ApplyDecalVisibility();
         }
@@ -378,7 +375,6 @@ namespace SevenDays.Combat
             float dist = s.DistanceToCamera;
             UpdateLod(dist);
             if (_dead) { UpdateDeath(s.Dt); return; }
-            UpdateVoice(dist);
             _pendingDt += s.Dt;
             _time += s.Dt;
             // animación lejana o fuera de pantalla: se congela (lo que se salta se acumula y no se nota al volver)
@@ -388,24 +384,6 @@ namespace SevenDays.Combat
             if (interval > 1 && (Time.frameCount + _frameOffset) % interval != 0) return;
             float dt = Mathf.Min(_pendingDt, 0.1f); _pendingDt = 0f;
             Step(dt, s);
-        }
-
-        // gruñido de relleno cada pocos segundos si el jugador está cerca (con tope de voces simultáneas)
-        private void UpdateVoice(float dist)
-        {
-            if (Time.time < _nextMoan || Emerging) return;
-            _nextMoan = Time.time + 4f + Random.value * 7f;
-            if (dist > 26f || !ZombieVoice.TryReserve(1.2f)) return;
-            if (_voice == null)
-            {
-                _voice = _root.gameObject.AddComponent<AudioSource>();
-                _voice.spatialBlend = 1f; _voice.maxDistance = 30f; _voice.minDistance = 2f; _voice.rolloffMode = AudioRolloffMode.Linear; _voice.playOnAwake = false;
-            }
-            float typePitch = TypeId == ZombieIds.Tank ? 0.6f : (TypeId == ZombieIds.Runner ? 1.25f : (TypeId == ZombieIds.Explosive ? 1.1f : 1f));
-            _voice.pitch = typePitch * (0.85f + 0.3f * Individual.Phase);
-            _voice.volume = 0.5f;
-            _voice.clip = ZombieVoice.Clip(Individual.MoanSeed);
-            _voice.Play();
         }
 
         private void UpdateLod(float dist)

@@ -54,6 +54,7 @@ namespace SevenDays.Combat
             HitboxLayer.ConfigureCollisions();
             SevenDays.Animation.ZombieArt.PrewarmAll();   // texturas y mallas de zombi en hilos de fondo desde el principio
             SevenDays.Animation.ZombieMeshes.PrewarmAll();
+            foreach (string t in ZombieAnatomies.Types) ZombieSoundBank.Prewarm(t);   // voces sintetizadas, también en segundo plano
             return m;
         }
 
