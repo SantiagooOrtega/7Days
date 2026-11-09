@@ -55,6 +55,7 @@ namespace SevenDays.Combat
             SevenDays.Animation.ZombieArt.PrewarmAll();   // texturas y mallas de zombi en hilos de fondo desde el principio
             SevenDays.Animation.ZombieMeshes.PrewarmAll();
             foreach (string t in ZombieAnatomies.Types) ZombieSoundBank.Prewarm(t);   // voces sintetizadas, también en segundo plano
+            foreach (string t in ZombieAnatomies.BossTypes) ZombieSoundBank.Prewarm(t);
             return m;
         }
 

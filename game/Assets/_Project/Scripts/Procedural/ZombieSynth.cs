@@ -25,6 +25,8 @@ namespace SevenDays.Procedural
                 case ZombieIds.Spitter: return new ZombieVoiceProfile { F0 = 112f, Formant = 1.02f, Rough = 0.55f, Breath = 0.55f, Drive = 2f, Speed = 1f };
                 case ZombieIds.Explosive: return new ZombieVoiceProfile { F0 = 100f, Formant = 0.95f, Rough = 0.5f, Breath = 0.6f, Drive = 1.8f, Speed = 0.9f };
                 case ZombieIds.BossBrute: return new ZombieVoiceProfile { F0 = 48f, Formant = 0.68f, Rough = 0.95f, Breath = 0.3f, Drive = 3.6f, Speed = 0.7f };
+                case ZombieIds.BossLauncher: return new ZombieVoiceProfile { F0 = 56f, Formant = 0.74f, Rough = 0.8f, Breath = 0.5f, Drive = 3f, Speed = 0.75f };
+                case ZombieIds.BossFinal: return new ZombieVoiceProfile { F0 = 42f, Formant = 0.62f, Rough = 1f, Breath = 0.45f, Drive = 3.8f, Speed = 0.65f };
                 default: return new ZombieVoiceProfile { F0 = 95f, Formant = 1f, Rough = 0.55f, Breath = 0.5f, Drive = 2.2f, Speed = 1f };
             }
         }
@@ -34,7 +36,7 @@ namespace SevenDays.Procedural
     public static class ZombieSoundMap
     {
         public static ZombieSound Idle(string typeId) => typeId == ZombieIds.Runner ? ZombieSound.Pant : (typeId == ZombieIds.Spitter ? ZombieSound.Gurgle : ZombieSound.Idle);
-        public static ZombieSound Alert(string typeId) => typeId == ZombieIds.Runner ? ZombieSound.Shriek : (typeId == ZombieIds.Tank ? ZombieSound.Roar : ZombieSound.Alert);
+        public static ZombieSound Alert(string typeId) => typeId == ZombieIds.Runner ? ZombieSound.Shriek : (typeId == ZombieIds.Tank || ZombieAnatomies.IsBoss(typeId) ? ZombieSound.Roar : ZombieSound.Alert);
         public static ZombieSound Pain(HitZone zone) => zone == HitZone.Head ? ZombieSound.PainHead : (zone == HitZone.Torso ? ZombieSound.PainTorso : ZombieSound.PainLimb);
 
         /// <summary>Eventos que tiene cada tipo (los comunes a todos más los suyos).</summary>
@@ -48,6 +50,7 @@ namespace SevenDays.Procedural
                 case ZombieIds.Armored: l.Add(ZombieSound.Metal); break;
                 case ZombieIds.Spitter: l.Add(ZombieSound.Gurgle); l.Add(ZombieSound.Retch); break;
                 case ZombieIds.Explosive: l.Add(ZombieSound.Fuse); l.Add(ZombieSound.Blast); break;
+                case ZombieIds.BossBrute: case ZombieIds.BossLauncher: case ZombieIds.BossFinal: l.Add(ZombieSound.Step); l.Add(ZombieSound.Roar); break;
             }
             return l;
         }
