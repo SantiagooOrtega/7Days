@@ -9,6 +9,8 @@ namespace SevenDays.Procedural
     public enum ZombieFootwear { Bare, BrokenBoots }
     /// <summary>Protección improvisada del blindado: chaleco con placas, puerta atada, neumáticos o chatarra mezclada.</summary>
     public enum ZombieArmor { None, VestPlates, DoorShield, TireRings, MixedScrap }
+    /// <summary>Jefes (bloque D): Bruto (día 3), Lanzador Colosal (día 5) y El Devorador (día 7). Cada uno tiene piezas, texturas y animaciones propias.</summary>
+    public enum ZombieBossKind { None, Brute, Launcher, Devourer }
 
     /// <summary>
     /// Una variante visual de un tipo de zombi (pura y serializable con JsonUtility; la valida <see cref="ZombieLookValidator"/> y el esquema zod de docs/ZOMBIES.md,
@@ -60,6 +62,9 @@ namespace SevenDays.Procedural
         public bool Belly;                // abdomen hinchado con pústulas y venas (explosivo)
         public float SkinTension = 0.5f;  // 0 piel floja, 1 tensa (corredor)
         public float[] SkinBase = { 0.62f, 0.66f, 0.6f };   // color base de la piel del tipo (sRGB)
+        public float ForearmScale = 1f;   // > 1: antebrazos y puños como mazas (Bruto)
+        public ZombieBossKind Boss;
+        public bool IsBoss => Boss != ZombieBossKind.None;
 
         /// <summary>Altura del soldado de referencia: todas las medidas absolutas del modelo se escalan por height / ReferenceHeight.</summary>
         public const float ReferenceHeight = 1.82f;
@@ -97,15 +102,27 @@ namespace SevenDays.Procedural
                     return new ZombieAnatomy { TypeId = id, Proportions = P(1.76f, 0.46f, 0.27f, 0.95f, 0.5f, 1.06f, 1f, 1f, 0.6f, 0.95f, 0.9f), Emaciation = 0.35f, LongArmExtra = 0.12f, Bags = true, SkinBase = new[] { 0.58f, 0.66f, 0.46f } };
                 case ZombieIds.Explosive:
                     return new ZombieAnatomy { TypeId = id, Proportions = P(1.72f, 0.46f, 0.30f, 1.0f, 0.5f, 1f, 0.9f, 0.95f, 0.4f, 1.05f, 0.95f), Emaciation = 0.15f, Belly = true, SkinBase = new[] { 0.72f, 0.58f, 0.46f } };
+                // jefes: miden 1.82 m x su escala de juego (la cápsula de movimiento y los alcances no cambian)
+                case ZombieIds.BossBrute:
+                    return new ZombieAnatomy { TypeId = id, Boss = ZombieBossKind.Brute, Proportions = P(4.0f, 1.3f, 0.64f, 1.45f, 0.44f, 1.12f, 0.6f, 0.76f, 0.6f, 1.15f, 1.12f), ForearmScale = 1.45f, ScarPlates = false, SkinTension = 0.75f, SkinBase = new[] { 0.55f, 0.46f, 0.42f } };
+                case ZombieIds.BossLauncher:
+                    return new ZombieAnatomy { TypeId = id, Boss = ZombieBossKind.Launcher, Proportions = P(3.64f, 1.1f, 0.56f, 1.45f, 0.45f, 1.1f, 0.65f, 0.78f, 0.75f, 1.3f, 1.08f), BigArmScale = 1.5f, BigArmSide = 1, LongArmExtra = 0.18f, Bags = true, Emaciation = 0.1f, SkinTension = 0.6f, SkinBase = new[] { 0.56f, 0.62f, 0.44f } };
+                case ZombieIds.BossFinal:
+                    return new ZombieAnatomy { TypeId = id, Boss = ZombieBossKind.Devourer, Proportions = P(4.37f, 1.04f, 0.5f, 0.95f, 0.54f, 1.3f, 1.3f, 0.82f, 0.9f, 1.0f, 0.9f), Emaciation = 0.65f, SkinTension = 0.9f, SkinBase = new[] { 0.5f, 0.42f, 0.48f } };
                 default:
                     return new ZombieAnatomy { TypeId = ZombieIds.Common, Proportions = P(1.78f, 0.44f, 0.27f, 0.98f, 0.5f, 1f, 1f, 1f, 0.55f, 1.05f, 0.92f), Emaciation = 0.3f, SkinTension = 0.35f, SkinBase = new[] { 0.55f, 0.58f, 0.51f } };
             }
         }
 
-        /// <summary>Los seis tipos que usan el cuerpo procedural (los jefes del bloque D tendrán el suyo).</summary>
+        /// <summary>Los seis tipos de zombi normales (3-4 variantes cada uno).</summary>
         public static readonly string[] Types = { ZombieIds.Common, ZombieIds.Runner, ZombieIds.Tank, ZombieIds.Armored, ZombieIds.Spitter, ZombieIds.Explosive };
+        /// <summary>Los tres jefes (una variante cada uno, una sola altura).</summary>
+        public static readonly string[] BossTypes = { ZombieIds.BossBrute, ZombieIds.BossLauncher, ZombieIds.BossFinal };
 
-        public static bool Has(string typeId) => Array.IndexOf(Types, typeId) >= 0;
+        public static bool Has(string typeId) => Array.IndexOf(Types, typeId) >= 0 || IsBoss(typeId);
+        public static bool IsBoss(string typeId) => Array.IndexOf(BossTypes, typeId) >= 0;
+        /// <summary>Cubos de altura que usa un tipo: los normales los tres; los jefes, solo el del medio (son únicos).</summary>
+        public static int[] Buckets(string typeId) => IsBoss(typeId) ? new[] { 1 } : new[] { 0, 1, 2 };
     }
 
     public static class ZombieVariants
@@ -153,6 +170,11 @@ namespace SevenDays.Procedural
                 V("explosive_shirt", ZombieIds.Explosive, "Explosivo con camisa rota", H, Tufts, ZombieClothing.Shirt, bare, 61, skin: new[] { 1f, 0.96f, 0.9f }, eye: new[] { 1f, 0.55f, 0.2f }, eyeGlow: 0.35f),
                 V("explosive_work", ZombieIds.Explosive, "Explosivo de obra", JB, Bald, ZombieClothing.Workwear, boots, 62, skin: new[] { 1f, 0.94f, 0.88f }, eye: new[] { 1f, 0.5f, 0.15f }, eyeGlow: 0.4f, grime: 0.7f),
                 V("explosive_rags", ZombieIds.Explosive, "Explosivo en harapos", S, Matted, ZombieClothing.Rags, bare, 63, skin: new[] { 1.02f, 0.92f, 0.86f }, eye: new[] { 1f, 0.6f, 0.2f }, eyeGlow: 0.4f),
+
+                // jefes: una variante cada uno, con su historia (ver docs/BOSSES.md)
+                V("boss_brute", ZombieIds.BossBrute, "Bruto Titán", JB, Bald, ZombieClothing.Workwear, boots, 71, skin: new[] { 1f, 0.95f, 0.92f }, eye: new[] { 1f, 0.16f, 0.08f }, eyeGlow: 0.65f, grime: 0.9f, blood: 0.7f),
+                V("boss_launcher", ZombieIds.BossLauncher, "Lanzador Colosal", S, Matted, ZombieClothing.Rags, bare, 72, skin: new[] { 0.95f, 1f, 0.88f }, eye: new[] { 0.6f, 1f, 0.25f }, eyeGlow: 0.6f, grime: 0.8f, blood: 0.5f),
+                V("boss_final", ZombieIds.BossFinal, "El Devorador", JE, Bald, ZombieClothing.Rags, bare, 73, skin: new[] { 1f, 0.95f, 1f }, eye: new[] { 1f, 0.5f, 0.1f }, eyeGlow: 0.75f, grime: 0.6f, blood: 0.8f),
             };
         }
 

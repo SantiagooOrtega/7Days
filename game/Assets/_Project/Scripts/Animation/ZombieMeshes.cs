@@ -71,8 +71,9 @@ namespace SevenDays.Animation
             p.Wounds = ZombieWounds.Build(p.Models[0], p.Skinned[0], a);
             foreach (ZombieDeathForm form in System.Enum.GetValues(typeof(ZombieDeathForm)))
             {
-                var pose = ZombiePoses.Lying(form, p.Models[2].Spec);
-                pose.HipsPos = new V3(0f, ZombiePoses.FitToGround(p.Skinned[2], p.Models[2].Spec, pose), 0f);
+                // con la malla completa (LOD 0): así cuentan también las piezas pequeñas que solo se ven de cerca (garras, púas, colmillos)
+                var pose = ZombiePoses.Lying(form, p.Models[0].Spec);
+                pose.HipsPos = new V3(0f, ZombiePoses.FitToGround(p.Skinned[0], p.Models[0].Spec, pose), 0f);
                 p.Lying[(int)form] = pose;
             }
             return p;
@@ -95,7 +96,9 @@ namespace SevenDays.Animation
         public static void PrewarmAll()
         {
             foreach (string t in ZombieAnatomies.Types)
-                for (int b = 0; b < ZombieAnatomies.ScaleBuckets.Length; b++) Prewarm(t, b);
+                foreach (int b in ZombieAnatomies.Buckets(t)) Prewarm(t, b);
+            foreach (string t in ZombieAnatomies.BossTypes)
+                foreach (int b in ZombieAnatomies.Buckets(t)) Prewarm(t, b);
         }
 
         /// <summary>Convierte en mallas de Unity, de una en una por frame, las variantes que los hilos ya terminaron (así los datos puros se liberan y no hay tirones).</summary>
