@@ -44,6 +44,17 @@ Para volver a lo procedural basta borrar el archivo.
 
 Los jefes y variantes se obtienen escalando y coloreando el mismo modelo, así que no hacen falta más descargas.
 
+### Opcional: sonidos de zombi propios (CC0)
+Los zombis no necesitan ningún audio: todas sus voces se sintetizan por código (ver `docs/ZOMBIES.md`, "Sonido"). Si quieres usar grabaciones libres (CC0, por ejemplo de freesound.org con licencia CC0), tienen prioridad sobre las sintetizadas del mismo evento:
+
+1. Crea la carpeta `Assets/_Project/Audio/Zombies/` y arrastra ahí los `.wav` u `.ogg`.
+2. Nómbralos `tipo_evento_n`: `tipo` es `common`, `runner`, `tank`, `armored`, `spitter`, `explosive` (o `any` para todos los tipos) y `evento` es uno de
+   `idle, alert, attack, bite, painhead, paintorso, painlimb, headshot, death, emerge, step, metal, gurgle, retch, fuse, blast, pant, shriek, roar`.
+   Ejemplos: `common_idle_1.wav`, `common_idle_2.wav`, `tank_roar_1.wav`, `any_headshot_1.wav`. El número final es opcional; con varios se elige uno al azar.
+3. Unity arma sola la lista (`Resources/Audio/ZombieClipLibrary.asset`); también a mano en el menú **7Days > Audio > Reconstruir clips de zombi**. Los nombres no reconocidos salen como aviso en la consola.
+4. Para volver a los sintetizados, borra los clips: la lista se elimina sola.
+5. Anota cada archivo y su autor/licencia en `docs/CREDITS.md`. El bucle de `fuse` debe poder repetirse sin corte (marca **Loop** no hace falta: el código lo repite).
+
 ## Cómo importar desde Mixamo (paso a paso)
 1. Entra a mixamo.com con tu cuenta Adobe y elige el personaje.
 2. Descarga el personaje: Format `FBX for Unity (.fbx)`, Pose `T-pose`.
