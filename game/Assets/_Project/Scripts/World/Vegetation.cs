@@ -66,10 +66,18 @@ namespace SevenDays.World
             obstacles.SetParent(parent, false);
 
             var signEntries = new System.Collections.Generic.List<PropEntry>();
+            var forest = new System.Collections.Generic.List<PropEntry>();
             foreach (var e in result.Valid)
             {
                 if (PropTypes.IsSign(e.type)) { signEntries.Add(e); continue; }
                 var pos = new Vector3(e.x, 0f, e.z);
+                if (PropTypes.IsForestTree(e.type))
+                {
+                    // árboles del bosque: los dibuja ForestRenderer con LOD; aquí solo su collider de tronco (los del anillo exterior no lo necesitan)
+                    forest.Add(e);
+                    if (Mathf.Max(Mathf.Abs(e.x), Mathf.Abs(e.z)) < 46f) AddForestCollider(obstacles, pos, e);
+                    continue;
+                }
                 var rot = Quaternion.Euler(0f, e.yaw, 0f);
                 switch (e.type)
                 {
@@ -90,6 +98,7 @@ namespace SevenDays.World
             }
 
             TrafficSigns.Build(root, look, signEntries);
+            if (forest.Count > 0) ForestRenderer.Build(parent, forest, look.FogDensity);
 
             foreach (var kv in groups)
             {
@@ -101,8 +110,8 @@ namespace SevenDays.World
                 var batch = go.AddComponent<InstancedBatch>();
                 batch.Init(MeshFor(type, variant), MaterialFor(type, variant), kv.Value.ToArray(), type == PropTypes.TreeDead && v.TreeShadows);
 
-                // El relleno pequeño se puede ocultar si el FPS baja; los árboles nunca.
-                if (type != PropTypes.TreeDead) AtmosphereBudget.RegisterGroup(go, type == PropTypes.Grass ? 3 : 4);
+                // El relleno pequeño se puede ocultar si el FPS baja; los árboles nunca. Los helechos y la hierba nunca echan sombra.
+                if (type != PropTypes.TreeDead) AtmosphereBudget.RegisterGroup(go, type == PropTypes.Grass || type == PropTypes.Fern ? 3 : 4);
             }
         }
 
@@ -118,6 +127,7 @@ namespace SevenDays.World
                 case PropTypes.Bush: data = FoliageGeometry.Bush(variant, 2 + variant); break;
                 case PropTypes.Grass: data = FoliageGeometry.GrassPatch(3 + variant); break;
                 case PropTypes.Tire: data = FoliageGeometry.Tire(1); break;
+                case PropTypes.Fern: data = ForestGeometry.Fern(7 + variant); break;
                 default: data = FoliageGeometry.Bag(variant + 1); break;
             }
             m = BoxMesh.ToMesh(data);
@@ -134,6 +144,7 @@ namespace SevenDays.World
                 case PropTypes.Bush: return Prim.GetMaterial(variant == 0 ? new Color(0.30f, 0.33f, 0.15f) : new Color(0.24f, 0.19f, 0.12f), true);
                 case PropTypes.Grass: return Prim.GetMaterial(variant == 0 ? new Color(0.32f, 0.38f, 0.17f) : new Color(0.52f, 0.44f, 0.24f), true);
                 case PropTypes.Tire: return Prim.GetMaterial(new Color(0.07f, 0.07f, 0.075f));
+                case PropTypes.Fern: return Prim.GetMaterial(variant == 0 ? new Color(0.16f, 0.26f, 0.12f) : new Color(0.24f, 0.27f, 0.13f), true);
                 default:
                     Color[] bags = { new Color(0.12f, 0.12f, 0.13f), new Color(0.55f, 0.55f, 0.5f), new Color(0.2f, 0.26f, 0.36f) };
                     return Prim.GetMaterial(bags[variant % bags.Length]);
@@ -149,6 +160,18 @@ namespace SevenDays.World
             var col = go.AddComponent<CapsuleCollider>();
             col.radius = (e.variant == 2 ? 0.32f : 0.22f) * e.scale;
             col.height = (e.variant == 2 ? 3.2f : 6.5f) * e.scale;
+            col.center = new Vector3(0f, col.height * 0.5f, 0f);
+            MarkObstacle(go);
+        }
+
+        private static void AddForestCollider(Transform parent, Vector3 pos, PropEntry e)
+        {
+            var go = new GameObject("Tree Collider");
+            go.transform.SetParent(parent, false);
+            go.transform.position = pos;
+            var col = go.AddComponent<CapsuleCollider>();
+            col.radius = ForestGeometry.TrunkRadiusOf(e.type, e.variant) * 1.15f * e.scale;
+            col.height = 6f * e.scale;
             col.center = new Vector3(0f, col.height * 0.5f, 0f);
             MarkObstacle(go);
         }

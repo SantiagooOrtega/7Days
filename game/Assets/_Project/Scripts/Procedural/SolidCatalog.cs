@@ -32,6 +32,7 @@ namespace SevenDays.Procedural
             switch (propType)
             {
                 case PropTypes.TreeDead: return ColliderShape.Capsule;      // collider de tronco
+                case PropTypes.Pine: case PropTypes.TreeTall: return ColliderShape.Capsule;   // árboles del bosque: cobertura natural
                 case PropTypes.CarWreck: return ColliderShape.Box;
                 case PropTypes.PoleFallen: return ColliderShape.Capsule;
                 case PropTypes.Bush: return variant == 0 && scale >= LargeBushScale ? ColliderShape.Sphere : ColliderShape.None;
@@ -64,6 +65,14 @@ namespace SevenDays.Procedural
             new SolidSpec { Name = "Pipe", Solid = true, Shape = ColliderShape.Capsule, Reason = "tuberías" },
             new SolidSpec { Name = "Car Wreck", Solid = true, Shape = ColliderShape.Box, Reason = "coches" },
             new SolidSpec { Name = "Fallen Pole", Solid = true, Shape = ColliderShape.Capsule, Reason = "poste caído" },
+            new SolidSpec { Name = "Soil", Exact = true, Solid = true, Shape = ColliderShape.Box, Reason = "suelo del bosque" },
+            new SolidSpec { Name = "Boundary", Solid = true, Shape = ColliderShape.Box, Reason = "límite invisible del mapa" },
+            new SolidSpec { Name = "Fence", Solid = true, Shape = ColliderShape.Box, Reason = "vallas (cobertura)" },
+            new SolidSpec { Name = "Boulder", Solid = true, Shape = ColliderShape.Sphere, Reason = "rocas con musgo (cobertura)" },
+            new SolidSpec { Name = "Fallen Trunk", Solid = true, Shape = ColliderShape.Capsule, Reason = "troncos caídos (cobertura)" },
+            new SolidSpec { Name = "Caravan", Solid = true, Shape = ColliderShape.Box, Reason = "caravana oxidada" },
+            new SolidSpec { Name = "Lantern Post", Solid = false, Shape = ColliderShape.None, Reason = "farol fino: no estorba" },
+            new SolidSpec { Name = "Trail", Solid = false, Shape = ColliderShape.None, Reason = "sendero pintado en el suelo" },
             // --- no sólidos
             new SolidSpec { Name = "Road", Exact = true, Solid = false, Shape = ColliderShape.None, Reason = "asfalto fino sobre el piso (el piso ya colisiona)" },
             new SolidSpec { Name = "Rubble", Solid = false, Shape = ColliderShape.None, Reason = "escombros pequeños: no deben frenar al jugador" },

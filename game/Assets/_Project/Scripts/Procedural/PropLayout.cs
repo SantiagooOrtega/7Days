@@ -43,16 +43,21 @@ namespace SevenDays.Procedural
         public const string SignNoTurn = "sign_no_turn";
         public const string SignHazard = "sign_hazard";
         public const string SignGeneric = "sign_generic";
+        // bosque (mapa 3): pinos y árboles muertos altos con LOD (ForestRenderer) y helechos
+        public const string Pine = "pine";
+        public const string TreeTall = "tree_tall";
+        public const string Fern = "fern";
 
         public static readonly string[] SignTypes = { SignStop, SignYield, SignSpeed, SignNoTurn, SignHazard, SignGeneric };
         public static readonly string[] SignStates = { "", "upright", "tilted", "bent", "fallen", "pole_only", "hanging" };
 
         public static bool IsSign(string type) => Array.IndexOf(SignTypes, type) >= 0;
 
-        public static readonly string[] All = { TreeDead, Bush, Grass, CarWreck, PoleFallen, Tire, Bag, SignBroken, Campfire, SignStop, SignYield, SignSpeed, SignNoTurn, SignHazard, SignGeneric };
+        public static readonly string[] All = { TreeDead, Bush, Grass, CarWreck, PoleFallen, Tire, Bag, SignBroken, Campfire, SignStop, SignYield, SignSpeed, SignNoTurn, SignHazard, SignGeneric, Pine, TreeTall, Fern };
+        public static bool IsForestTree(string type) => type == Pine || type == TreeTall;
 
         /// <summary>Piezas grandes: bloquean el paso del jugador y del NavMesh. La hierba, bolsas y neumáticos no.</summary>
-        public static bool IsObstacle(string type) => type == TreeDead || type == CarWreck || type == PoleFallen; // (una señal caída es un obstáculo pequeño: se decide por su estado)
+        public static bool IsObstacle(string type) => type == TreeDead || type == CarWreck || type == PoleFallen || IsForestTree(type); // (una señal caída es un obstáculo pequeño: se decide por su estado)
 
         public static int VariantCount(string type)
         {
@@ -61,6 +66,9 @@ namespace SevenDays.Procedural
                 case TreeDead: return FoliageGeometry.TreeVariants;
                 case Bush: return FoliageGeometry.BushVariants;
                 case Grass: return 2;   // verde / seca
+                case Pine: return ForestGeometry.PineVariants;
+                case TreeTall: return ForestGeometry.TallVariants;
+                case Fern: return 2;
                 case CarWreck: return 3;
                 case Bag: return 3;
                 case SignStop: case SignYield: case SignSpeed: case SignNoTurn: case SignHazard: case SignGeneric: return SignGenerator.Variants;
@@ -82,7 +90,7 @@ namespace SevenDays.Procedural
     public static class PropLayoutValidator
     {
         public const float MinScale = 0.25f, MaxScale = 4f, MaxAbsCoordinate = 60f;
-        public const int MaxTotal = 600;
+        public const int MaxTotal = 2500;   // el bosque lleva cientos de árboles, helechos y matas
 
         public static ValidationResult Validate(PropLayoutData layout, IDictionary<string, int> caps = null)
         {

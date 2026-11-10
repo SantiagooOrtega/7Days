@@ -20,6 +20,7 @@ namespace SevenDays.World
         private Health _playerHealth;
         private GameObject _player;
         private HouseController _house;
+        private readonly List<HouseController> _houses = new List<HouseController>();
         private FireManager _fire;
         private LookSettings _look;
         private SevenDays.Procedural.PropLayoutData _layout;
@@ -61,6 +62,7 @@ namespace SevenDays.World
             _look = new LookSettings();
             _map = MapIO.Load(MapIO.SelectedId, _look);
             MapIO.ApplyAmbience(_map.ambience, _look);
+            _look.Atmosphere.Area = _map.halfSize * 2f - 4f;   // niebla baja y suciedad sobre todo el mapa (56 m en el mapa 1)
             LookAndFeel.Apply(cam, _look);
             _loading = true;
             _layout = _map.vegetation;   // árboles, arbustos, coches, señales y demás piezas sueltas del mapa
@@ -96,6 +98,8 @@ namespace SevenDays.World
             CombatFeedback.Create(transform, player.GetComponent<SevenDays.Player.PlayerShooting>());
 
             if (_map.ambience.dust) Particles.CreateDust(player.transform);
+            if (_map.ambience.fireflies > 0f) Particles.CreateFireflies(player.transform, _map.ambience.fireflies);
+            AmbientSound.Create(transform, _map.ambience.soundscape, cam.transform);
             Atmosphere.Build(transform, player.transform, _look);
 
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
@@ -146,7 +150,7 @@ namespace SevenDays.World
                     _zombies.SetTuning(SevenDays.Procedural.DirectorRules.Adjust(SevenDays.Procedural.DirectorTuning.ForDay(_day), totals, reasons));
                     foreach (var r in reasons) Debug.Log("[7Days] Director: " + r);
                 }
-                if (_house != null) _house.SetDay(_day);
+                foreach (var h in _houses) if (h != null) h.SetDay(_day);
             }
             if (k.zKey.wasPressedThisFrame && _player != null && _zombies != null)
             {
@@ -176,6 +180,14 @@ namespace SevenDays.World
                     _zombies.Spawn(SevenDays.Procedural.ZombieCatalog.BossForDay(day), _player.transform.position + _player.transform.forward * 20f);
                 }
             }
+            if (k.mKey.wasPressedThisFrame && !_loading)
+            {
+                // M = siguiente mapa (Calle en ruinas -> Barrio abandonado -> Bosque oscuro): se recarga la escena con el nuevo contenido
+                var ids = MapIO.KnownIds;
+                MapIO.SelectedId = ids[(System.Array.IndexOf(ids, _map.id) + 1) % ids.Length];
+                UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+                return;
+            }
             if (k.uKey.wasPressedThisFrame && _player != null)
             {
                 // Prueba de caída: sube al jugador 6 m y lo suelta (más de 4 m hace daño y sacude la cámara)
@@ -189,6 +201,7 @@ namespace SevenDays.World
         private void BuildLevel()
         {
             var root = new GameObject("Level").transform;
+            root.SetParent(transform, false);   // el mapa cuelga de la arena: al cambiar de mapa o destruirla no queda nada del anterior
             _levelRoot = root;
             IndustrialRuins.Build(root, _look, _map);   // piezas del kit en el orden del JSON
             if (_map.ambience.skyline) Skyline.Build(root, _look);
@@ -196,7 +209,9 @@ namespace SevenDays.World
             GroundDetails.Build(root, _look, IndustrialRuins.Anchors);
             Vegetation.Build(root, _look, _layout);
             if (_map.ambience.roadMarkings) RoadMarkings.Build(root, _look);
-            if (_look.House.Enabled && _map.houses.Length > 0) _house = House.Build(root, _look, _map.houses[0]);
+            // casas o refugios del mapa: todas con sus entradas que el director tapa según el día
+            if (_look.House.Enabled) foreach (var h in _map.houses) _houses.Add(House.Build(root, _look, h));
+            _house = _houses.Count > 0 ? _houses[0] : null;
         }
     }
 }

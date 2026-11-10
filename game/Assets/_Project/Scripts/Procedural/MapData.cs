@@ -48,6 +48,8 @@ namespace SevenDays.Procedural
         public int redFlickerLamps = 2;
         public int cracks = 14, weedTufts = 70, puddles = 7, bloodStains = 8, skylineBuildings = 22;
         public bool dust = true, skyline = true, roadMarkings = true;
+        public float fireflies;                        // luciérnagas alrededor del jugador (0 = ninguna)
+        public string soundscape = "none";             // sonido ambiente: none | wind | forest
     }
 
     /// <summary>
@@ -79,7 +81,8 @@ namespace SevenDays.Procedural
     /// <summary>Tipos de pieza que entiende el constructor y validación de un mapa que viene de fuera (backend, JSON local).</summary>
     public static class MapKit
     {
-        public static readonly string[] Kinds = { "ground", "road", "wall", "crumbles", "barrier", "crate", "container", "pillar", "beam", "roof", "brickwall", "pipe", "barrel", "fire_barrel", "rubble_field", "lamp" };
+        public static readonly string[] Kinds = { "ground", "road", "wall", "crumbles", "barrier", "crate", "container", "pillar", "beam", "roof", "brickwall", "pipe", "barrel", "fire_barrel", "rubble_field", "lamp",
+                                                  "soil", "boundary", "fence", "trail", "boulder", "trunk", "caravan", "lantern" };
         public const int MinSpawns = 8;
 
         public static List<string> Validate(MapData m)
