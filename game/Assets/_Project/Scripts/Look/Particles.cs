@@ -56,6 +56,35 @@ namespace SevenDays.Look
             return go.transform;
         }
 
+        /// <summary>Luciérnagas que flotan alrededor del jugador y parpadean (bosque de noche). amount 1 = unas 40 a la vez.</summary>
+        public static Transform CreateFireflies(Transform follow, float amount)
+        {
+            var go = new GameObject("Fireflies");
+            go.SetActive(false);
+            var ps = go.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.loop = true; main.prewarm = true; main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(4f, 8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.25f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
+            main.startColor = new ParticleSystem.MinMaxGradient(new Color(2.2f, 2.6f, 0.6f, 1f), new Color(1.6f, 2.4f, 0.4f, 1f));
+            main.maxParticles = Mathf.RoundToInt(60 * amount);
+            var em = ps.emission; em.rateOverTime = 7f * amount;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = new Vector3(28f, 2.5f, 28f);
+            var noise = ps.noise; noise.enabled = true; noise.strength = 0.6f; noise.frequency = 0.4f;
+            var blink = ps.colorOverLifetime; blink.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.15f), new GradientAlphaKey(0.1f, 0.3f), new GradientAlphaKey(1f, 0.5f), new GradientAlphaKey(0.2f, 0.7f), new GradientAlphaKey(1f, 0.85f), new GradientAlphaKey(0f, 1f) });
+            blink.color = g;
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.sharedMaterial = ParticleMaterials.SoftAdditive; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
+            go.AddComponent<FollowTarget>().Init(follow, new Vector3(0f, 1.5f, 0f));
+            go.SetActive(true);
+            AtmosphereBudget.Register(ps, 3);
+            return go.transform;
+        }
+
         /// <summary>Vapor de la furia de un jefe: humo claro que sale de la espalda y sube (empieza sin emitir; el cuerpo sube el ritmo con la furia).</summary>
         public static ParticleSystem CreateSteam(Transform parent, Vector3 localPos, float size)
         {

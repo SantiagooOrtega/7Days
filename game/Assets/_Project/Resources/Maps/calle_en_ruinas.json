@@ -6247,6 +6247,8 @@
         "skylineBuildings": 22,
         "dust": true,
         "skyline": true,
-        "roadMarkings": true
+        "roadMarkings": true,
+        "fireflies": 0.0,
+        "soundscape": "none"
     }
 }

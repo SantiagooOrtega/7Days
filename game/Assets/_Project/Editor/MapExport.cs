@@ -22,12 +22,22 @@ namespace SevenDays.EditorTools
             Debug.Log("[7Days] Escrito " + path);
         }
 
-        public static void ExportStreetRuinsBatch() { Write(); }
+        [MenuItem("7Days/Mapas/Exportar los 3 mapas a JSON")]
+        public static void ExportAll()
+        {
+            foreach (var p in WriteAll()) Debug.Log("[7Days] Escrito " + p);
+            AssetDatabase.Refresh();
+        }
 
-        private static string Write()
+        public static void ExportStreetRuinsBatch() { Write(); }
+        public static void ExportAllBatch() { WriteAll(); }
+
+        private static string[] WriteAll() => new[] { Write(), Write(SevenDays.Procedural.MapLibrary.Neighborhood()), Write(SevenDays.Procedural.MapLibrary.Forest()) };
+
+        private static string Write(SevenDays.Procedural.MapData map = null)
         {
             Directory.CreateDirectory(Folder);
-            var map = MapDefaults.StreetRuins(new LookSettings());
+            map ??= MapDefaults.StreetRuins(new LookSettings());
             string path = Folder + "/" + map.id + ".json";
             File.WriteAllText(path, MapIO.ToJson(map));
             return path;

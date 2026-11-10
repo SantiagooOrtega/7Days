@@ -89,7 +89,7 @@ namespace SevenDays.Tests
         public void AllTypes_ArePresent_AtDefaultDensity()
         {
             var l = Make();
-            foreach (var t in PropTypes.All.Where(x => !PropTypes.IsSign(x))) Assert.Greater(Of(l, t).Count(), 0, "falta el tipo " + t); // las señales las genera SignLayout
+            foreach (var t in PropTypes.All.Where(x => !PropTypes.IsSign(x) && !PropTypes.IsForestTree(x) && x != PropTypes.Fern)) Assert.Greater(Of(l, t).Count(), 0, "falta el tipo " + t); // las señales las genera SignLayout
         }
 
         [Test]

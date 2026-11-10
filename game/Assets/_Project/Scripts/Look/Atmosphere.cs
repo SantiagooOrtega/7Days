@@ -87,7 +87,7 @@ namespace SevenDays.Look
 
                 var shape = ps.shape;
                 shape.shapeType = ParticleSystemShapeType.Box;
-                shape.scale = new Vector3(56f, flat ? 0.1f : 0.6f, 56f);
+                shape.scale = new Vector3(a.Area, flat ? 0.1f : 0.6f, a.Area);
                 shape.randomDirectionAmount = 1f;
 
                 var noise = ps.noise;

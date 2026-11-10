@@ -66,6 +66,8 @@ namespace SevenDays.Tests.PlayMode
         [UnityTest]
         public IEnumerator Thirty_Zombies()
         {
+            string mapId = Environment.GetEnvironmentVariable("LOAD_MAP");   // mapa a medir (por defecto el 1)
+            if (!string.IsNullOrEmpty(mapId)) T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, mapId);
             new GameObject("Arena").AddComponent(T("SevenDays.World.TestArena"));
             float t0 = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - t0 < 30f && GameObject.FindWithTag("Player") == null) yield return null;
@@ -106,6 +108,7 @@ namespace SevenDays.Tests.PlayMode
             float zRender = RenderMs(cam);
             sb.Append("Con 30 zombis:  ").Append(Stats(withZ)).Append("  | hilo principal ").Append(Avg(zMain)).Append("  CPU frame ").Append(Avg(zCpu)).Append("  GPU frame ").Append(Avg(zGpu)).Append("  | render 1080p ").Append(zRender.ToString("0.00")).Append(" ms\n");
             sb.Append("Coste de 30 zombis: render +" + (zRender - bRender).ToString("0.00") + " ms\n");
+            sb.Append("Mapa: " + (mapId ?? "calle_en_ruinas") + "  " + T("SevenDays.World.ForestRenderer").GetMethod("Describe").Invoke(null, null) + "\n");
 
             // + suministros visibles: uno de cada tipo y otros tantos repetidos delante (con marcador, contorno, destello, luz y la columna de luz de los drops)
             var lootT = T("SevenDays.World.Loot.LootManager"); var loot = lootT.GetProperty("Instance").GetValue(null);

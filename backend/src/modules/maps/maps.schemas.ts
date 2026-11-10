@@ -8,6 +8,7 @@ import { z } from 'zod';
 export const MAP_PROP_KINDS = [
   'ground', 'road', 'wall', 'crumbles', 'barrier', 'crate', 'container', 'pillar', 'beam', 'roof', 'brickwall',
   'pipe', 'barrel', 'fire_barrel', 'rubble_field', 'lamp',
+  'soil', 'boundary', 'fence', 'trail', 'boulder', 'trunk', 'caravan', 'lantern',
 ] as const;
 export const MIN_SPAWNS = 8;
 
@@ -53,6 +54,8 @@ export const mapAmbienceSchema = z
     sunPitch: z.number().min(-90).max(90),
     sunIntensity: z.number().min(0).max(5),
     brightness: z.number().min(0.2).max(3),
+    fireflies: z.number().min(0).max(3).optional(),
+    soundscape: z.enum(['none', 'wind', 'forest']).optional(),
   })
   .passthrough();
 
@@ -68,7 +71,7 @@ export const mapSchema = z
     props: z.array(mapPropSchema).max(2000),
     houses: z.array(houseSchema).min(1, 'necesita al menos una casa o refugio'),
     spawns: z.array(mapSpawnSchema).min(MIN_SPAWNS),
-    vegetation: z.object({ items: z.array(z.object({ type: z.string(), x: z.number(), z: z.number() }).passthrough()).max(5000) }),
+    vegetation: z.object({ items: z.array(z.object({ type: z.string(), x: z.number(), z: z.number() }).passthrough()).max(2500) }),
     loot: z.object({ points: z.array(z.object({ id: z.string(), x: z.number(), z: z.number() }).passthrough()).min(1) }).passthrough(),
     ambience: mapAmbienceSchema,
   })

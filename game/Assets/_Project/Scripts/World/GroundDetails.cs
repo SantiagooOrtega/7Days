@@ -16,6 +16,7 @@ namespace SevenDays.World
         public static void Build(Transform root, LookSettings look, IList<Vector3> anchors)
         {
             var a = look.Atmosphere;
+            _area = a.Area - 2f;   // 54 en el mapa 1
             var rng = new System.Random(99);
             float R() => (float)rng.NextDouble();
             var parent = new GameObject("GroundDetails").transform;
@@ -101,7 +102,8 @@ namespace SevenDays.World
             SpawnWeeds(weedDry, "Weeds Dry", parent, new Color(0.45f, 0.38f, 0.2f), 3);
         }
 
-        private static Vector3 RandomGroundPoint(System.Func<float> r) => new Vector3((r() - 0.5f) * 54f, 0f, (r() - 0.5f) * 54f);
+        private static float _area = 54f;
+        private static Vector3 RandomGroundPoint(System.Func<float> r) => new Vector3((r() - 0.5f) * _area, 0f, (r() - 0.5f) * _area);
 
         /// <summary>Altura de la calcomanía: sobre el asfalto (más alto) o el concreto.</summary>
         private static Vector3 Surface(Vector3 p, float onRoad) => new Vector3(p.x, Mathf.Abs(p.x) < 3.9f ? onRoad : onRoad - 0.02f, p.z);

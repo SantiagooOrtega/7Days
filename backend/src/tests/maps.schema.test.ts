@@ -8,8 +8,8 @@ const MAPS_DIR = join(__dirname, '..', '..', '..', 'game', 'Assets', '_Project',
 const files = readdirSync(MAPS_DIR).filter((f) => f.endsWith('.json'));
 
 describe('esquema de mapas', () => {
-  it('hay al menos el mapa 1', () => {
-    expect(files).toContain('calle_en_ruinas.json');
+  it('están los 3 mapas', () => {
+    expect(files.sort()).toEqual(['barrio_abandonado.json', 'bosque_oscuro.json', 'calle_en_ruinas.json']);
   });
 
   it.each(files)('%s cumple el esquema', (f) => {

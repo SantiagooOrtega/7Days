@@ -78,10 +78,11 @@ namespace SevenDays.UI
             _sb.Append("Calidad: ").Append(SevenDays.Look.QualityDirector.Describe()).Append('\n');
             _zombies = SevenDays.Combat.ZombieStats.Collect();
             _sb.Append("Zombis: ").Append(SevenDays.Combat.ZombieStats.Describe(_zombies));
+            if (SevenDays.World.ForestRenderer.Instance != null) _sb.Append('\n').Append(SevenDays.World.ForestRenderer.Describe());
             var loot = SevenDays.World.Loot.LootManager.Instance;
             if (loot != null) _sb.Append("\nSuministros: ").Append(loot.ActiveCount).Append(" en el suelo, marcadores ").Append(SevenDays.World.Loot.LootPickup.VisibleMarkers)
                 .Append(", luces ").Append(loot.LightsOn).Append('/').Append(loot.MaxGlintLights).Append(", destellos ").Append(SevenDays.World.Loot.LootPickup.EmittingSparkles);
-            var r = new Rect(10, 120, 470, 222);
+            var r = new Rect(10, 120, 470, 244);
             var prev = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.65f); GUI.DrawTexture(r, Texture2D.whiteTexture); GUI.color = prev;
             GUI.Label(new Rect(r.x + 8, r.y + 4, r.width - 16, 22), "RENDER (F6)", _head);
             GUI.Label(new Rect(r.x + 8, r.y + 26, r.width - 16, r.height - 30), _sb.ToString(), _label);

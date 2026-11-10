@@ -19,6 +19,9 @@ namespace SevenDays.World
         /// <summary>Mapa que se cargará al dar Play (lo cambian el menú o el director; por defecto el mapa 1).</summary>
         public static string SelectedId = DefaultId;
 
+        /// <summary>Los tres mapas del juego, en orden.</summary>
+        public static readonly string[] KnownIds = { DefaultId, MapLibrary.NeighborhoodId, MapLibrary.ForestId };
+
         public static string ToJson(MapData m) => JsonUtility.ToJson(m, true);
 
         public static MapData FromJson(string json, out List<string> errors)
@@ -62,6 +65,7 @@ namespace SevenDays.World
             var at = look.Atmosphere;
             at.Density = a.density; at.GroundFogLayers = a.groundFogLayers; at.GroundFogDensity = a.groundFogDensity; at.GroundFogAlpha = a.groundFogAlpha; at.HazeBanks = a.hazeBanks; at.SkyDim = a.skyDim;
             at.Ash = a.ash; at.SmokeColumns = a.smokeColumns; at.Smoke = a.smoke; at.Sparks = a.sparks; at.GodRays = a.godRays; at.GodRayIntensity = a.godRayIntensity;
+            at.Fireflies = a.fireflies;
             at.RedFlickerLamps = a.redFlickerLamps; at.Cracks = a.cracks; at.WeedTufts = a.weedTufts; at.Puddles = a.puddles; at.BloodStains = a.bloodStains; at.SkylineBuildings = a.skylineBuildings;
         }
 
@@ -77,7 +81,7 @@ namespace SevenDays.World
                 density = at.Density, groundFogLayers = at.GroundFogLayers, groundFogDensity = at.GroundFogDensity, groundFogAlpha = at.GroundFogAlpha, hazeBanks = at.HazeBanks, skyDim = at.SkyDim,
                 ash = at.Ash, smokeColumns = at.SmokeColumns, smoke = at.Smoke, sparks = at.Sparks, godRays = at.GodRays, godRayIntensity = at.GodRayIntensity,
                 redFlickerLamps = at.RedFlickerLamps, cracks = at.Cracks, weedTufts = at.WeedTufts, puddles = at.Puddles, bloodStains = at.BloodStains, skylineBuildings = at.SkylineBuildings,
-                dust = true, skyline = true, roadMarkings = true,
+                dust = true, skyline = true, roadMarkings = true, fireflies = 0f, soundscape = "none",
             };
         }
     }

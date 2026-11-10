@@ -69,6 +69,26 @@ namespace SevenDays.World
                 }
                 case "rubble_field": RubbleField(root, p); break;
                 case "lamp": Lamp(root, p); break;
+                case "soil": Prim.CreateBox(p.name, Pos(p), Size(p), Prim.GetMaterial(Col(p)), root, 3f, default, true, 0f); break;
+                case "boundary":
+                {
+                    // límite invisible del mapa (el bosque no tiene muros): solo collider
+                    var go = Prim.CreateBox(p.name, Pos(p), Size(p), Prim.GetMaterial(Color.black), root, 3f, default, true, 0f);
+                    go.GetComponent<MeshRenderer>().enabled = false;
+                    break;
+                }
+                case "trail":
+                {
+                    var go = Prim.CreateBox(p.name, Pos(p), Size(p), Prim.GetMaterial(Col(p)), root, 2f, default, false, 0f);
+                    go.transform.rotation = Quaternion.Euler(0f, p.rot[1], 0f);
+                    go.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    break;
+                }
+                case "fence": Fence(root, p); break;
+                case "boulder": Boulder(root, p); break;
+                case "trunk": FallenTrunk(root, p); break;
+                case "caravan": Caravan(root, p); break;
+                case "lantern": Lantern(root, p); break;
                 default: Debug.LogWarning("[7Days] Pieza de mapa desconocida: " + p.kind); break;
             }
         }
@@ -258,6 +278,107 @@ namespace SevenDays.World
                 f.Amount = 0.25f;
                 f.Bulb = bulbGo.GetComponent<Renderer>();
             }
+        }
+    
+        // ---------- Piezas de los mapas 2 y 3: valla, roca, tronco caído, caravana y farol ----------
+        private static readonly System.Collections.Generic.Dictionary<string, Mesh> KitMeshes = new System.Collections.Generic.Dictionary<string, Mesh>();
+
+        private static Mesh KitMesh(string key, System.Func<MeshData> make)
+        {
+            if (KitMeshes.TryGetValue(key, out var m) && m != null) return m;
+            m = BoxMesh.ToMesh(make()); m.name = key; KitMeshes[key] = m;
+            return m;
+        }
+
+        /// <summary>Valla de tablas: postes, dos travesaños y tablas con huecos. Un solo collider de caja (cobertura a media altura). size.x o size.z = largo.</summary>
+        private static void Fence(Transform root, MapProp p)
+        {
+            var go = new GameObject(p.name);
+            go.transform.SetParent(root, false);
+            go.transform.position = Pos(p);
+            go.transform.rotation = Quaternion.Euler(0f, p.rot[1], 0f);
+            go.AddComponent<BoxCollider>().size = Size(p);
+            go.AddComponent<CoverObject>();
+            bool alongX = p.size[0] >= p.size[2];
+            float len = alongX ? p.size[0] : p.size[2], h = p.size[1];
+            var wood = Tex(Col(p), SurfaceLibrary.CrateWood, 0.08f, 0f, true, Tone(0.1f));
+            Vector3 Along(float t, float y) => alongX ? new Vector3(t, y, 0f) : new Vector3(0f, y, t);
+            for (float t = -len / 2f; t <= len / 2f + 0.01f; t += 2f)
+                Prim.CreateBox("Fence Post", Along(t, 0.05f), new Vector3(0.1f, h + 0.1f, 0.1f), wood, go.transform, 1f, UvJitter(), false, 0.01f);
+            foreach (float y in new[] { -h * 0.25f, h * 0.3f })
+                Prim.CreateBox("Fence Rail", Along(0f, y), alongX ? new Vector3(len, 0.08f, 0.05f) : new Vector3(0.05f, 0.08f, len), wood, go.transform, 1.5f, UvJitter(), false, 0.01f);
+            int boards = Mathf.FloorToInt(len / 0.22f);
+            for (int i = 0; i < boards; i++)
+            {
+                if (Rand() < 0.12f) continue;   // tabla que falta: se ve a través
+                float t = -len / 2f + (i + 0.5f) * len / boards, bh = h * (0.85f + 0.15f * Rand());
+                var b = Prim.CreateBox("Fence Board", Along(t, (bh - h) * 0.5f), alongX ? new Vector3(0.16f, bh, 0.025f) : new Vector3(0.025f, bh, 0.16f), wood, go.transform, 1f, UvJitter(), false, 0.004f);
+                b.transform.localRotation = Quaternion.Euler(0f, 0f, (Rand() - 0.5f) * 6f);
+            }
+        }
+
+        /// <summary>Roca con musgo (malla redondeada compartida, 3 formas) y collider de esfera: cobertura natural.</summary>
+        private static void Boulder(Transform root, MapProp p)
+        {
+            int v = Mathf.Max(0, p.rank) % 3;
+            var go = new GameObject(p.name);
+            go.transform.SetParent(root, false);
+            go.transform.SetPositionAndRotation(Pos(p), Quaternion.Euler(0f, p.rot[1], 0f));
+            go.transform.localScale = Size(p);
+            go.AddComponent<MeshFilter>().sharedMesh = KitMesh("roca " + v, () => ForestGeometry.Boulder(v));
+            go.AddComponent<MeshRenderer>().sharedMaterial = Tex(Col(p), p.surface, 0.15f, 0f, true, Tone(0.08f));
+            var c = go.AddComponent<SphereCollider>(); c.radius = 0.85f; c.center = new Vector3(0f, 0.1f, 0f);
+            go.AddComponent<CoverObject>();
+        }
+
+        /// <summary>Tronco caído a lo largo de su X (size = largo, radio, radio) con collider de cápsula: cobertura baja.</summary>
+        private static void FallenTrunk(Transform root, MapProp p)
+        {
+            var go = new GameObject(p.name);
+            go.transform.SetParent(root, false);
+            go.transform.SetPositionAndRotation(Pos(p), Quaternion.Euler(0f, p.rot[1], (Rand() - 0.5f) * 6f));
+            go.transform.localScale = Size(p);
+            go.AddComponent<MeshFilter>().sharedMesh = KitMesh("tronco", ForestGeometry.Trunk);
+            go.AddComponent<MeshRenderer>().sharedMaterial = Prim.GetTextured(Col(p), SurfaceLibrary.Bark, Vector2.one, 0.05f, 0f, true, 1f);
+            var c = go.AddComponent<CapsuleCollider>(); c.direction = 0; c.radius = 0.95f; c.height = 1f + 1.9f * p.size[1] / Mathf.Max(0.1f, p.size[0]);
+            go.AddComponent<CoverObject>();
+        }
+
+        /// <summary>Caravana oxidada: caja con techo redondeado, ventanas oscuras, puerta, ruedas pinchadas y lanza de enganche. Un collider de caja.</summary>
+        private static void Caravan(Transform root, MapProp p)
+        {
+            var go = new GameObject(p.name);
+            go.transform.SetParent(root, false);
+            go.transform.SetPositionAndRotation(Pos(p), Quaternion.Euler(0f, p.rot[1], 0f));
+            float w = p.size[0], h = p.size[1], l = p.size[2];
+            var c = go.AddComponent<BoxCollider>(); c.size = new Vector3(w, h, l); c.center = new Vector3(0f, h * 0.5f + 0.2f, 0f);
+            go.AddComponent<CoverObject>();
+            var rust = Tex(Col(p), SurfaceLibrary.Container, 0.25f, 0.3f, true, Tone(0.08f));
+            var dark = Prim.GetMaterial(new Color(0.05f, 0.06f, 0.07f));
+            Prim.CreateBox("Caravan Body", new Vector3(0f, 0.35f + h * 0.42f, 0f), new Vector3(w, h * 0.84f, l), rust, go.transform, 2.4f, UvJitterU(), false, 0.08f);
+            var roof = Prim.Create(PrimitiveType.Capsule, "Caravan Roof", new Vector3(0f, 0.35f + h * 0.84f, 0f), new Vector3(w * 0.98f, l * 0.5f, h * 0.25f), rust, go.transform, false);
+            roof.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            foreach (float z in new[] { -l * 0.28f, l * 0.18f }) Prim.CreateBox("Caravan Window", new Vector3(w * 0.5f + 0.01f, 0.35f + h * 0.55f, z), new Vector3(0.02f, h * 0.25f, l * 0.18f), dark, go.transform, 1f, default, false, 0f);
+            Prim.CreateBox("Caravan Door", new Vector3(-w * 0.5f - 0.01f, 0.35f + h * 0.38f, l * 0.25f), new Vector3(0.02f, h * 0.7f, 0.7f), dark, go.transform, 1f, default, false, 0f);
+            foreach (float sx in new[] { -1f, 1f })
+            {
+                var wheel = Prim.Create(PrimitiveType.Cylinder, "Caravan Wheel", new Vector3(sx * w * 0.48f, 0.3f, 0f), new Vector3(0.6f, 0.08f, 0.6f), dark, go.transform, false);
+                wheel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f + sx * 8f);   // rueda pinchada, algo caída
+            }
+            Prim.CreateBox("Caravan Hitch", new Vector3(0f, 0.3f, l * 0.5f + 0.6f), new Vector3(0.12f, 0.1f, 1.3f), rust, go.transform, 1f, default, false, 0.01f);
+        }
+
+        /// <summary>Farol a pilas sobre un palo: luz cálida pequeña sin sombras que tiembla un poco (las únicas luces del bosque con las fogatas).</summary>
+        private static void Lantern(Transform root, MapProp p)
+        {
+            var go = new GameObject(p.name);
+            go.transform.SetParent(root, false);
+            go.transform.position = Pos(p);
+            Prim.Create(PrimitiveType.Cylinder, "Lantern Post", new Vector3(0f, 0.6f, 0f), new Vector3(0.05f, 0.6f, 0.05f), Prim.GetMaterial(Col(p)), go.transform, false);
+            var glass = Prim.Create(PrimitiveType.Sphere, "Lantern Glass", new Vector3(0f, 1.32f, 0f), new Vector3(0.16f, 0.2f, 0.16f), Prim.GetEmissive(new Color(1f, 0.72f, 0.38f), 4f), go.transform, false);
+            var lg = new GameObject("LanternLight"); lg.transform.SetParent(go.transform, false); lg.transform.localPosition = new Vector3(0f, 1.3f, 0f);
+            var l = lg.AddComponent<Light>(); l.type = LightType.Point; l.color = new Color(1f, 0.7f, 0.4f); l.range = 8f; l.intensity = 1.8f; l.shadows = LightShadows.None;
+            var f = lg.AddComponent<FlickerLight>(); f.Amount = 0.12f; f.Speed = 6f; f.Bulb = glass.GetComponent<Renderer>();
         }
     }
 }

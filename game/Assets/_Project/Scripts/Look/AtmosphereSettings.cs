@@ -37,6 +37,10 @@ namespace SevenDays.Look
 
         // Skyline lejano
         public int SkylineBuildings = 22;
+        /// <summary>Lado (m) de la zona cubierta por la niebla baja y la suciedad del suelo (56 en el mapa 1; lo fija el tamaño del mapa).</summary>
+        public float Area = 56f;
+        /// <summary>Luciérnagas alrededor del jugador (bosque).</summary>
+        public float Fireflies = 0f;
 
         /// <summary>Cantidad ajustada por la densidad global.</summary>
         public int Scaled(int count) => count <= 0 ? 0 : System.Math.Max(0, (int)System.Math.Round(count * Density));
