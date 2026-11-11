@@ -22,6 +22,16 @@ namespace SevenDays.Tests.PlayMode
 
         public static string[] Ids() => new[] { "calle_en_ruinas", MapLibrary.NeighborhoodId, MapLibrary.ForestId };
 
+        /// <summary>Otras pruebas (p. ej. ArenaAuditTests) pueden dejar su arena viva: se quita antes de empezar.</summary>
+        [UnitySetUp]
+        public IEnumerator CleanStart()
+        {
+            foreach (var a in UnityEngine.Object.FindObjectsByType(T("SevenDays.World.TestArena"), FindObjectsSortMode.None)) UnityEngine.Object.Destroy(((Component)a).gameObject);
+            foreach (var pl in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(pl);
+            var hud = GameObject.Find("HUD"); if (hud != null) UnityEngine.Object.Destroy(hud);
+            yield return null; yield return null;
+        }
+
         [UnityTearDown]
         public IEnumerator Cleanup()
         {

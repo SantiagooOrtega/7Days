@@ -9,6 +9,16 @@ namespace SevenDays.Tests.PlayMode
     /// <summary>Levanta la arena completa y comprueba que la auditoría de colisiones termina en orden, que no hay blancos de práctica y que el jugador existe.</summary>
     public class ArenaAuditTests
     {
+        [UnityTearDown]
+        public IEnumerator Cleanup()
+        {
+            // la arena, el jugador (vive fuera de ella) y el HUD: si no, la siguiente prueba encuentra los de esta
+            foreach (var a in Object.FindObjectsByType(Assembly.Load("Assembly-CSharp").GetType("SevenDays.World.TestArena"), FindObjectsSortMode.None)) Object.Destroy(((Component)a).gameObject);
+            foreach (var pl in GameObject.FindGameObjectsWithTag("Player")) Object.Destroy(pl);
+            var hud = GameObject.Find("HUD"); if (hud != null) Object.Destroy(hud);
+            yield return null; yield return null;
+        }
+
         [UnityTest]
         public IEnumerator Arena_BootsWithoutPills_AndCollisionAuditIsClean()
         {
