@@ -70,6 +70,19 @@ namespace SevenDays.Look
             if (off && e.Ps.isPlaying) e.Ps.Clear();
         }
 
+        /// <summary>
+        /// Quita lo que ya no existe (partículas, grupos y suscriptores de LevelChanged de una escena anterior). Se llama al cambiar de escena o de mapa: si no,
+        /// al bajar la calidad se avisaba a gestores destruidos. No toca el nivel actual ni a los vivos (el gestor de fuego de la partida nueva ya está suscrito).
+        /// </summary>
+        public static void Prune()
+        {
+            Emitters.RemoveAll(e => e.Ps == null);
+            Groups.RemoveAll(g => g.Go == null);
+            if (LevelChanged == null) return;
+            foreach (var d in LevelChanged.GetInvocationList())
+                if (d.Target is UnityEngine.Object o && o == null) LevelChanged -= (System.Action<int>)d;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
