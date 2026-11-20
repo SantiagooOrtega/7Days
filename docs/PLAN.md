@@ -47,3 +47,6 @@ Detalle en la raíz del repo:
 `rendimiento = 0.35·vida + 0.25·precisión + 0.25·velocidad_de_limpieza − penalización_por_muertes` (rango 0–1).
 Ese valor se convierte en cantidad, velocidad, daño y agresividad de zombies, tipos que aparecen y momento del jefe.
 Se refinará y se probará en la Fase 4.
+
+## Entrega (recorte de alcance)
+- **Bucle de 7 días** (`Procedural/DayCycle.cs` puro + `World/DayLoop.cs`): Preparación (30-40 s, Enter la salta) -> Oleada (10 + 5 por día zombis, salen por los spawns del borde del mapa a 15 m o más del jugador, sobre el NavMesh y preferentemente sin línea de visión) -> Resumen -> siguiente día (+30 % de vida, reaparece algo de botín, el director ajusta). Jefes en los días 3, 5 y 7 (salen al morir la mitad de la oleada; botín garantizado). Desbloqueos: día 1 comunes, 2 corredores, 3 lanzadores, 4 explosivos y blindados, 5 tanques. Victoria al terminar el día 7, derrota al morir (Reintentar o Menú). Tecla N: saltar fase.

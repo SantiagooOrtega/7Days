@@ -22,6 +22,9 @@ namespace SevenDays.World
         /// <summary>Los tres mapas del juego, en orden.</summary>
         public static readonly string[] KnownIds = { DefaultId, MapLibrary.NeighborhoodId, MapLibrary.ForestId };
 
+        /// <summary>Mapas que se pueden elegir para jugar (el Barrio queda oculto del selector, pero su JSON y su generador siguen ahí).</summary>
+        public static readonly string[] PlayableIds = { DefaultId, MapLibrary.ForestId };
+
         public static string ToJson(MapData m) => JsonUtility.ToJson(m, true);
 
         public static MapData FromJson(string json, out List<string> errors)

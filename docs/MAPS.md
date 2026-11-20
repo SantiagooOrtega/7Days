@@ -32,4 +32,6 @@ Generadores puros en `Procedural/MapLibrary.cs` (probados en `MapLibraryTests`);
 
 **Rendimiento del bosque** (`World/ForestRenderer.cs`): GPU instancing por variante y LOD (LOD 0 hasta 16 m, LOD 1 hasta 30 m, después una cruz de 4 caras); no dibuja lo que queda detrás de la cámara ni más allá de la niebla (~47 m); tope de árboles visibles (420; si se supera, la distancia de corte baja sola); sombras solo en los árboles a menos de 22 m; helechos y hierba sin sombras. El gobernador de calidad recorta por niveles: distancia x1 / 0.85 / 0.7 / 0.55, tope 420 / 340 / 260 / 180 y sombras hasta 22 / 15 / 9 / 0 m. Con 30 zombis (Apple M3, 1080p, render sincronizado): bosque 13.6 ms y barrio 14.0 ms; el frame sigue a 60 FPS. En F6 > RENDER, la línea "Bosque" muestra los árboles visibles por LOD, la distancia de corte y los ms de CPU.
 
-**Probar**: Play en la escena `Game` y pulsa **M** para pasar al siguiente mapa (Calle en ruinas -> Barrio abandonado -> Bosque oscuro); la escena se recarga con el contenido nuevo.
+**Mapas jugables**: Calle en ruinas y Bosque oscuro (`MapIO.PlayableIds`). El Barrio abandonado sigue en el repo (JSON y generador) pero no se ofrece para jugar.
+
+**Probar**: Play en la escena `Game` y pulsa **M** para alternar entre los 2 mapas jugables; la escena se recarga con el contenido nuevo.
