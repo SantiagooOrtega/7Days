@@ -157,6 +157,13 @@ namespace SevenDays.Tests.PlayMode
             var src = ((Component)v).GetComponent<AudioSource>();
             Assert.IsTrue(src.isPlaying);
             Assert.AreEqual(0, src.priority);
+            // su cuerpo flota junto al jugador, sin colliders (no tapa disparos)
+            for (int i = 0; i < 40; i++) yield return null;
+            var drone = (Component)UnityEngine.Object.FindFirstObjectByType(T("SevenDays.Vigia.VigiaDrone"));
+            Assert.IsNotNull(drone);
+            Assert.IsEmpty(drone.GetComponentsInChildren<Collider>());
+            var pl = GameObject.FindWithTag("Player").transform;
+            Assert.Less(Vector3.Distance(drone.transform.position, pl.position + Vector3.up * 2f), 2f);
         }
     }
 }
