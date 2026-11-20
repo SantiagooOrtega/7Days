@@ -25,3 +25,6 @@ acento (no el emblema protegido de la Cruz Roja); los parches usan galones abstr
 personajes de otros juegos. Violencia contenida: heridas, moratones y sangre seca; un headshot mortal hace desaparecer la cabeza con un golpe seco (queda el muñón del cuello), sin vísceras ni desmembramiento.
 
 Opcional: si alguien añade texturas propias en `Resources/Look` (ver `docs/ASSETS.md`), debe anotar aquí su fuente y licencia.
+
+## Voz de VIGÍA
+- Voz sintetizada "Paulina" (español de México) incluida en macOS, generada offline con el comando `say` (`tools/generate_vigia_voice.sh`) y convertida a WAV con `afconvert`. Respaldo: "Mónica" (es_ES). Los WAV se guardan en el repo; el juego no usa `say` ni internet. El filtro de radio, el eco, los bips y la compresión se aplican por código (`Procedural/RadioFx.cs`).
