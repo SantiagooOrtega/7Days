@@ -135,5 +135,28 @@ namespace SevenDays.Tests.PlayMode
             Assert.Greater(seen, 3);
             Assert.LessOrEqual(worst, 3f, "zombi quieto: " + worstInfo);
         }
+    
+        /// <summary>VIGÍA en la arena real: da la bienvenida con voz (clip procesado con radio y bips) y subtítulo; en Solo texto no hay audio.</summary>
+        [UnityTest]
+        public IEnumerator Vigia_SpeaksWelcome_WithProcessedClip()
+        {
+            _arena = new GameObject("Arena"); _arena.AddComponent(T("SevenDays.World.TestArena"));
+            var vt = T("SevenDays.Vigia.VigiaVoice");
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && T("SevenDays.World.DayLoop").GetProperty("Instance").GetValue(null) == null) yield return null;
+            yield return null; yield return null;
+            var v = vt.GetProperty("Instance").GetValue(null);
+            Assert.IsNotNull(v);
+            var cur = (VigiaItem)vt.GetProperty("Current").GetValue(v);
+            Assert.IsNotNull(cur, "habla nada más empezar");
+            Assert.AreEqual("bienvenida", cur.Line.Id);
+            var clip = (AudioClip)vt.GetMethod("ClipFor").Invoke(v, new object[] { cur });
+            var raw = Resources.Load<AudioClip>(VigiaCatalog.ClipName(cur.Line.Id, cur.Variant));
+            Assert.IsNotNull(clip); Assert.IsNotNull(raw);
+            Assert.AreEqual(RadioFx.ProcessedSeconds(raw.length), clip.length, 0.01, "lleva radio, eco y bips");
+            var src = ((Component)v).GetComponent<AudioSource>();
+            Assert.IsTrue(src.isPlaying);
+            Assert.AreEqual(0, src.priority);
+        }
     }
 }

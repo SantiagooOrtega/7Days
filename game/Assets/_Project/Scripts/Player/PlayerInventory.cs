@@ -60,6 +60,7 @@ namespace SevenDays.Player
                     return PickupResult.Picked;
                 }
                 case WeaponPickupKind.SwapOffer:
+                    SevenDays.Vigia.VigiaVoice.Say("inventario_lleno");
                     message = "Armas llenas (máx. " + MaxWeapons + "): mantén E para cambiarla por la activa · G suelta un arma";
                     return PickupResult.Full;
             }

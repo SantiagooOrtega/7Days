@@ -112,6 +112,7 @@ namespace SevenDays.World.Loot
                 if (_loot.Spawn(LootItem.Ammo(t, pack), pos, null) == null) return false;   // suelo lleno: queda como crédito
                 _lastUse[p.id] = Time.time;
                 Credit -= pack; RoundsGiven += pack;
+                if ((pos - _player.position).sqrMagnitude < 35f * 35f) SevenDays.Vigia.VigiaVoice.Say("suministro_cercano");
                 return true;
             }
             return false;
