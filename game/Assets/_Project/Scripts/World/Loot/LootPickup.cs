@@ -50,8 +50,20 @@ namespace SevenDays.World.Loot
         public Vector3 Position => transform.position;
         public float Radius => 1.8f;
         public bool CanInteract => gameObject.activeInHierarchy && Item != null;
-        public float HoldSeconds => 0f;
-        public string Prompt => Item == null ? "" : "E: recoger " + ItemName(Item) + (Item.kind == "weapon" ? " (" + WeaponCatalog.RarityName(Rarity) + ")" : "");
+        /// <summary>Mantener E este tiempo para cambiar el arma activa por esta (con las casillas llenas).</summary>
+        public const float SwapHoldSeconds = 0.6f;
+        public float HoldSeconds => IsSwapOffer ? SwapHoldSeconds : 0f;
+        private bool IsSwapOffer => Item != null && Item.kind == "weapon" && _manager != null && _manager.Inventory != null
+            && Loadout.Decide(_manager.Inventory.Weapons, Item.id, PlayerInventory.MaxWeapons) == WeaponPickupKind.SwapOffer;
+        public string Prompt => Item == null ? "" : (IsSwapOffer
+            ? "Mantén E: cambiar " + CurrentWeaponName() + " por " + ItemName(Item) + " (" + WeaponCatalog.RarityName(Rarity) + ")"
+            : "E: recoger " + ItemName(Item) + (Item.kind == "weapon" ? " (" + WeaponCatalog.RarityName(Rarity) + ")" : ""));
+
+        private string CurrentWeaponName()
+        {
+            var sh = _manager.Inventory.GetComponent<PlayerShooting>();
+            return sh != null ? sh.Current.Data.displayName : "el arma";
+        }
 
         public static LootPickup Create(Transform parent)
         {
@@ -120,6 +132,19 @@ namespace SevenDays.World.Loot
 
         public void Interact(PlayerInventory inventory)
         {
+            if (Item.kind == "weapon" && Loadout.Decide(inventory.Weapons, Item.id, PlayerInventory.MaxWeapons) == WeaponPickupKind.SwapOffer)
+            {
+                // intercambio: el arma activa cae al suelo con su cargador y esta ocupa su casilla
+                var sh = inventory.GetComponent<PlayerShooting>();
+                var old = inventory.SwapWeapon(sh.CurrentIndex, Item.id, Item.magazine);
+                if (old == null) return;
+                Vector3 at = transform.position;
+                HudMessages.Add("Cambiaste " + old.Data.displayName + " por " + ItemName(Item), new Color(1f, 0.92f, 0.65f));
+                _manager.Collected(this);
+                sh.Reequip(sh.CurrentIndex);
+                sh.NotifyDropped(old, at);
+                return;
+            }
             var result = inventory.TryPickup(Item, out string message);
             var rc = WeaponCatalog.RarityColor(Rarity);
             HudMessages.Add(result == PickupResult.Picked ? "Recogiste: " + message : message, result == PickupResult.Picked ? new Color(rc[0], rc[1], rc[2]) : new Color(1f, 0.7f, 0.4f));
