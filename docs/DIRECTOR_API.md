@@ -55,3 +55,12 @@ const stats = z.object({
 }).catchall(z.number()).refine(s => s.shotsHit <= s.shotsFired);
 ```
 `directorTuning` gana `coverPressure: z.number().min(0).max(1)`.
+
+
+## Horda (oleadas)
+Durante la oleada cada zombi nace en modo horda: conoce la posición del jugador y lo persigue por el NavMesh desde que sale del suelo (ruta cada 0.5-1 s si está a más de 12 m, cada 0.2 s cerca). En la preparación y para los zombis ya presentes rige el radio de detección normal.
+
+| Parámetro (`DirectorTuning`) | Rango | Defecto | Efecto |
+|---|---|---|---|
+| `hordeDelayMax` | 0..5 s | 1.5 | retardo aleatorio por zombi antes de lanzarse |
+| `hordeSpeedJitter` | 0..0.3 | 0.12 | variación de velocidad (±) por zombi, para que no lleguen todos a la vez |
