@@ -8,6 +8,7 @@ using SevenDays.Combat;
 using SevenDays.Player;
 using SevenDays.Procedural;
 using SevenDays.World.Loot;
+using SevenDays.Vigia;
 
 namespace SevenDays.World
 {
@@ -70,6 +71,7 @@ namespace SevenDays.World
             d._ammo = loot != null ? AmmoSupply.Create(parent, loot, player) : null;
             d.Cycle = new DayCycle();
             d.Cycle.PhaseChanged += d.OnPhase;
+            VigiaVoice.Say("bienvenida");
             d.BeginDay();
             return d;
         }
@@ -109,7 +111,9 @@ namespace SevenDays.World
             foreach (var r in reasons) Debug.Log("[7Days] Director: " + r);
             if (day > 1) _playerHealth.Heal(_playerHealth.Max * HealBetweenDays);
             _killsByType.Clear();
-            _titleUntil = Time.unscaledTime + TitleSeconds;   // título grande "DÍA N" con fundido
+            _titleUntil = Time.unscaledTime + TitleSeconds;
+            VigiaVoice.Say("dia_" + day);
+            VigiaVoice.Say("preparacion");   // título grande "DÍA N" con fundido
             HudMessages.Add("Prepárate: busca munición y armas (Enter: empezar ya)", new Color(1f, 0.92f, 0.65f), 4f);
         }
 
@@ -123,6 +127,8 @@ namespace SevenDays.World
                     _alive.Clear(); _boss = null; _sinceKill = 0f; _waveStart = Time.time;
                     if (_ammo != null) _ammo.BeginWave();
                     HudMessages.Add("¡OLEADA " + Cycle.Day + "!", new Color(1f, 0.4f, 0.3f), 3.5f);
+                    VigiaVoice.Say("oleada");
+                    if (VigiaEvents.Instance != null) VigiaEvents.Instance.NewWave();
                     foreach (var id in DayPlans.NewToday(Cycle.Day))
                     {
                         var t = _zombies.TypeById(id);
@@ -141,7 +147,8 @@ namespace SevenDays.World
                     _nextReasons.Clear();
                     if (p == DayPhase.Summary) TuningFor(Cycle.Day + 1, _nextReasons);   // lo que hará el director mañana, para explicarlo ya
                     _summary = BuildSummary();
-                    if (p == DayPhase.Victory) Finish(true);
+                    if (p == DayPhase.Victory) { Finish(true); VigiaVoice.Say("victoria"); }
+                    else { VigiaVoice.Say("oleada_superada"); VigiaEvents.DayTips(Match.days[Match.days.Count - 1]); }
                     _summaryUntil = Time.unscaledTime + SummaryPanelSeconds;   // panel pequeño, no bloquea
                     if (p == DayPhase.Summary) HudMessages.Add("OLEADA SUPERADA", new Color(0.6f, 1f, 0.6f), CycleSummarySeconds);
                     break;
@@ -151,6 +158,7 @@ namespace SevenDays.World
                     _nextReasons.Clear();
                     _summary = BuildSummary();
                     Finish(false);
+                    VigiaVoice.Say("derrota");
                     break;
             }
         }
@@ -236,7 +244,14 @@ namespace SevenDays.World
         private void Update()
         {
             if (Cycle == null) return;
+            float prepBefore = Cycle.PrepLeft;
             Cycle.Tick(Time.deltaTime);
+            if (Cycle.Phase == DayPhase.Preparation)
+            {
+                float left = Cycle.PrepLeft;
+                if (prepBefore > 10f && left <= 10f) VigiaVoice.Say("cuenta_10");
+                else if (prepBefore > 5f && left <= 5f) VigiaVoice.Say("cuenta_5");
+            }
             var k = Keyboard.current;
             bool enter = k != null && (k.enterKey.wasPressedThisFrame || k.numpadEnterKey.wasPressedThisFrame);
             if (Cycle.Phase == DayPhase.Preparation && enter) Cycle.StartWave();
@@ -266,7 +281,8 @@ namespace SevenDays.World
             if (Wave.WantsBoss && TryPickSpawn(out var bpos))
             {
                 var b = _zombies.Spawn(Wave.Plan.bossId, bpos);
-                if (b != null) { _boss = b; Wave.OnBossSpawned(); JoinHorde(b); HudMessages.Add("¡" + b.Type.displayName.ToUpper() + "!", new Color(1f, 0.25f, 0.2f), 4f); }
+                if (b != null) { _boss = b; Wave.OnBossSpawned(); JoinHorde(b); HudMessages.Add("¡" + b.Type.displayName.ToUpper() + "!", new Color(1f, 0.25f, 0.2f), 4f);
+                    VigiaVoice.Say(b.Type.id == ZombieIds.BossBrute ? "jefe_bruto" : (b.Type.id == ZombieIds.BossLauncher ? "jefe_lanzador" : "jefe_final")); }
             }
 
             _sinceKill += dt;
@@ -291,6 +307,8 @@ namespace SevenDays.World
             _sinceKill = 0f;
             if (z.Type != null) _killsByType[z.Type.id] = (_killsByType.TryGetValue(z.Type.id, out int n) ? n : 0) + 1;
             if (_alive.Remove(z)) { Wave?.OnKilled(); if (_ammo != null) _ammo.OnKill(z.transform.position); }
+            if (Wave != null && Cycle.Phase == DayPhase.Wave && VigiaEvents.Instance != null)
+                VigiaEvents.Instance.OnRemaining(Wave.Remaining(_alive.Count), Wave.Plan.totalZombies + (Wave.HasBoss ? 1 : 0));
             if (z == _boss) { _boss = null; Wave?.OnBossDead(); HudMessages.Add("¡Jefe abatido! Recoge su botín", new Color(1f, 0.85f, 0.3f), 4f); }
         }
 

@@ -113,6 +113,10 @@ namespace SevenDays.World
             hud.gameObject.AddComponent<RenderDebugPanel>();   // F6: panel Render (resolución, ms de CPU/GPU, draw calls, luces, calidad)   // F7: ciclo automático de piernas con cámara lateral
             hud.gameObject.AddComponent<ScopeOverlay>().Initialize(player.GetComponent<PlayerCamera>());
 
+            // VIGÍA: voz y subtítulos (antes que el bucle de días, que le pide la bienvenida)
+            SevenDays.Vigia.VigiaVoice.Create(transform);
+            SevenDays.Vigia.VigiaEvents.Create(transform, player, _zombies);
+
             // bucle de los 7 días: preparación, oleada por los bordes del mapa, resumen; jefes en 3, 5 y 7
             DayLoop.Create(transform, _map, player, _zombies, _lootManager, _houses);
         }

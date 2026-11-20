@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace SevenDays.Core
 {
-    public enum AudioGroup { Zombies, Weapons, Ambient, UI }
+    public enum AudioGroup { Zombies, Weapons, Ambient, UI, Vigia }
 
     /// <summary>
     /// Mezcla por grupos (zombis, armas, ambiente, UI) más un volumen general, guardada en PlayerPrefs y editable desde el menú Esc.
@@ -14,12 +14,12 @@ namespace SevenDays.Core
     public static class AudioMix
     {
         public const string PrefPrefix = "audio.vol.";
-        private static readonly float[] Volumes = { 1f, 1f, 1f, 1f };
+        private static readonly float[] Volumes = { 1f, 1f, 1f, 1f, 1f };
         private static float _master = 1f;
         private static bool _loaded;
         private static readonly List<(AudioSource src, AudioGroup g, float baseVolume)> Sources = new List<(AudioSource, AudioGroup, float)>();
 
-        public static readonly string[] Names = { "Zombis", "Armas", "Ambiente", "Interfaz" };
+        public static readonly string[] Names = { "Zombis", "Armas", "Ambiente", "Interfaz", "Vigía" };
 
         public static float Master { get { Load(); return _master; } set { Load(); _master = Mathf.Clamp01(value); PlayerPrefs.SetFloat(PrefPrefix + "master", _master); ApplyAll(); } }
 
