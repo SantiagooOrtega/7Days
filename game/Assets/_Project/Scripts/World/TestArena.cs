@@ -55,6 +55,10 @@ namespace SevenDays.World
                 go.AddComponent<AudioListener>();
             }
 
+            // intro en cómic (solo la primera vez y solo en la escena Game): el nivel y el DayLoop se construyen cuando termina,
+            // así la preparación del día 1 no corre por detrás
+            yield return IntroPlayer.PlayIfFirstTime(this);
+
             // Primero el look (niebla, post-procesado) y luego las texturas procedurales, que se generan
             // en hilos de fondo mientras se muestra "Generando texturas...".
             // el mapa es un JSON (Resources/Maps o el backend): su ambientación se aplica antes de todo lo visual

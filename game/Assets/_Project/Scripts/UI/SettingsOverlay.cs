@@ -21,7 +21,7 @@ namespace SevenDays.UI
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 18, normal = { textColor = Color.white } };
             _title ??= new GUIStyle(_label) { fontSize = 22, fontStyle = FontStyle.Bold };
             var s = _camera.Settings;
-            var r = new Rect(Screen.width - 430, Screen.height * 0.5f - 250, 400, 520);
+            var r = new Rect(Screen.width - 430, Screen.height * 0.5f - 270, 400, 556);
             if (r.Contains(Event.current.mousePosition)) PlayerCamera.UiHoverUntil = Time.unscaledTime + 0.15f;
             GUI.Box(r, GUIContent.none);
             GUI.Label(new Rect(r.x + 16, r.y + 10, 380, 30), "Ajustes (clic en el juego para volver)", _title);
@@ -60,6 +60,9 @@ namespace SevenDays.UI
                 var g = (SevenDays.Core.AudioGroup)i;
                 AudioRow(r.x, ref y, SevenDays.Core.AudioMix.Names[i], SevenDays.Core.AudioMix.GroupVolume(g), v => SevenDays.Core.AudioMix.SetGroupVolume(g, v));
             }
+
+            // la intro en cómic, encima de la partida y con el juego en pausa
+            if (GUI.Button(new Rect(r.x + 16, y + 6, 368, 32), "Ver la intro")) IntroPlayer.Replay();
         }
 
         private void AudioRow(float x, ref float y, string name, float value, System.Action<float> set)
