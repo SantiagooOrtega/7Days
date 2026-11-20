@@ -41,6 +41,11 @@ namespace SevenDays.World
         private readonly System.Random _rng = new System.Random();
         private float _sinceKill;
         private string _summary = "";
+        private float _summaryUntil, _titleUntil;
+        /// <summary>Una línea por día terminado (F4 y pantalla final).</summary>
+        public readonly List<string> History = new List<string>();
+        public const float SummaryPanelSeconds = 12f, TitleSeconds = 2.5f;
+        private AmmoSupply _ammo;
         private GUIStyle _top, _big, _body, _button;
 
         public static DayLoop Create(Transform parent, MapData map, GameObject player, ZombieManager zombies, LootManager loot, List<HouseController> houses)
@@ -53,6 +58,7 @@ namespace SevenDays.World
             d._playerHealth.Died += d.OnPlayerDied;
             zombies.ZombieKilled += d.OnZombieKilled;
             Instance = d;
+            d._ammo = loot != null ? AmmoSupply.Create(parent, loot, player) : null;
             d.Cycle = new DayCycle();
             d.Cycle.PhaseChanged += d.OnPhase;
             d.BeginDay();
@@ -74,7 +80,7 @@ namespace SevenDays.World
             {
                 case DayPhase.Preparation: Cycle.StartWave(); break;
                 case DayPhase.Wave: _zombies.DespawnAll(); _alive.Clear(); _boss = null; Cycle.WaveCleared(); break;
-                case DayPhase.Summary: Cycle.NextDay(); break;
+                case DayPhase.Summary: Cycle.NextDay(); break;   // (también pasa solo a los 3 s)
             }
         }
 
@@ -83,7 +89,8 @@ namespace SevenDays.World
         private void BeginDay()
         {
             int day = Cycle.Day;
-            if (day > 1 && _loot != null) _loot.NewDay(day);
+            double refill = day > 1 && _loot != null ? _loot.NewDay(day) : 0;
+            if (_ammo != null) _ammo.BeginDay(day, refill);
             foreach (var h in _houses) if (h != null) h.SetDay(day);
             // el director parte de la dificultad del día, la ajusta con las estadísticas acumuladas y quita los tipos aún bloqueados
             var tracker = CombatMetricsTracker.Instance;
@@ -94,7 +101,8 @@ namespace SevenDays.World
             foreach (var r in reasons) Debug.Log("[7Days] Director: " + r);
             if (day > 1) _playerHealth.Heal(_playerHealth.Max * HealBetweenDays);
             _killsByType.Clear();
-            HudMessages.Add("DÍA " + day + " DE " + DayPlans.Days + " — prepárate", new Color(1f, 0.92f, 0.65f), 4f);
+            _titleUntil = Time.unscaledTime + TitleSeconds;   // título grande "DÍA N" con fundido
+            HudMessages.Add("Prepárate: busca munición y armas (Enter: empezar ya)", new Color(1f, 0.92f, 0.65f), 4f);
         }
 
         private void OnPhase(DayPhase p)
@@ -105,6 +113,7 @@ namespace SevenDays.World
                 case DayPhase.Wave:
                     Wave = new WaveState(DayPlans.For(Cycle.Day, _zombies.MaxZombies));
                     _alive.Clear(); _boss = null; _sinceKill = 0f;
+                    if (_ammo != null) _ammo.BeginWave();
                     HudMessages.Add("¡OLEADA " + Cycle.Day + "!", new Color(1f, 0.4f, 0.3f), 3.5f);
                     foreach (var id in DayPlans.NewToday(Cycle.Day))
                     {
@@ -116,14 +125,29 @@ namespace SevenDays.World
                 case DayPhase.Summary:
                 case DayPhase.Victory:
                     _zombies.DespawnAll();   // invocados del jefe o rezagados
+                    if (_ammo != null) _ammo.EndWave();
                     _summary = BuildSummary();
+                    History.Add(DayLine());
+                    _summaryUntil = Time.unscaledTime + SummaryPanelSeconds;   // panel pequeño, no bloquea
+                    if (p == DayPhase.Summary) HudMessages.Add("OLEADA SUPERADA", new Color(0.6f, 1f, 0.6f), CycleSummarySeconds);
                     // las estadísticas del día se suman a las guardadas y empiezan las del siguiente
                     if (CombatMetricsTracker.Instance != null) CombatMetricsTracker.Instance.EndDay(Cycle.Day + 1);
                     break;
                 case DayPhase.Defeat:
                     _summary = BuildSummary();
+                    History.Add(DayLine() + " (muerte)");
                     break;
             }
+        }
+
+        private const float CycleSummarySeconds = DayCycle.SummarySeconds;
+
+        private string DayLine()
+        {
+            var tr = CombatMetricsTracker.Instance;
+            if (tr == null) return "Día " + Cycle.Day;
+            var s = tr.Snapshot;
+            return "Día " + Cycle.Day + ": " + s.kills + " bajas · " + (s.accuracy * 100f).ToString("0") + "% precisión · " + s.damageTaken.ToString("0") + " daño recibido";
         }
 
         private string BuildSummary()
@@ -155,10 +179,10 @@ namespace SevenDays.World
             var k = Keyboard.current;
             bool enter = k != null && (k.enterKey.wasPressedThisFrame || k.numpadEnterKey.wasPressedThisFrame);
             if (Cycle.Phase == DayPhase.Preparation && enter) Cycle.StartWave();
-            else if (Cycle.Phase == DayPhase.Summary && enter) Cycle.NextDay();
+
             if (Cycle.Phase == DayPhase.Wave) TickWave(Time.deltaTime);
 
-            bool overlay = Cycle.Phase == DayPhase.Summary || Cycle.IsOver;
+            bool overlay = Cycle.IsOver;
             if (overlay) { GameInput.InputCaptured = true; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
             else if (GameInput.InputCaptured && _wasOverlay) GameInput.InputCaptured = false;
             _wasOverlay = overlay;
@@ -176,12 +200,12 @@ namespace SevenDays.World
             if (Wave.WantsSpawn(dt, _alive.Count) && TryPickSpawn(out var pos))
             {
                 var z = _zombies.SpawnByTuning(pos);
-                if (z != null) { _alive.Add(z); Wave.OnSpawned(); }
+                if (z != null) { _alive.Add(z); Wave.OnSpawned(); JoinHorde(z); }
             }
             if (Wave.WantsBoss && TryPickSpawn(out var bpos))
             {
                 var b = _zombies.Spawn(Wave.Plan.bossId, bpos);
-                if (b != null) { _boss = b; Wave.OnBossSpawned(); HudMessages.Add("¡" + b.Type.displayName.ToUpper() + "!", new Color(1f, 0.25f, 0.2f), 4f); }
+                if (b != null) { _boss = b; Wave.OnBossSpawned(); JoinHorde(b); HudMessages.Add("¡" + b.Type.displayName.ToUpper() + "!", new Color(1f, 0.25f, 0.2f), 4f); }
             }
 
             _sinceKill += dt;
@@ -194,11 +218,18 @@ namespace SevenDays.World
             if (Wave.IsCleared(_alive.Count)) Cycle.WaveCleared();
         }
 
+        /// <summary>Modo horda: persigue al jugador desde que aparece, con retardo y velocidad propios (parámetros del director).</summary>
+        private void JoinHorde(ZombieController z)
+        {
+            var t = _zombies.Tuning;
+            z.JoinHorde((float)_rng.NextDouble() * t.hordeDelayMax, 1f + ((float)_rng.NextDouble() * 2f - 1f) * t.hordeSpeedJitter);
+        }
+
         private void OnZombieKilled(ZombieController z)
         {
             _sinceKill = 0f;
             if (z.Type != null) _killsByType[z.Type.id] = (_killsByType.TryGetValue(z.Type.id, out int n) ? n : 0) + 1;
-            if (_alive.Remove(z)) Wave?.OnKilled();
+            if (_alive.Remove(z)) { Wave?.OnKilled(); if (_ammo != null) _ammo.OnKill(z.transform.position); }
             if (z == _boss) { _boss = null; Wave?.OnBossDead(); HudMessages.Add("¡Jefe abatido! Recoge su botín", new Color(1f, 0.85f, 0.3f), 4f); }
         }
 
@@ -252,9 +283,25 @@ namespace SevenDays.World
             Shade(new Rect(w / 2 - 480, 62, 960, 46), 0.5f);
             GUI.Label(new Rect(0, 62, w, 46), line, _top);
 
-            if (Cycle.Phase == DayPhase.Summary) Panel(w, "DÍA " + Cycle.Day + " SUPERADO", _summary, "Continuar al día " + (Cycle.Day + 1) + " (Enter)", Cycle.NextDay, null, null);
-            else if (Cycle.Phase == DayPhase.Victory) Panel(w, "¡HAS SOBREVIVIDO 7 DÍAS!", _summary, "Jugar otra vez", Retry, "Menú", ToMenu);
-            else if (Cycle.Phase == DayPhase.Defeat) Panel(w, "HAS MUERTO — DÍA " + Cycle.Day, _summary, "Reintentar", Retry, "Menú", ToMenu);
+            // título grande "DÍA N" que aparece y se funde
+            float tl = _titleUntil - Time.unscaledTime;
+            if (tl > 0f && !Cycle.IsOver)
+            {
+                float a = Mathf.Clamp01(tl / 0.8f) * Mathf.Clamp01((TitleSeconds - tl) / 0.3f);
+                var prev = GUI.color; GUI.color = new Color(1f, 1f, 1f, a);
+                GUI.Label(new Rect(0, 300, w, 160), "DÍA " + Cycle.Day, new GUIStyle(_big) { fontSize = 140 });
+                GUI.color = prev;
+            }
+            // resumen del día anterior: panel pequeño a la derecha, no bloquea ni pausa
+            if (!Cycle.IsOver && Time.unscaledTime < _summaryUntil && _summary.Length > 0)
+            {
+                Rect r = new Rect(w - 560, 130, 530, 230);
+                Shade(r, 0.55f);
+                GUI.Label(new Rect(r.x + 16, r.y + 8, r.width - 32, 40), "Resumen del día " + (Cycle.Phase == DayPhase.Summary ? Cycle.Day : Cycle.Day - 1), new GUIStyle(_body) { alignment = TextAnchor.UpperLeft, fontStyle = FontStyle.Bold });
+                GUI.Label(new Rect(r.x + 16, r.y + 50, r.width - 32, r.height - 56), _summary, new GUIStyle(_body) { alignment = TextAnchor.UpperLeft, fontSize = 20, wordWrap = true });
+            }
+            if (Cycle.Phase == DayPhase.Victory) Panel(w, "¡HAS SOBREVIVIDO 7 DÍAS!", string.Join("\n", History), "Jugar otra vez", Retry, "Menú", ToMenu);
+            else if (Cycle.Phase == DayPhase.Defeat) Panel(w, "HAS MUERTO — DÍA " + Cycle.Day, _summary + "\n" + string.Join("\n", History), "Reintentar", Retry, "Menú", ToMenu);
         }
 
         private void Panel(float w, string title, string body, string a, System.Action onA, string b, System.Action onB)
@@ -262,14 +309,10 @@ namespace SevenDays.World
             Rect r = new Rect(w / 2 - 520, 200, 1040, 640);
             Shade(r, 0.82f);
             GUI.Label(new Rect(r.x, r.y + 30, r.width, 90), title, _big);
-            GUI.Label(new Rect(r.x + 40, r.y + 150, r.width - 80, 300), body, _body);
+            GUI.Label(new Rect(r.x + 40, r.y + 140, r.width - 80, 340), body, new GUIStyle(_body) { fontSize = 22, wordWrap = true });
             float y = r.yMax - 120;
-            if (b == null) { if (GUI.Button(new Rect(w / 2 - 260, y, 520, 70), a, _button)) onA(); }
-            else
-            {
-                if (GUI.Button(new Rect(w / 2 - 440, y, 400, 70), a, _button)) onA();
-                if (GUI.Button(new Rect(w / 2 + 40, y, 400, 70), b, _button)) onB();
-            }
+            if (GUI.Button(new Rect(w / 2 - 440, y, 400, 70), a, _button)) onA();
+            if (GUI.Button(new Rect(w / 2 + 40, y, 400, 70), b, _button)) onB();
         }
 
         private static void Shade(Rect r, float a)
