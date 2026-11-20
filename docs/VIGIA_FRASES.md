@@ -67,3 +67,8 @@ Prioridades: **critica** interrumpe lo que suene; **importante** pasa delante de
 | `consejo_precision` | consejo | informativa | Apunta antes de disparar. Las balas no crecen en los árboles. / Precisión baja. Clic derecho ayuda. |
 | `consejo_cobertura` | consejo | informativa | Llevas mucho tiempo cubierto. Ellos lo saben. / Esconderse no es un plan. |
 | `consejo_recarga` | consejo | informativa | Recarga antes de que se acerquen. / Recarga en calma, no en pánico. |
+| `intro_1` | partida | importante | El virus llegó un martes. Para el viernes, la ciudad ya no contestaba. |
+| `intro_2` | partida | importante | Tú te quedaste. Alguien tenía que buscar a los que faltaban. |
+| `intro_3` | partida | importante | Me encontraste a mí. Una cámara de seguridad con opiniones. Desde entonces te sigo. |
+| `intro_4` | partida | importante | Dicen que el rescate llega en siete días. Dicen muchas cosas. |
+| `intro_5` | partida | importante | Siete días. Sobrevive a cada oleada. Yo llevo la cuenta. |
