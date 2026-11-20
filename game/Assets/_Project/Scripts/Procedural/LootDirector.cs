@@ -48,6 +48,8 @@ namespace SevenDays.Procedural
         public readonly SearchState Search = new SearchState();
         /// <summary>Multiplicador del director sobre el respawn (1 = el de la configuración, 0 = ninguno).</summary>
         public float RespawnScale = 1f;
+        /// <summary>Reapariciones extra por punto además de maxRespawnsPerPoint (la economía de munición las sube para que haya relleno todos los días).</summary>
+        public int ExtraRespawns;
 
         public LootDirectorState(LootLayoutData layout)
         {
@@ -82,7 +84,7 @@ namespace SevenDays.Procedural
             var result = new List<LootPoint>();
             if (RespawnScale <= 0f || Layout.respawnFractionPerDay <= 0f) return result;
 
-            var candidates = Points.Where(p => !p.Active && !p.Point.once && p.Respawns < Layout.maxRespawnsPerPoint).ToList();
+            var candidates = Points.Where(p => !p.Active && !p.Point.once && p.Respawns < Layout.maxRespawnsPerPoint + ExtraRespawns).ToList();
             int depleted = Points.Count(p => !p.Active);
             int want = (int)Math.Ceiling(depleted * Layout.respawnFractionPerDay * RespawnScale);
             int room = Math.Max(0, Layout.maxActivePickups - currentActivePickups);
