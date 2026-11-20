@@ -52,7 +52,11 @@ namespace SevenDays.World.Loot
         {
             _player = player.transform;
             _inventory = player.GetComponent<PlayerInventory>();
+            var shooting = player.GetComponent<PlayerShooting>();
+            if (shooting != null) shooting.WeaponDropped += (w, at) => SpawnForced(LootItem.Weapon(w.Data.id, w.Magazine), at);
         }
+
+        public PlayerInventory Inventory => _inventory;
 
         public int ContainerCount => _containers.Count;
 
@@ -70,9 +74,14 @@ namespace SevenDays.World.Loot
 
         // ---------------------------------------------------------------- spawn
         /// <summary>Deja un objeto en el suelo. Devuelve null si se llegó al tope de pickups activos.</summary>
-        public LootPickup Spawn(LootItem item, Vector3 position, string pointId = null)
+        public LootPickup Spawn(LootItem item, Vector3 position, string pointId = null) => Spawn(item, position, pointId, false);
+
+        /// <summary>Como Spawn pero sin el tope de pickups: armas que suelta el jugador y el drop de pity (nunca se pierden).</summary>
+        public LootPickup SpawnForced(LootItem item, Vector3 position) => Spawn(item, position, null, true);
+
+        private LootPickup Spawn(LootItem item, Vector3 position, string pointId, bool force)
         {
-            if (item == null || !State.CanSpawn(_active.Count)) return null;
+            if (item == null || (!force && !State.CanSpawn(_active.Count))) return null;
             var p = _pool.Get();
             p.Setup(item, position, pointId, this);
             _active.Add(p);
@@ -201,16 +210,22 @@ namespace SevenDays.World.Loot
         }
 
         /// <summary>Empieza un día: reaparece una fracción pequeña de lo vaciado (nunca más del tope de pickups ni de los puntos "once").</summary>
-        public void NewDay(int day)
+        /// <summary>Devuelve las balas esperadas de lo que reapareció (la economía de munición completa el resto del día).</summary>
+        public double NewDay(int day)
         {
-            foreach (var point in State.NewDay(day, _active.Count, _rng))
+            var refilled = State.NewDay(day, _active.Count, _rng);
+            foreach (var point in refilled)
             {
                 if (point.container == "ground") SpawnGroundPoint(point);
                 else if (_containers.TryGetValue(point.id, out var c)) c.Refill();
             }
             RearmGuaranteedWeapons();
             HudMessages.Add("Día " + day + ": reaparece algo de botín", new Color(1f, 0.92f, 0.65f));
+            return AmmoEconomy.RefillRounds(Layout, refilled);
         }
+
+        /// <summary>Posición de un punto del mapa (para las tandas de munición durante la oleada).</summary>
+        public System.Collections.Generic.IReadOnlyList<LootPoint> Points => Layout.points;
 
         // ---------------------------------------------------------------- bucle
         private void Update()
