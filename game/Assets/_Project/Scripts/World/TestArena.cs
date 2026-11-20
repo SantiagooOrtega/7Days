@@ -116,7 +116,8 @@ namespace SevenDays.World
             // VIGÍA: voz y subtítulos (antes que el bucle de días, que le pide la bienvenida)
             SevenDays.Vigia.VigiaVoice.Create(transform);
             SevenDays.Vigia.VigiaEvents.Create(transform, player, _zombies);
-            SevenDays.Vigia.VigiaDrone.Create(transform, player);   // su cuerpo: cámara flotante junto al hombro
+            SevenDays.Vigia.VigiaDrone.Create(transform, player);
+            hud.gameObject.AddComponent<SevenDays.Vigia.VigiaDebugPanel>();   // F8: probar frases y rachas   // su cuerpo: cámara flotante junto al hombro
 
             // bucle de los 7 días: preparación, oleada por los bordes del mapa, resumen; jefes en 3, 5 y 7
             DayLoop.Create(transform, _map, player, _zombies, _lootManager, _houses);
