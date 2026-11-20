@@ -46,6 +46,14 @@ namespace SevenDays.World
         public readonly List<string> History = new List<string>();
         public const float SummaryPanelSeconds = 12f, TitleSeconds = 2.5f;
         private AmmoSupply _ammo;
+        /// <summary>Estadísticas de la partida (por día) y puntuación de rendimiento suavizada que lee el director.</summary>
+        public MatchStats Match { get; } = new MatchStats();
+        public float Score { get; private set; } = PerformanceScore.Neutral;
+        /// <summary>Se lanza una vez al ganar o morir, con la partida completa (el Paso 3 la guarda y la sube).</summary>
+        public static event System.Action<MatchStats> MatchFinished;
+        private float _waveStart;
+        private readonly List<string> _scoreParts = new List<string>();
+        private readonly List<string> _nextReasons = new List<string>();
         private GUIStyle _top, _big, _body, _button;
 
         public static DayLoop Create(Transform parent, MapData map, GameObject player, ZombieManager zombies, LootManager loot, List<HouseController> houses)
@@ -58,6 +66,7 @@ namespace SevenDays.World
             d._playerHealth.Died += d.OnPlayerDied;
             zombies.ZombieKilled += d.OnZombieKilled;
             Instance = d;
+            d.Match.mapId = map != null ? map.id : "";
             d._ammo = loot != null ? AmmoSupply.Create(parent, loot, player) : null;
             d.Cycle = new DayCycle();
             d.Cycle.PhaseChanged += d.OnPhase;
@@ -96,8 +105,7 @@ namespace SevenDays.World
             var tracker = CombatMetricsTracker.Instance;
             var reasons = tracker != null ? tracker.DirectorReasons : new List<string>();
             reasons.Clear();
-            var totals = tracker != null ? tracker.Metrics.Stored : null;
-            _zombies.SetTuning(DayPlans.ApplyUnlocks(DirectorRules.Adjust(DirectorTuning.ForDay(day), totals, reasons), day));
+            _zombies.SetTuning(TuningFor(day, reasons));
             foreach (var r in reasons) Debug.Log("[7Days] Director: " + r);
             if (day > 1) _playerHealth.Heal(_playerHealth.Max * HealBetweenDays);
             _killsByType.Clear();
@@ -112,7 +120,7 @@ namespace SevenDays.World
                 case DayPhase.Preparation: BeginDay(); break;
                 case DayPhase.Wave:
                     Wave = new WaveState(DayPlans.For(Cycle.Day, _zombies.MaxZombies));
-                    _alive.Clear(); _boss = null; _sinceKill = 0f;
+                    _alive.Clear(); _boss = null; _sinceKill = 0f; _waveStart = Time.time;
                     if (_ammo != null) _ammo.BeginWave();
                     HudMessages.Add("¡OLEADA " + Cycle.Day + "!", new Color(1f, 0.4f, 0.3f), 3.5f);
                     foreach (var id in DayPlans.NewToday(Cycle.Day))
@@ -126,21 +134,66 @@ namespace SevenDays.World
                 case DayPhase.Victory:
                     _zombies.DespawnAll();   // invocados del jefe o rezagados
                     if (_ammo != null) _ammo.EndWave();
-                    _summary = BuildSummary();
+                    RecordDay(false);
                     History.Add(DayLine());
-                    _summaryUntil = Time.unscaledTime + SummaryPanelSeconds;   // panel pequeño, no bloquea
-                    if (p == DayPhase.Summary) HudMessages.Add("OLEADA SUPERADA", new Color(0.6f, 1f, 0.6f), CycleSummarySeconds);
                     // las estadísticas del día se suman a las guardadas y empiezan las del siguiente
                     if (CombatMetricsTracker.Instance != null) CombatMetricsTracker.Instance.EndDay(Cycle.Day + 1);
+                    _nextReasons.Clear();
+                    if (p == DayPhase.Summary) TuningFor(Cycle.Day + 1, _nextReasons);   // lo que hará el director mañana, para explicarlo ya
+                    _summary = BuildSummary();
+                    if (p == DayPhase.Victory) Finish(true);
+                    _summaryUntil = Time.unscaledTime + SummaryPanelSeconds;   // panel pequeño, no bloquea
+                    if (p == DayPhase.Summary) HudMessages.Add("OLEADA SUPERADA", new Color(0.6f, 1f, 0.6f), CycleSummarySeconds);
                     break;
                 case DayPhase.Defeat:
-                    _summary = BuildSummary();
+                    RecordDay(true);
                     History.Add(DayLine() + " (muerte)");
+                    _nextReasons.Clear();
+                    _summary = BuildSummary();
+                    Finish(false);
                     break;
             }
         }
 
         private const float CycleSummarySeconds = DayCycle.SummarySeconds;
+
+        /// <summary>
+        /// Parámetros del día: dificultad base del día -> reglas por estadísticas guardadas (cobertura, fatiga) -> ajuste por la puntuación suavizada (con límites)
+        /// -> tipos aún bloqueados fuera. Cada paso añade su motivo en texto.
+        /// </summary>
+        public DirectorTuning TuningFor(int day, List<string> reasons)
+        {
+            var tracker = CombatMetricsTracker.Instance;
+            var totals = tracker != null ? tracker.Metrics.Stored : null;
+            var t = DirectorRules.Adjust(DirectorTuning.ForDay(day), totals, reasons);
+            t = DirectorAdapt.Apply(t, Score, reasons);
+            return DayPlans.ApplyUnlocks(t, day);
+        }
+
+        /// <summary>Cierra el día en las estadísticas de la partida y actualiza la puntuación suavizada.</summary>
+        private void RecordDay(bool died)
+        {
+            var tr = CombatMetricsTracker.Instance;
+            var snap = tr != null ? tr.Snapshot : new CombatSnapshot();
+            var plan = Wave != null ? Wave.Plan : DayPlans.For(Cycle.Day);
+            float waveSeconds = Wave != null ? Time.time - _waveStart : 0f;
+            var d = DayStats.From(Cycle.Day, snap, waveSeconds, plan.totalZombies, died, plan.bossId != null, _killsByType);
+            _scoreParts.Clear();
+            d.rawScore = PerformanceScore.Raw(d, _scoreParts);
+            Score = PerformanceScore.Smooth(Score, d.rawScore);
+            d.score = Score;
+            Match.days.Add(d);
+            Debug.Log("[7Days] Rendimiento día " + d.day + ": " + d.rawScore.ToString("0") + " -> suavizada " + Score.ToString("0") + " (" + string.Join("", _scoreParts) + ")");
+        }
+
+        private bool _finished;
+        private void Finish(bool victory)
+        {
+            if (_finished) return;
+            _finished = true;
+            Match.victory = victory; Match.finished = true;
+            MatchFinished?.Invoke(Match);
+        }
 
         private string DayLine()
         {
@@ -150,16 +203,24 @@ namespace SevenDays.World
             return "Día " + Cycle.Day + ": " + s.kills + " bajas · " + (s.accuracy * 100f).ToString("0") + "% precisión · " + s.damageTaken.ToString("0") + " daño recibido";
         }
 
+        /// <summary>Texto del panel de resumen y de la pantalla final; también lo muestra F4.</summary>
+        public string Summary => _summary;
+
         private string BuildSummary()
         {
             var sb = new System.Text.StringBuilder();
-            var tr = CombatMetricsTracker.Instance;
-            if (tr != null)
+            if (Match.days.Count > 0)
             {
-                var s = tr.Snapshot;
-                sb.AppendLine("Bajas: " + s.kills + "   (a la cabeza " + s.headshotKills + ")");
-                sb.AppendLine("Precisión: " + (s.accuracy * 100f).ToString("0") + "%   (" + s.shotsHit + "/" + s.shotsFired + ")");
-                sb.AppendLine("Daño recibido: " + s.damageTaken.ToString("0") + "   Tiempo: " + Mathf.FloorToInt(s.timePlayed / 60f) + ":" + Mathf.FloorToInt(s.timePlayed % 60f).ToString("00"));
+                var d = Match.days[Match.days.Count - 1];
+                sb.AppendLine("Rendimiento: " + d.rawScore.ToString("0") + "/100 hoy, " + d.score.ToString("0") + " suavizado");
+                foreach (var part in _scoreParts) sb.AppendLine("  " + part);
+            }
+            foreach (var r in _nextReasons) sb.AppendLine("Director (día " + (Cycle.Day + 1) + "): " + r);
+            if (Match.days.Count > 0)
+            {
+                var s = Match.days[Match.days.Count - 1];   // las métricas del tracker ya se reiniciaron para mañana
+                sb.AppendLine("Bajas: " + s.kills + "   (a la cabeza " + s.headshotKills + ")   Precisión: " + (s.Accuracy * 100f).ToString("0") + "% (" + s.shotsHit + "/" + s.shotsFired + ")");
+                sb.AppendLine("Daño recibido: " + s.damageTaken.ToString("0") + "   Oleada: " + Mathf.FloorToInt(s.waveSeconds / 60f) + ":" + Mathf.FloorToInt(s.waveSeconds % 60f).ToString("00"));
             }
             if (_killsByType.Count > 0)
             {
@@ -295,10 +356,10 @@ namespace SevenDays.World
             // resumen del día anterior: panel pequeño a la derecha, no bloquea ni pausa
             if (!Cycle.IsOver && Time.unscaledTime < _summaryUntil && _summary.Length > 0)
             {
-                Rect r = new Rect(w - 560, 130, 530, 230);
+                Rect r = new Rect(w - 640, 130, 610, 360);
                 Shade(r, 0.55f);
                 GUI.Label(new Rect(r.x + 16, r.y + 8, r.width - 32, 40), "Resumen del día " + (Cycle.Phase == DayPhase.Summary ? Cycle.Day : Cycle.Day - 1), new GUIStyle(_body) { alignment = TextAnchor.UpperLeft, fontStyle = FontStyle.Bold });
-                GUI.Label(new Rect(r.x + 16, r.y + 50, r.width - 32, r.height - 56), _summary, new GUIStyle(_body) { alignment = TextAnchor.UpperLeft, fontSize = 20, wordWrap = true });
+                GUI.Label(new Rect(r.x + 16, r.y + 50, r.width - 32, r.height - 56), _summary, new GUIStyle(_body) { alignment = TextAnchor.UpperLeft, fontSize = 17, wordWrap = true });
             }
             if (Cycle.Phase == DayPhase.Victory) Panel(w, "¡HAS SOBREVIVIDO 7 DÍAS!", string.Join("\n", History), "Jugar otra vez", Retry, "Menú", ToMenu);
             else if (Cycle.Phase == DayPhase.Defeat) Panel(w, "HAS MUERTO — DÍA " + Cycle.Day, _summary + "\n" + string.Join("\n", History), "Reintentar", Retry, "Menú", ToMenu);

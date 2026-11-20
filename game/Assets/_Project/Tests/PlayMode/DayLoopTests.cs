@@ -79,6 +79,11 @@ namespace SevenDays.Tests.PlayMode
 
             skip.Invoke(loop, null);
             Assert.AreEqual(DayPhase.Summary, cycle.Phase);
+            var match = (MatchStats)loopType.GetProperty("Match").GetValue(loop);
+            Assert.AreEqual(1, match.days.Count, "el día queda en las estadísticas de la partida");
+            Assert.AreEqual(id, match.mapId);
+            StringAssert.Contains("Rendimiento", (string)loopType.GetProperty("Summary").GetValue(loop));
+            StringAssert.Contains("Director (día 2)", (string)loopType.GetProperty("Summary").GetValue(loop));
             yield return null;
             skip.Invoke(loop, null);
             Assert.AreEqual(2, cycle.Day); Assert.AreEqual(DayPhase.Preparation, cycle.Phase);
