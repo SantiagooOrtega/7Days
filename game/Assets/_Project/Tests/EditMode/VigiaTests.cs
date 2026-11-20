@@ -171,5 +171,28 @@ namespace SevenDays.Tests
             foreach (var v in y) Assert.LessOrEqual(Mathf.Abs(v), 1f);
             Assert.Greater(Mathf.Abs(y[(int)(0.03f * rate)]), 0.05f, "bip de apertura");
         }
+    
+        [Test]
+        public void Intro_EveryPanelHasTextAndNarration()
+        {
+            var c = Catalog();
+            var lines = IntroText.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "_Project/Intro/Resources/intro.txt")));
+            Assert.GreaterOrEqual(lines.Count, 3);
+            for (int i = 0; i < lines.Count; i++)
+            {
+                Assert.IsTrue(c.ContainsKey("intro_" + (i + 1)), "narración intro_" + (i + 1));
+                Assert.IsTrue(File.Exists(Path.Combine(Folder, VigiaCatalog.ClipName("intro_" + (i + 1), 0) + ".wav")));
+            }
+        }
+
+        [Test]
+        public void Intro_Typewriter()
+        {
+            Assert.AreEqual(0, IntroText.Visible("hola", 0f));
+            Assert.AreEqual(4, IntroText.Visible("hola", 10f));
+            Assert.AreEqual(16, IntroText.Visible(new string('x', 40), 0.5f));
+            Assert.GreaterOrEqual(IntroText.PanelSeconds("abc", 6f), 6.8f, "espera a que acabe la narración");
+            Assert.AreEqual(2, IntroText.Parse("uno\n\n# nota\ndos\n").Count);
+        }
     }
 }

@@ -22,7 +22,6 @@ namespace SevenDays.Vigia
         public VigiaItem Current => Queue.Current;
 
         private AudioSource _src;
-        private readonly Dictionary<string, AudioClip> _clips = new Dictionary<string, AudioClip>();
         private float _subStart, _subEnd;
         private string _subText = "";
         private GUIStyle _style, _tag;
@@ -76,28 +75,8 @@ namespace SevenDays.Vigia
             _subEnd = (float)Queue.CurrentEnds;
         }
 
-        /// <summary>Clip procesado (radio + bips) de la variante; se procesa una vez y se guarda. null si no existe.</summary>
-        public AudioClip ClipFor(VigiaItem it)
-        {
-            string name = VigiaCatalog.ClipName(it.Line.Id, it.Variant);
-            if (_clips.TryGetValue(name, out var c)) return c;
-            var raw = Resources.Load<AudioClip>(name);
-            if (raw != null && raw.loadState != AudioDataLoadState.Loaded) raw.LoadAudioData();
-            if (raw != null && raw.channels == 1 && raw.samples > 0)
-            {
-                var data = new float[raw.samples];
-                if (raw.GetData(data, 0))
-                {
-                    var o = RadioFx.Process(data, raw.frequency);
-                    c = AudioClip.Create(name + "_radio", o.Length, 1, raw.frequency, false);
-                    c.SetData(o, 0);
-                }
-            }
-            if (c == null && raw != null) c = raw;   // sin procesar si no se pudo leer
-            _clips[name] = c;
-            if (c == null) Debug.LogWarning("[7Days] VIGÍA: falta el clip " + name + " (solo subtítulo)");
-            return c;
-        }
+        /// <summary>Clip procesado (radio + bips) de la variante. null si no existe.</summary>
+        public AudioClip ClipFor(VigiaItem it) => VigiaClips.Get(VigiaCatalog.ClipName(it.Line.Id, it.Variant));
 
         // ---------------------------------------------------------------- subtítulos
         private void OnGUI()

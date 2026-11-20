@@ -883,3 +883,14 @@ No hay que importar nada: todo se genera por código al dar Play en la escena `G
 3. Míralos de cerca: sale el nombre, la cantidad, la rareza y "E recoger". Munición y botiquines también se recogen al pasar por encima.
 4. **L** suelta un drop de prueba: tiene una columna de luz durante 3.5 s. Los contenedores sin buscar laten con una luz tenue.
 5. **F6 > RENDER**: línea "Suministros" con los objetos en el suelo, marcadores visibles, luces encendidas (máximo 8) y destellos.
+
+## VIGÍA (cámara asistente) e intro en cómic — pruebas manuales
+Código: `Scripts/Vigia/` (voz, eventos, cuerpo, panel F8), `Scripts/Intro/`, lógica pura en `Procedural/Vigia.cs`, `RadioFx.cs` e `IntroText.cs`. Frases: `docs/VIGIA_FRASES.md`.
+
+1. **Voz**: Play en `Game`. Al empezar el día 1, VIGÍA da la bienvenida (voz con bip, filtro de radio y eco) y aparece el subtítulo abajo al centro («VIGÍA: ...»).
+2. **Cuerpo**: arriba a la izquierda del jugador flota una cámara metálica con anillo azul. Se pone ámbar con combate intenso o vida baja y rojo en estado crítico o con el jefe en furia; el anillo late y el iris se abre al hablar.
+3. **F8**: panel para decir cualquier frase (por categoría) y simular rachas (doble, triple, cuádruple, combo, racha de 8, masacre, 3 cabezas).
+4. **Esc**: modo de VIGÍA (Completa, Reducida, Solo texto, Apagada), subtítulos sí/no, tamaño del texto, volumen «Vigía» y «Ver la intro otra vez».
+5. **Intro**: sale la primera vez que se da Play (no en las pruebas automáticas). Clic o Espacio avanza o completa el texto; Esc o «Saltar» la omite. Para volver a verla: Esc > «Ver la intro otra vez» (pausa el juego mientras dura).
+6. **Imágenes del cómic**: pon `intro_01.png`, `intro_02.png`... en `game/Assets/_Project/Intro/Resources/` (en Unity, tipo de textura *Default*, sin compresión si se ven bandas). Sin imágenes se dibujan viñetas provisionales. El texto está en `intro.txt` (una línea por viñeta). Opcional: un asset `Create > 7Days > Intro Sequence` llamado `IntroSequence` en una carpeta `Resources` sustituye a todo lo anterior.
+7. **Regenerar la voz** (solo si cambias frases): edita `game/Assets/_Project/Audio/Vigia/Resources/vigia_frases.txt` y ejecuta `./tools/generate_vigia_voice.sh` (macOS). Si cambias `intro.txt`, cambia también las frases `intro_N` para que la voz coincida.
