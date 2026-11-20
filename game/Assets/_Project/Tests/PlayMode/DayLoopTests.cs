@@ -84,5 +84,51 @@ namespace SevenDays.Tests.PlayMode
             Assert.AreEqual(2, cycle.Day); Assert.AreEqual(DayPhase.Preparation, cycle.Phase);
             yield return null;
         }
+    
+        /// <summary>
+        /// Horda: durante la oleada ningún zombi se queda quieto más de 3 s (salvo atacando o aturdido). El jugador no se mueve y se cura cada frame para que siga vivo.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Horde_NoZombieIdleMoreThan3s()
+        {
+            T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, "calle_en_ruinas");
+            _arena = new GameObject("Arena"); _arena.AddComponent(T("SevenDays.World.TestArena"));
+            var loopType = T("SevenDays.World.DayLoop");
+            var inst = loopType.GetProperty("Instance");
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && inst.GetValue(null) == null) yield return null;
+            var loop = inst.GetValue(null);
+            loopType.GetMethod("DebugSkip").Invoke(loop, null);
+            var playerGo = GameObject.FindWithTag("Player");
+            var health = playerGo.GetComponent(T("SevenDays.Core.Health"));
+            var heal = health.GetType().GetMethod("Heal");
+            var mgr = T("SevenDays.Combat.ZombieManager").GetProperty("Instance").GetValue(null);
+            var all = (IEnumerable)mgr.GetType().GetProperty("All").GetValue(mgr);
+            var anchor = new System.Collections.Generic.Dictionary<Component, (Vector3 pos, float time)>();
+            float worst = 0f; string worstInfo = "";
+            int seen = 0;
+            float start = Time.time;
+            while (Time.time - start < 25f)
+            {
+                heal.Invoke(health, new object[] { 1000f });
+                foreach (Component z in all)
+                {
+                    bool inUse = (bool)z.GetType().GetProperty("InUse").GetValue(z);
+                    var zh = z.GetType().GetProperty("Health").GetValue(z);
+                    bool dead = (bool)zh.GetType().GetProperty("IsDead").GetValue(zh);
+                    if (!inUse || dead) { anchor.Remove(z); continue; }
+                    var state = (ZombieState)z.GetType().GetProperty("State").GetValue(z);
+                    Vector3 p = z.transform.position;
+                    if (!anchor.TryGetValue(z, out var a)) { anchor[z] = (p, Time.time); seen++; continue; }
+                    if (state == ZombieState.Attack || state == ZombieState.Stunned || (p - a.pos).sqrMagnitude > 0.3f * 0.3f) { anchor[z] = (p, Time.time); continue; }
+                    float idle = Time.time - a.time;
+                    if (idle > worst) { worst = idle;  var rig = z.GetType().GetProperty("Rig").GetValue(z); worstInfo = z.name + " " + state + " horda=" + z.GetType().GetProperty("InHorde").GetValue(z) + " agente=" + z.GetType().GetProperty("UsesAgent").GetValue(z) + " emerge=" + rig.GetType().GetProperty("Emerging").GetValue(rig) + " en " + p + " a " + Vector3.Distance(p, playerGo.transform.position).ToString("0.0") + " m"; }
+                }
+                yield return null;
+            }
+            Debug.Log("[Horda] zombis vistos " + seen + ", máximo quieto " + worst.ToString("0.0") + " s " + worstInfo);
+            Assert.Greater(seen, 3);
+            Assert.LessOrEqual(worst, 3f, "zombi quieto: " + worstInfo);
+        }
     }
 }

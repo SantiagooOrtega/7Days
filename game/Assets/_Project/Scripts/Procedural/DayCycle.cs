@@ -64,16 +64,18 @@ namespace SevenDays.Procedural
             switch (day) { case 3: return ZombieIds.BossBrute; case 5: return ZombieIds.BossLauncher; case 7: return ZombieIds.BossFinal; default: return null; }
         }
 
+        public static int ZombiesFor(int day) => 14 + (Math.Max(1, Math.Min(Days, day)) - 1) * 7;
+
         public static DayPlan For(int day, int globalCap = 24)
         {
             day = Math.Max(1, Math.Min(Days, day));
             return new DayPlan
             {
                 day = day,
-                totalZombies = 10 + (day - 1) * 5,                       // 10, 15, 20 ... 40
+                totalZombies = ZombiesFor(day),                           // 14, 21, 28 ... 56 (+40 % respecto a la primera versión)
                 maxAlive = Math.Max(4, Math.Min(globalCap, 6 + day * 2)), // 8 ... 20
                 spawnInterval = Math.Max(0.8f, 2.2f - 0.2f * (day - 1)),
-                prepSeconds = day == 1 ? 40f : 30f,
+                prepSeconds = 30f,
                 bossId = BossFor(day),
                 bossAtFraction = 0.5f,
                 unlocked = Unlocked(day),
@@ -144,6 +146,8 @@ namespace SevenDays.Procedural
         public DayCycle(int startDay = 1) { Day = Math.Max(1, Math.Min(DayPlans.Days, startDay)); Plan = DayPlans.For(Day); }
 
         public bool IsOver => Phase == DayPhase.Victory || Phase == DayPhase.Defeat;
+        /// <summary>El resumen ya no es una pantalla: tras "OLEADA SUPERADA" se pasa solo al día siguiente pasado este tiempo.</summary>
+        public const float SummarySeconds = 3f;
         public float PrepLeft => Phase == DayPhase.Preparation ? Math.Max(0f, Plan.prepSeconds - PhaseTime) : 0f;
 
         /// <summary>Avanza el reloj; la preparación termina sola al acabarse el tiempo.</summary>
@@ -151,6 +155,7 @@ namespace SevenDays.Procedural
         {
             PhaseTime += dt;
             if (Phase == DayPhase.Preparation && PhaseTime >= Plan.prepSeconds) StartWave();
+            else if (Phase == DayPhase.Summary && PhaseTime >= SummarySeconds) NextDay();
         }
 
         public void StartWave() { if (Phase == DayPhase.Preparation) Set(DayPhase.Wave); }
