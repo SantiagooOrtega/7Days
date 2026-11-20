@@ -1,0 +1,7 @@
+01 | NARRADOR | UNITY | Valle Hondo vivía de la Planta 7. Nadie sabía qué fabricaba NEXA allí dentro.
+02 | NARRADOR | IMAGEN | 23:47. La Planta 7 explotó. Antes del amanecer, la ceniza cubría todo el valle.
+03 | NARRADOR | IMAGEN | Quien respiró la ceniza cayó con una tos negra. Horas después... se levantó.
+04 | IBARRA | IMAGEN | Hora 6: el hospital deja de responder. Hora 20: el ejército cierra el valle. Protocolo Tierra Quemada en siete días. Nadie entra. Nadie sale.
+05 | NARRADOR | IMAGEN | Sam Duarte entró al valle a rescatar a los trabajadores. Su equipo no volvió. Ahora es el último vivo.
+06 | VIGÍA | IMAGEN | Señal vital detectada. Soy VIGÍA, la seguridad de la Planta 7. Puedo mantenerte con vida siete días... si haces lo que te diga.
+07 | VIGÍA | IMAGEN | Tienes seis balas. Que cuenten.
