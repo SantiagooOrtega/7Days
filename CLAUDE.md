@@ -8,6 +8,7 @@ El usuario tiene poca experiencia en Unity: explica las decisiones de forma simp
 - `game/` Proyecto Unity (C#). Código propio en `Assets/_Project/`. Cobertura: componente `CoverObject`.
 - Documentos de diseño de la Fase 3 en la raíz: `ZOMBIE_LANZADOR.md`, `MAPA_SPAWN_LOOT.md`, `MAPAS_EN_BD.md`.
 - `docs/` Plan, arquitectura, API, guía de demo.
+- Historia (Valle Hondo, NEXA, VIGÍA, nombres de historia de zombis y jefes, títulos de los días): `docs/HISTORIA.md`.
 
 ## Reglas de trabajo
 - Trabajar por fases (ver `docs/PLAN.md`) y detenerse al final de cada una para que el usuario pruebe.
