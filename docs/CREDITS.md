@@ -28,3 +28,4 @@ Opcional: si alguien añade texturas propias en `Resources/Look` (ver `docs/ASSE
 
 ## Voz de VIGÍA
 - Voz sintetizada "Paulina" (español de México) incluida en macOS, generada offline con el comando `say` (`tools/generate_vigia_voice.sh`) y convertida a WAV con `afconvert`. Respaldo: "Mónica" (es_ES). Los WAV se guardan en el repo; el juego no usa `say` ni internet. El filtro de radio, el eco, los bips y la compresión se aplican por código (`Procedural/RadioFx.cs`).
+
