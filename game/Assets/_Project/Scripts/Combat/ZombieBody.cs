@@ -441,7 +441,12 @@ namespace SevenDays.Combat
             // animación lejana o fuera de pantalla: se congela (lo que se salta se acumula y no se nota al volver)
             int interval = RigLod.Interval(dist);
             bool offscreen = !Renderer.isVisible && dist > 14f;
-            if (dist > 90f || offscreen) return;
+            if (dist > 90f || offscreen)
+            {
+                // la animación se congela, pero salir del suelo debe terminar igual: si no, un zombi que aparece donde no lo ves se queda "emergiendo" para siempre
+                if (Emerging) { _emerge += _pendingDt; _pendingDt = 0f; }
+                return;
+            }
             if (interval > 1 && (Time.frameCount + _frameOffset) % interval != 0) return;
             float dt = Mathf.Min(_pendingDt, 0.1f); _pendingDt = 0f;
             Step(dt, s);
