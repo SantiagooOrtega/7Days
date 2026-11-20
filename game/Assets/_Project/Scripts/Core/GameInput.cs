@@ -44,6 +44,7 @@ namespace SevenDays.Core
         public static bool InteractHeld => Keyboard.current != null && Keyboard.current.eKey.isPressed;
         public static bool MedkitPressed => Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame;
         public static bool BandagePressed => Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame;
+        public static bool DropWeaponPressed => Keyboard.current != null && Keyboard.current.gKey.wasPressedThisFrame;
         public static bool ReloadPressed => Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame;
         public static bool CoverPressed => Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame;
         public static bool HelpPressed => Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame;

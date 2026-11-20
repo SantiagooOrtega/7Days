@@ -6,16 +6,6 @@ using SevenDays.Weapons;
 
 namespace SevenDays.Player
 {
-    /// <summary>Un arma que lleva el jugador y las balas que tiene en el cargador. Las reservas son del inventario, por tipo de munición.</summary>
-    public class WeaponState
-    {
-        public WeaponData Data;
-        public int Magazine;
-        public WeaponState(WeaponData data, int magazine) { Data = data; Magazine = magazine; }
-    }
-
-    public enum PickupResult { Picked, Full }
-
     /// <summary>
     /// Todo lo que lleva el jugador: armas (máximo 5), munición por tipo con reserva máxima, vendas y botiquines. Empieza con muy poco (arma inicial y
     /// pocas balas). Recoger algo que no cabe devuelve Full y NO consume el pickup.
@@ -51,30 +41,56 @@ namespace SevenDays.Player
 
         public int Reserve(WeaponState w) => w.Data.UsesAmmo ? Ammo.Count(w.Data.ammoType) : 0;
 
-        /// <summary>Añade un arma. Si ya la tiene se convierte en un poco de munición; si las 5 casillas están llenas devuelve Full.</summary>
-        public PickupResult TryAddWeapon(string id, out string message)
+        /// <summary>Añade un arma. Si ya la tiene se convierte en munición (su cargador si se había soltado); si las 5 casillas están llenas devuelve Full
+        /// (el pickup ofrece entonces cambiarla por la activa manteniendo E).</summary>
+        public PickupResult TryAddWeapon(string id, out string message, int magazine = -1)
         {
             var data = WeaponLibrary.Get(id);
             message = "";
             if (data == null) return PickupResult.Full;
-            var existing = Weapons.Find(w => w.Data.id == id);
-            if (existing != null)
+            switch (Loadout.Decide(Weapons, id, MaxWeapons))
             {
-                int ammo = data.UsesAmmo ? Mathf.Max(1, data.magazineSize / 2) : 0;
-                if (ammo > 0 && Ammo.IsFull(data.ammoType)) { message = "Ya tienes " + data.displayName + " y la munición está llena"; return PickupResult.Full; }
-                int added = ammo > 0 ? Ammo.Add(data.ammoType, ammo) : 0;
-                message = "Ya tenías " + data.displayName + ": +" + added + " balas";
-                Changed?.Invoke();
-                return PickupResult.Picked;
+                case WeaponPickupKind.AmmoInstead:
+                {
+                    int ammo = Loadout.DuplicateAmmo(data, magazine);
+                    if (ammo > 0 && Ammo.Space(data.ammoType) < ammo) { message = "Ya tienes " + data.displayName + " y no cabe su munición"; return PickupResult.Full; }
+                    if (ammo > 0) Ammo.Add(data.ammoType, ammo);
+                    message = "Ya tenías " + data.displayName + ": +" + ammo + " balas";
+                    Changed?.Invoke();
+                    return PickupResult.Picked;
+                }
+                case WeaponPickupKind.SwapOffer:
+                    message = "Armas llenas (máx. " + MaxWeapons + "): mantén E para cambiarla por la activa · G suelta un arma";
+                    return PickupResult.Full;
             }
-            if (Weapons.Count >= MaxWeapons) { message = "Armas llenas (máx. " + MaxWeapons + ")"; return PickupResult.Full; }
-            var state = new WeaponState(data, data.IsMelee ? 0 : Mathf.Max(1, data.magazineSize / 2));
+            var state = new WeaponState(data, Loadout.MagazineFor(data, magazine));
             Weapons.Add(state);
             message = data.displayName + " (" + WeaponCatalog.RarityName(data.rarity) + ")";
             WeaponAdded?.Invoke(state);
             Changed?.Invoke();
             return PickupResult.Picked;
         }
+
+        /// <summary>Quita el arma de esa casilla (para soltarla). null si es la única.</summary>
+        public WeaponState RemoveWeapon(int index)
+        {
+            var w = Loadout.Drop(Weapons, index);
+            if (w != null) Changed?.Invoke();
+            return w;
+        }
+
+        /// <summary>Cambia el arma de la casilla activa por otra. Devuelve la que se suelta.</summary>
+        public WeaponState SwapWeapon(int active, string id, int magazine)
+        {
+            var data = WeaponLibrary.Get(id);
+            if (data == null || active < 0 || active >= Weapons.Count) return null;
+            var old = Loadout.Swap(Weapons, active, data, magazine);
+            WeaponAdded?.Invoke(Weapons[active]);
+            Changed?.Invoke();
+            return old;
+        }
+
+        public bool HasAnyAmmo => Loadout.HasAnyAmmo(Weapons, Ammo);
 
         public PickupResult TryAddAmmo(AmmoType type, int amount, out string message)
         {
@@ -100,7 +116,7 @@ namespace SevenDays.Player
         {
             switch (item.kind)
             {
-                case "weapon": return TryAddWeapon(item.id, out message);
+                case "weapon": return TryAddWeapon(item.id, out message, item.magazine);
                 case "ammo": return TryAddAmmo(item.AmmoTypeValue, item.amount, out message);
                 default: return TryAddMedkit(item.MedkitKindValue, item.amount, out message);
             }

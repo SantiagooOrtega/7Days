@@ -11,8 +11,9 @@ namespace SevenDays.Procedural
         public string kind; // weapon | ammo | medkit
         public string id;   // id del arma | pistol/shotgun/rifle | bandage/small/medium/large
         public int amount = 1;
+        public int magazine = -1; // armas soltadas por el jugador: balas que llevaban en el cargador (-1 = arma del mapa, medio cargador)
 
-        public static LootItem Weapon(string id) => new LootItem { kind = "weapon", id = id, amount = 1 };
+        public static LootItem Weapon(string id, int magazine = -1) => new LootItem { kind = "weapon", id = id, amount = 1, magazine = magazine };
         public static LootItem Ammo(AmmoType t, int n) => new LootItem { kind = "ammo", id = t.ToString().ToLowerInvariant(), amount = n };
         public static LootItem Medkit(MedkitKind k, int n = 1) => new LootItem { kind = "medkit", id = k.ToString().ToLowerInvariant(), amount = n };
 
