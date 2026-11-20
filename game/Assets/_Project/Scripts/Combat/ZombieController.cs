@@ -45,6 +45,18 @@ namespace SevenDays.Combat
         public float DamageMultiplier { get; set; } = 1f;
 
         public event Action<ZombieController> Killed;
+        /// <summary>En modo horda (lo activa la oleada): persigue al jugador desde que aparece, con su propia velocidad y un retardo inicial.</summary>
+        public bool InHorde => _sm.Horde;
+        private bool _hordePending;
+        private float _hordeAt, _hordeSpeed = 1f;
+        /// <summary>Intervalo de recálculo de ruta en horda cuando el jugador está lejos (s). Cerca se recalcula cada 0.2 s como siempre.</summary>
+        public const float HordeRepathMin = 0.5f, HordeRepathMax = 1f, HordeNearDistance = 12f;
+
+        /// <summary>Se une a la horda: tras "delay" segundos persigue al jugador por el NavMesh; speedFactor da a cada uno su ritmo (no llegan todos a la vez).</summary>
+        public void JoinHorde(float delay, float speedFactor)
+        {
+            _hordePending = true; _hordeAt = Time.time + Mathf.Max(0f, delay); _hordeSpeed = Mathf.Clamp(speedFactor, 0.7f, 1.3f);
+        }
 
         private readonly ZombieStateMachine _sm = new ZombieStateMachine();
         private NavMeshAgent _agent;
@@ -129,7 +141,7 @@ namespace SevenDays.Combat
             _body.radius = 0.32f * type.scale; _body.height = 1.8f * type.scale; _body.center = new Vector3(0f, 0.9f * type.scale, 0f);
             Health.Configure(type.maxHealth * healthMultiplier, type.resistance, type.stunResistance, type.zones.Clone());
             Rig.SetHitboxesEnabled(true);
-            _sm.Reset(); _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
+            _sm.Reset(); _hordePending = false; _hordeSpeed = 1f; _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
             _brain = type.projectile != "none" ? SpitterBrain.For(type) : null;
             // si el jugador abusa de la cobertura (reglas del director sobre las estadísticas guardadas), los lanzadores flanquean antes (hasta la mitad del tiempo)
             if (_brain != null && ZombieManager.Instance != null) _brain.FlankAfterSeconds *= 1f - 0.5f * ZombieManager.Instance.Tuning.coverPressure;
@@ -268,6 +280,7 @@ namespace SevenDays.Combat
                 float seen = SevenDays.Procedural.CoverProtection.VisibleRange(ZombieManager.Instance != null ? ZombieManager.Instance.PlayerExposure : 1f, Type.aggroRange);
                 _canSee = dist < 3f || (dist <= seen && HasLineOfSight());
             }
+            if (_hordePending && Time.time >= _hordeAt) { _hordePending = false; _sm.Horde = true; _nextPath = 0f; }
             _sm.Tick(dt, dist, _canSee, Health.IsStunned, false, playerDead);
             if (_sm.State == ZombieState.Chase && _prevState == ZombieState.Patrol) _sounds.Alert();   // aviso al detectar al jugador
             _prevState = _sm.State;
@@ -342,10 +355,11 @@ namespace SevenDays.Combat
 
         private float Chase(float dt, Vector3 toPlayer, float dist)
         {
-            float speed = Type.speed * SpeedMultiplier;
+            float speed = Type.speed * SpeedMultiplier * (_sm.Horde ? _hordeSpeed : 1f);
             if (Time.time >= _nextPath)
             {
-                _nextPath = Time.time + 0.2f;
+                // en horda y lejos: ruta cada 0.5-1 s (aleatorio, así los recálculos de muchos zombis no caen en el mismo frame)
+                _nextPath = Time.time + (_sm.Horde && dist > HordeNearDistance ? UnityEngine.Random.Range(HordeRepathMin, HordeRepathMax) : 0.2f);
                 MoveTo(_player.position, speed);
             }
             if (!_useAgent) DirectMove(toPlayer, speed, dt);

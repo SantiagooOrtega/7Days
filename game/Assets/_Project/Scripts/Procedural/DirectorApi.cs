@@ -100,6 +100,8 @@ namespace SevenDays.Procedural
         public float bossAggressiveness = 1f;   // multiplica la frecuencia de ataques del jefe y acorta su pausa entre ataques
         public float specialFrequency = 1f;     // multiplica el peso de spitter y explosive
         public float coverPressure;             // 0..1: los lanzadores flanquean antes (hasta la mitad del tiempo) si abusas de la cobertura
+        public float hordeDelayMax = 1.5f;      // 0..5 s: retardo máximo (aleatorio por zombi) antes de lanzarse a por el jugador en la oleada
+        public float hordeSpeedJitter = 0.12f;  // 0..0.3: variación de velocidad por zombi en la horda (±), para que no lleguen todos a la vez
         public string[] typeIds = { ZombieIds.Common, ZombieIds.Runner, ZombieIds.Tank, ZombieIds.Armored, ZombieIds.Spitter, ZombieIds.Explosive };
         public float[] typeWeights = { 60f, 15f, 6f, 6f, 8f, 5f };
 
@@ -108,7 +110,7 @@ namespace SevenDays.Procedural
         public DirectorTuning Clone() => new DirectorTuning
         {
             healthMultiplier = healthMultiplier, speedMultiplier = speedMultiplier, damageMultiplier = damageMultiplier,
-            bossAggressiveness = bossAggressiveness, specialFrequency = specialFrequency, coverPressure = coverPressure, typeIds = (string[])typeIds.Clone(), typeWeights = (float[])typeWeights.Clone(),
+            bossAggressiveness = bossAggressiveness, specialFrequency = specialFrequency, coverPressure = coverPressure, hordeDelayMax = hordeDelayMax, hordeSpeedJitter = hordeSpeedJitter, typeIds = (string[])typeIds.Clone(), typeWeights = (float[])typeWeights.Clone(),
         };
 
         /// <summary>Dificultad base creciente por día (el director parte de aquí y la ajusta según el rendimiento).</summary>
@@ -161,6 +163,8 @@ namespace SevenDays.Procedural
             if (bossAggressiveness < 0.5f || bossAggressiveness > 3f) e.Add("bossAggressiveness fuera de 0.5..3");
             if (specialFrequency < 0f || specialFrequency > 4f) e.Add("specialFrequency fuera de 0..4");
             if (coverPressure < 0f || coverPressure > 1f) e.Add("coverPressure fuera de 0..1");
+            if (hordeDelayMax < 0f || hordeDelayMax > 5f) e.Add("hordeDelayMax fuera de 0..5");
+            if (hordeSpeedJitter < 0f || hordeSpeedJitter > 0.3f) e.Add("hordeSpeedJitter fuera de 0..0.3");
             if (typeIds == null || typeWeights == null || typeIds.Length == 0 || typeIds.Length != typeWeights.Length) { e.Add("typeIds y typeWeights deben tener la misma longitud (> 0)"); return e; }
             float sum = 0f;
             for (int i = 0; i < typeIds.Length; i++)
