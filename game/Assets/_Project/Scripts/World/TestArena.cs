@@ -31,7 +31,6 @@ namespace SevenDays.World
         private Transform _levelRoot;
         private SevenDays.Procedural.LootLayoutData _lootLayout;
         private LootManager _lootManager;
-        private int _day = 1;
         private SevenDays.Combat.ZombieManager _zombies;
         private int _zombieKind;
         private int _bossKind;
@@ -113,6 +112,9 @@ namespace SevenDays.World
             hud.gameObject.AddComponent<ZombieSoundPanel>();   // F6: probar cada sonido de zombi
             hud.gameObject.AddComponent<RenderDebugPanel>();   // F6: panel Render (resolución, ms de CPU/GPU, draw calls, luces, calidad)   // F7: ciclo automático de piernas con cámara lateral
             hud.gameObject.AddComponent<ScopeOverlay>().Initialize(player.GetComponent<PlayerCamera>());
+
+            // bucle de los 7 días: preparación, oleada por los bordes del mapa, resumen; jefes en 3, 5 y 7
+            DayLoop.Create(transform, _map, player, _zombies, _lootManager, _houses);
         }
 
         private void OnGUI()
@@ -135,23 +137,8 @@ namespace SevenDays.World
                 // Drop de prueba delante del jugador (cuenta para el tope diario y el de pickups en el suelo)
                 _lootManager.DebugDrop(_player.transform.position + _player.transform.forward * 2.5f);
             }
-            if (k.nKey.wasPressedThisFrame && _lootManager != null)
-            {
-                // Siguiente día: el director hace reaparecer un poco de botín y tapa las entradas de la casa según el día
-                _day = _day % 7 + 1;
-                _lootManager.NewDay(_day);
-                // fin del día: las estadísticas de hoy se suman a las guardadas, se envían al backend y las reglas del director las leen para ajustar el día siguiente
-                var tracker = CombatMetricsTracker.Instance;
-                var totals = tracker != null ? tracker.EndDay(_day) : null;
-                if (_zombies != null)
-                {
-                    var reasons = tracker != null ? tracker.DirectorReasons : new List<string>();
-                    reasons.Clear();
-                    _zombies.SetTuning(SevenDays.Procedural.DirectorRules.Adjust(SevenDays.Procedural.DirectorTuning.ForDay(_day), totals, reasons));
-                    foreach (var r in reasons) Debug.Log("[7Days] Director: " + r);
-                }
-                foreach (var h in _houses) if (h != null) h.SetDay(_day);
-            }
+            // N = saltar la fase actual del día (preparación -> oleada -> resumen -> siguiente día)
+            if (k.nKey.wasPressedThisFrame && DayLoop.Instance != null) DayLoop.Instance.DebugSkip();
             if (k.zKey.wasPressedThisFrame && _player != null && _zombies != null)
             {
                 // Z = zombi de prueba 12 m delante (cicla por los tipos)
@@ -168,7 +155,7 @@ namespace SevenDays.World
                     float ang = i / 8f * Mathf.PI * 2f;
                     _zombies.SpawnByTuning(_player.transform.position + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * 18f);
                 }
-                HudMessages.Add("Oleada de prueba (día " + _day + ")", Color.white);
+                HudMessages.Add("Oleada de prueba", Color.white);
             }
             if (k.bKey.wasPressedThisFrame && _player != null && _zombies != null)
             {
@@ -183,7 +170,7 @@ namespace SevenDays.World
             if (k.mKey.wasPressedThisFrame && !_loading)
             {
                 // M = siguiente mapa (Calle en ruinas -> Barrio abandonado -> Bosque oscuro): se recarga la escena con el nuevo contenido
-                var ids = MapIO.KnownIds;
+                var ids = MapIO.PlayableIds;
                 MapIO.SelectedId = ids[(System.Array.IndexOf(ids, _map.id) + 1) % ids.Length];
                 UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
                 return;

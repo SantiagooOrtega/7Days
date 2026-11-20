@@ -43,7 +43,7 @@ namespace SevenDays.UI
             if (GameInput.HelpPressed) { _showHelp = !_showHelp; _helpPinned = true; }
             else if (_showHelp && !_helpPinned && Time.unscaledTime > _helpHideAt) _showHelp = false;   // el texto largo de IMGUI cuesta: fuera tras 10 s
             _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime), 0.05f);
-            if (_health != null && _health.IsDead && GameInput.ReloadPressed)
+            if (_health != null && _health.IsDead && GameInput.ReloadPressed && SevenDays.World.DayLoop.Instance == null)
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
@@ -129,7 +129,7 @@ namespace SevenDays.UI
                     "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
                     "C cobertura · A/D deslizarse · en cobertura: clic der. = asomarse y disparar, clic izq. sin apuntar = a ciegas, Q cambia el lado · Esc soltar ratón\n" +
                     "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
-                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: siguiente día (respawn) · F3 ambiente · F4 métricas · F5 ajustes en vivo · Esc ajustes · F1 ayuda", _label);
+                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: saltar fase del día · Enter: empezar oleada · F3 ambiente · F4 métricas · F5 ajustes en vivo · Esc ajustes · F1 ayuda", _label);
             }
 
             if (SevenDays.World.FireManager.PlayerBurning)
@@ -138,7 +138,7 @@ namespace SevenDays.UI
                 GUI.Label(new Rect(0, h - 250, w, 50), "¡TE QUEMAS! Sal del fuego", _center);
             }
 
-            if (_health.IsDead)
+            if (_health.IsDead && SevenDays.World.DayLoop.Instance == null)   // con el bucle de días, la derrota la dibuja DayLoop
             {
                 Fill(new Rect(0, 0, w, h), new Color(0.4f, 0, 0, 0.5f));
                 GUI.Label(new Rect(0, h / 2 - 60, w, 120), "HAS MUERTO\nPulsa R para reiniciar", _center);
