@@ -34,6 +34,8 @@ namespace SevenDays.UI.Tactical
                 return _titleFont != null ? _titleFont : (_titleFont = Font);
             }
         }
+        private static Texture2D _glowTex;
+        public static Texture2D GlowTex => _glowTex != null ? _glowTex : (_glowTex = Make(64, 64, SevenDays.Procedural.MenuArt.SoftGlow(64, 64), "Resplandor", TextureWrapMode.Clamp));
         private static Texture2D _scratch;
         public static Texture2D ScratchTex => _scratch != null ? _scratch : (_scratch = Make(512, 128, SevenDays.Procedural.MenuArt.Scratches(512, 128, 6), "Arañazos", TextureWrapMode.Clamp));
         public static readonly Vector2 Reference = new Vector2(1920, 1080);
@@ -125,7 +127,7 @@ namespace SevenDays.UI.Tactical
             Image(r, "Banda", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, 44f), new Color(0.02f, 0.02f, 0.02f, 0.85f));
             var cut = Image(r, "Corte", new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(40f, 60f), new Color(0.02f, 0.02f, 0.02f, 0.85f)); cut.rectTransform.localRotation = Quaternion.Euler(0, 0, 35f);
             Image(r, "Barra", new Vector2(0f, 0.5f), new Vector2(5f, 0f), new Vector2(8f, 44f), Red);
-            Text(r, "///", 26, Red, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 48f, 0f), new Vector2(60f, 40f), true);
+            Text(r, "///", 26, Orange, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 48f, 0f), new Vector2(60f, 40f), true);
             var ht = Text(r, SevenDays.Procedural.SelectContent.Tracked(title.ToUpperInvariant()), 28, Cream, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 90f + (width - 120f) / 2f * Condensed, 0f), new Vector2(width - 120f, 40f), true);   // borde izquierdo visual en -w/2+90 tras condensar
             ht.horizontalOverflow = HorizontalWrapMode.Wrap; ht.verticalOverflow = VerticalWrapMode.Truncate; ht.resizeTextForBestFit = true; ht.resizeTextMinSize = MinFont; ht.resizeTextMaxSize = 28;   // cabeceras largas: se encogen hasta 24 px
             return r;
@@ -156,7 +158,7 @@ namespace SevenDays.UI.Tactical
         /// <summary>Pie grande y centrado con teclas resaltadas ("[Enter] Empezar"): la tecla en naranja y la acción en crema.</summary>
         public static Text FooterKeys(Transform parent, string hints, int size)
         {
-            var bar = Image(parent, "Pie", new Vector2(0.5f, 0f), new Vector2(0f, FooterH / 2f), new Vector2(1920f, FooterH), new Color(0f, 0f, 0f, 0.8f));
+            var bar = Image(parent, "Pie", new Vector2(0.5f, 0f), new Vector2(0f, FooterH / 2f), new Vector2(1920f, FooterH), new Color(0.039f, 0.031f, 0.031f, 1f));   // opaco: en espacio lineal cualquier transparencia deja asomar las llamas
             Image(bar.transform, "Filo", new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(1920f, 2f), new Color(Red.r, Red.g, Red.b, 0.8f));
             var t = Text(bar.transform, hints, Mathf.Max(MinFont, size), Cream, TextAnchor.MiddleCenter, Vector2.zero, new Vector2(1800f / Condensed, FooterH - 6f));
             t.supportRichText = true;

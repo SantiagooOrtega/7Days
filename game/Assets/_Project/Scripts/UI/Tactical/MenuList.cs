@@ -87,8 +87,8 @@ namespace SevenDays.UI.Tactical
             var r = (RectTransform)transform;
             float valueLeft = _width / 2f - 20f - _width * 0.48f, valueRight = _width / 2f - 20f;
             _arrowLBase = new Vector2(valueLeft - 22f, 0f); _arrowRBase = new Vector2(valueRight + 18f, 0f);
-            _arrowL = UiKit.Text(r, "◄", 28, UiKit.Orange, TextAnchor.MiddleCenter, _arrowLBase, new Vector2(30f, 40f), true, false).rectTransform;
-            _arrowR = UiKit.Text(r, "►", 28, UiKit.Orange, TextAnchor.MiddleCenter, _arrowRBase, new Vector2(30f, 40f), true, false).rectTransform;
+            _arrowL = UiKit.Text(r, "◄", 28, UiKit.White, TextAnchor.MiddleCenter, _arrowLBase, new Vector2(30f, 40f), true, false).rectTransform;
+            _arrowR = UiKit.Text(r, "►", 28, UiKit.White, TextAnchor.MiddleCenter, _arrowRBase, new Vector2(30f, 40f), true, false).rectTransform;
             _arrowL.anchorMin = _arrowL.anchorMax = _arrowR.anchorMin = _arrowR.anchorMax = new Vector2(0.5f, 1f);
             PlaceArrows();
         }
@@ -126,9 +126,9 @@ namespace SevenDays.UI.Tactical
             i = (i % _labels.Count + _labels.Count) % _labels.Count;
             if (i != Index && sound) UiSounds.Move();
             if (i != Index) _sweepAt = Time.unscaledTime;
-            _labels[Index].color = UiKit.Cream;
+            _labels[Index].color = UiKit.Cream; if (_values[Index] != null) _values[Index].color = UiKit.Cream;
             Index = i;
-            _labels[i].color = UiKit.White;
+            _labels[i].color = UiKit.White; if (_values[i] != null) _values[i].color = UiKit.White;   // la fila activa, en blanco sobre el degradado
             _highlight.anchoredPosition = new Vector2(0f, -_rowH * (i + 0.5f));
             _marker.anchoredPosition = new Vector2(-_width / 2f + 26f, -_rowH * (i + 0.5f));
             PlaceArrows();

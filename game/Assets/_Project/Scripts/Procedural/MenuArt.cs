@@ -514,6 +514,32 @@ namespace SevenDays.Procedural
             return px;
         }
 
+        /// <summary>Máscara de stencil del título (w x h): opaca salvo dos cortes horizontales finos que atraviesan las letras (puentes de una plantilla de pintura).</summary>
+        public static byte[] StencilMask(int w, int h, float cut1, float cut2, int gapPx)
+        {
+            var px = new byte[w * h * 4];
+            for (int y = 0; y < h; y++)
+            {
+                bool gap = Math.Abs(y - cut1 * h) < gapPx * 0.5f || Math.Abs(y - cut2 * h) < gapPx * 0.5f;
+                for (int x = 0; x < w; x++) { int o = (y * w + x) * 4; px[o] = px[o + 1] = px[o + 2] = 255; px[o + 3] = (byte)(gap ? 0 : 255); }
+            }
+            return px;
+        }
+
+        /// <summary>Resplandor suave (w x h): naranja que se apaga hacia arriba y hacia los lados, sin bordes duros.</summary>
+        public static byte[] SoftGlow(int w, int h)
+        {
+            var px = new byte[w * h * 4];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = x / (float)(w - 1) * 2f - 1f, v = y / (float)(h - 1);
+                    float a = (1f - Smooth(0f, 1f, v)) * (1f - Smooth(0.6f, 1f, Math.Abs(u)));
+                    int o = (y * w + x) * 4; px[o] = 255; px[o + 1] = 110; px[o + 2] = 30; px[o + 3] = B(a);
+                }
+            return px;
+        }
+
         /// <summary>Arañazos para el título (w x h): trazos finos casi horizontales y diagonales del color del fondo, para que la letra parezca rayada.</summary>
         public static byte[] Scratches(int w, int h, int seed)
         {
@@ -535,6 +561,12 @@ namespace SevenDays.Procedural
         /// Marco de panel metálico (n x n, para 9-slice con borde "border"): esquinas cortadas en diagonal, banda de acero rayado #3A3D40 con bisel, remaches en las
         /// cuatro esquinas y fondo negro al 60 %.
         /// </summary>
+        /// <summary>
+        /// Relleno negro de los paneles. Se pidió 60 %, pero Unity mezcla en espacio lineal (este proyecto) y ahí un 60 % se ve como un ~35 %: las llamas
+        /// se transparentan y el texto baja de 4.5:1. Con 88 % se ve como el 60 % pedido y el texto se lee sobre el fuego.
+        /// </summary>
+        public const float PanelFill = 0.88f;
+
         public static byte[] MetalFrame(int n, int border, int seed)
         {
             var px = new byte[n * n * 4]; int cut = border, band = Math.Max(4, border / 2);
@@ -551,7 +583,7 @@ namespace SevenDays.Procedural
                         float scratch = Hash(x / 3, y, seed) > 0.9f ? 0.1f : (Hash(x, y / 3, seed + 1) > 0.93f ? -0.06f : 0f);
                         r = steel + scratch; g = steel * 1.03f + scratch; b = steel * 1.09f + scratch; a = 1f;
                     }
-                    else { r = g = b = 0f; a = 0.6f; }
+                    else { r = g = b = 0f; a = PanelFill; }
                     // remaches junto a las esquinas
                     foreach (int cx in new[] { cut + band, n - 1 - cut - band })
                         foreach (int cy in new[] { band + 2, n - 3 - band })
@@ -577,8 +609,9 @@ namespace SevenDays.Procedural
             for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
                 {
-                    RowGradientAt(x / (float)(w - 1), out float r, out float g, out float b);
-                    int o = (y * w + x) * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = 255;
+                    float t = x / (float)(w - 1);
+                    RowGradientAt(t, out float r, out float g, out float b);
+                    int o = (y * w + x) * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(1f - 0.75f * t * t * t);   // el naranja de la derecha es un brillo que se funde con el panel (el texto blanco sigue legible)
                 }
             return px;
         }
@@ -628,7 +661,7 @@ namespace SevenDays.Procedural
         public static byte[] Grain(int n, int seed)
         {
             var px = new byte[n * n * 4];
-            for (int i = 0; i < n * n; i++) { float v = Hash(i % n, i / n, seed); int o = i * 4; px[o] = px[o + 1] = px[o + 2] = B(v); px[o + 3] = B(GrainAmount); }
+            for (int i = 0; i < n * n; i++) { float v = Hash(i % n, i / n, seed); int o = i * 4; px[o] = px[o + 1] = px[o + 2] = 0; px[o + 3] = B(GrainAmount * 2f * v); }   // grano oscuro (de media 4 %): no aclara los negros
             return px;
         }
 

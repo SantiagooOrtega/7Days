@@ -116,13 +116,17 @@ namespace SevenDays.UI
         {
             int size = big ? BrandSize : BrandSmall;
             float h = size * 1.24f, top = 532f, cy = top - h / 2f, w = size * 3.1f;
-            var t = UiKit.Text(_screen, "7DAYS", size, UiKit.TitleCream, TextAnchor.MiddleLeft, new Vector2(BrandLeft + w / 2f, cy), new Vector2(w, h), false, false);
+            // stencil de verdad: el título va dentro de una máscara con dos cortes finos que atraviesan las letras
+            float cap = size * 0.72f, mh = h + 16f;
+            var mask = UiKit.Image(_screen, "Plantilla", new Vector2(0.5f, 0.5f), new Vector2(BrandLeft + w / 2f + 6f, cy - 4f), new Vector2(w + 24f, mh), Color.white);
+            const int MaskPx = 128; float c0 = mh / 2f + 4f;   // centro del texto dentro de la máscara (de abajo arriba)
+            var mtex = UiKit.Make(8, MaskPx, MenuArt.StencilMask(8, MaskPx, (c0 + cap * 0.2f) / mh, (c0 - cap * 0.18f) / mh, Mathf.Max(2, Mathf.RoundToInt(MaskPx * size * 0.022f / mh))), "Plantilla", TextureWrapMode.Clamp);
+            mask.sprite = Sprite.Create(mtex, new Rect(0, 0, 8, MaskPx), Vector2.one * 0.5f); _owned.Add(mtex); _owned.Add(mask.sprite);
+            mask.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            var t = UiKit.Text(mask.transform, "7DAYS", size, UiKit.TitleCream, TextAnchor.MiddleLeft, new Vector2(-6f, 4f), new Vector2(w, h), false, false);
             t.font = UiKit.TitleFont; t.name = "Título 7DAYS";
             var sh = t.GetComponent<Shadow>(); sh.effectColor = UiKit.TitleShadow; sh.effectDistance = new Vector2(8f, -8f);
-            float ink = Mathf.Min(w, t.preferredWidth), cap = size * 0.72f;
-            // stencil: dos cortes finos que cruzan las letras; arañazos encima
-            foreach (float f in new[] { 0.36f, -0.18f })
-                UiKit.Image(_screen, "Stencil", new Vector2(0.5f, 0.5f), new Vector2(BrandLeft + ink / 2f, cy + f * cap), new Vector2(ink + 4f, Mathf.Max(3f, size * 0.022f)), UiKit.Charcoal);
+            float ink = Mathf.Min(w, t.preferredWidth);
             var sc = new GameObject("Arañazos", typeof(RectTransform)).AddComponent<RawImage>(); sc.transform.SetParent(_screen, false); sc.raycastTarget = false;
             sc.texture = UiKit.ScratchTex; sc.rectTransform.anchoredPosition = new Vector2(BrandLeft + ink / 2f, cy); sc.rectTransform.sizeDelta = new Vector2(ink, cap * 1.05f);
             float y = top - h - 6f;
@@ -185,7 +189,7 @@ namespace SevenDays.UI
 
         private InputField Field(Transform parent, string label, ref float y, bool password)
         {
-            UiKit.Text(parent, label, 20, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-20f, y), new Vector2(640f, 26f), true);
+            UiKit.Text(parent, label, 24, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(-20f, y + 4f), new Vector2(640f, 32f), true);
             var bg = UiKit.Image(parent, "Campo " + label, new Vector2(0.5f, 0.5f), new Vector2(0f, y - 34f), new Vector2(660f, 44f), new Color(0f, 0f, 0f, 0.6f), UiKit.FrameSprite, true);
             bg.raycastTarget = true;
             var t = UiKit.Text(bg.transform, "", 26, UiKit.Cream, TextAnchor.MiddleLeft, Vector2.zero, new Vector2(620f, 40f), false, false);
@@ -237,6 +241,7 @@ namespace SevenDays.UI
         private void BuildTitle()
         {
             Brand("SOBREVIVE SIETE DÍAS", "VALLE HONDO");
+            UiKit.Image(_screen, "Banda pulsa", new Vector2(0.5f, 0.5f), new Vector2(0f, -330f), new Vector2(1000f, 70f), new Color(0f, 0f, 0f, 0.9f));   // el texto va sobre las llamas: banda oscura para que se lea
             var press = UiKit.Text(_screen, SelectContent.Tracked(PressText), 36, UiKit.Cream, TextAnchor.MiddleCenter, new Vector2(0f, -330f), new Vector2(1100f, 50f), true, false);
             press.name = "Pulsa Enter";
             press.GetComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
@@ -268,7 +273,8 @@ namespace SevenDays.UI
             _list.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;   // centrada en su banda
             _list.AddSeparator(3);   // Jugar, Continuar, Ranking, Perfil | Opciones, Créditos, Salir
             var news = UiKit.Panel(_screen, "Panel información", new Vector2(0.5f, 0.5f), new Vector2(InfoX, InfoY), new Vector2(InfoW, InfoH));
-            UiKit.Text(news, SelectContent.Tracked("INFORMACIÓN"), InfoSize, UiKit.Orange, TextAnchor.MiddleLeft, new Vector2(0f, InfoH / 2f - 40f), new Vector2(InfoW - 60f, 36f), true, false);
+            UiKit.Image(news, "Barra", new Vector2(0.5f, 0.5f), new Vector2(-InfoW / 2f + 26f, InfoH / 2f - 40f), new Vector2(6f, 30f), UiKit.Orange);
+            UiKit.Text(news, SelectContent.Tracked("INFORMACIÓN"), InfoSize, UiKit.White, TextAnchor.MiddleLeft, new Vector2(12f, InfoH / 2f - 40f), new Vector2(InfoW - 84f, 36f), true, false);
             _info = UiKit.Text(news, "", InfoSize, UiKit.Cream, TextAnchor.UpperLeft, new Vector2(0f, -22f), new Vector2(InfoW - 60f, InfoH - 100f), false, false);
             _info.horizontalOverflow = HorizontalWrapMode.Wrap; _info.verticalOverflow = VerticalWrapMode.Truncate; _info.lineSpacing = 1.05f;
             var prof = FrontEndData.Profile;
@@ -451,7 +457,7 @@ namespace SevenDays.UI
             {
                 if (r == highlight) UiKit.Image(parent, "Fila jugador", new Vector2(0.5f, 0.5f), new Vector2(pos.x, pos.y - r * 44f), new Vector2(1300f, 40f), Color.white, UiKit.HighlightSprite);
                 for (int c = 0; c < rows[r].Length; c++)
-                    UiKit.Text(parent, rows[r][c], r == 0 ? 20 : 24, r == 0 ? UiKit.CreamDim : UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(pos.x - 560f + c * 220f, pos.y - r * 44f), new Vector2(220f, 36f), r == 0);
+                    UiKit.Text(parent, rows[r][c], 24, r == 0 ? UiKit.Amber : UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(pos.x - 560f + c * 220f, pos.y - r * 44f), new Vector2(220f, 36f), r == 0);
             }
         }
 

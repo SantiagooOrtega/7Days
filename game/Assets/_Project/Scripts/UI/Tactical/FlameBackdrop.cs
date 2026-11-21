@@ -19,7 +19,7 @@ namespace SevenDays.UI.Tactical
         private RawImage[] _columns, _flames;
         private readonly RectTransform[] _city = new RectTransform[3];
         private Image[] _windows;
-        private Image _flicker, _glow;
+        private RawImage _flicker, _glow;
         private RectTransform[] _spark;
         private float[] _sparkSpeed;
         public SkullBackdrop Skull { get; private set; }
@@ -63,8 +63,9 @@ namespace SevenDays.UI.Tactical
                 b._windows[i] = w;
             }
             b.Skull = SkullBackdrop.Create(root);
-            b._flicker = new GameObject("Fuego", typeof(RectTransform)).AddComponent<Image>(); b._flicker.transform.SetParent(root, false); Fill(b._flicker.rectTransform);
-            b._flicker.color = new Color(1f, 0.4f, 0.1f, 0.04f); b._flicker.raycastTarget = false;
+            // parpadeo del fuego: resplandor suave abajo, sin bordes (en espacio lineal un velo naranja a pantalla completa aclara todo el cielo)
+            b._flicker = Raw(root, "Fuego", UiKit.GlowTex, new Color(1f, 1f, 1f, 0f));
+            var fr = b._flicker.rectTransform; fr.anchorMax = new Vector2(1f, 0.55f);
             b.BuildFlames(root);
             b._city[2] = b.City(root, 2, tint);
             b._spark = new RectTransform[Sparks]; b._sparkSpeed = new float[Sparks];
@@ -74,10 +75,9 @@ namespace SevenDays.UI.Tactical
                 var s = UiKit.Image(root, "Brasa", new Vector2(0.5f, 0f), Vector2.zero, new Vector2(sz, sz), new Color(1f, Random.Range(0.45f, 0.8f), 0.2f, 0.95f));
                 b._spark[i] = s.rectTransform; b.Respawn(i, Random.value * 1000f);
             }
-            b._smokeTop = Raw(root, "Humo sobre el fuego", UiKit.SmokeTex, new Color(0.12f, 0.08f, 0.07f, 0.55f));
-            var st = b._smokeTop.rectTransform; st.anchorMax = new Vector2(1f, 0.5f);
-            b._glow = UiKit.Image(root, "Resplandor", new Vector2(0.5f, 0f), new Vector2(0f, 200f), new Vector2(400f, 1920f), new Color(1f, 0.35f, 0.05f, 0.18f));
-            b._glow.sprite = UiKit.HighlightSprite; b._glow.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            b._smokeTop = Raw(root, "Humo sobre el fuego", UiKit.SmokeTex, new Color(0.12f, 0.08f, 0.07f, 0.4f));   // pantalla completa: sin borde recto
+            b._glow = Raw(root, "Resplandor", UiKit.GlowTex, new Color(1f, 1f, 1f, 0.2f));
+            b._glow.rectTransform.anchorMax = new Vector2(1f, 0.35f);
             b._grain = Raw(root, "Grano", UiKit.GrainTex, Color.white); b._grain.uvRect = new Rect(0, 0, 12f, 7f);
             root.SetAsFirstSibling();
             return b;
@@ -126,7 +126,7 @@ namespace SevenDays.UI.Tactical
         private void Update()
         {
             float t = Time.unscaledTime, dt = Time.unscaledDeltaTime;
-            var c = _flicker.color; c.a = 0.03f + 0.03f * Mathf.PerlinNoise(t * 3.1f, 0.3f); _flicker.color = c;
+            var c = _flicker.color; c.a = 0.25f + 0.2f * Mathf.PerlinNoise(t * 3.1f, 0.3f); _flicker.color = c;
             _smokeA.uvRect = new Rect(t * 0.004f, -t * 0.006f, 1f, 1f);
             _smokeB.uvRect = new Rect(-t * 0.007f + 0.37f, -t * 0.009f + 0.21f, 1.4f, 1.2f);
             _smokeTop.uvRect = new Rect(t * 0.01f, -t * 0.03f, 1.5f, 1f);
@@ -142,10 +142,11 @@ namespace SevenDays.UI.Tactical
             {
                 int fr = ((int)(t * (i == 0 ? FlameFps * 0.75f : FlameFps)) + i * 11) % MenuArt.FlameFrames;   // las grandes, más lentas
                 float fw = 1f / MenuArt.FlameCols, fh = 1f / rows;
-                var uv = new Rect((fr % MenuArt.FlameCols) * fw, (rows - 1 - fr / MenuArt.FlameCols) * fh, fw, fh);
+                const float tx = 1f / (MenuArt.FlameW * MenuArt.FlameCols), ty = 1f / (MenuArt.FlameH * rows);   // medio texel hacia dentro: sin sangrado del fotograma vecino
+                var uv = new Rect((fr % MenuArt.FlameCols) * fw + tx, (rows - 1 - fr / MenuArt.FlameCols) * fh + ty, fw - 2f * tx, fh - 2f * ty);
                 for (int k = 0; k < Tiles; k++) _flames[i * Tiles + k].uvRect = uv;
             }
-            var gc = _glow.color; gc.a = 0.14f + 0.1f * Mathf.PerlinNoise(t * 2.3f, 0.7f); _glow.color = gc;
+            var gc = _glow.color; gc.a = 0.16f + 0.12f * Mathf.PerlinNoise(t * 2.3f, 0.7f); _glow.color = gc;
             _grain.uvRect = new Rect(Random.value, Random.value, 12f, 7f);
             for (int i = 0; i < Sparks; i++)
             {
