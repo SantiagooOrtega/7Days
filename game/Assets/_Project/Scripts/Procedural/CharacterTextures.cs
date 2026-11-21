@@ -132,6 +132,7 @@ namespace SevenDays.Procedural
             float stitch = seam < 0.035f ? ((float)Math.Sin((u + v) * 600f) > 0.2f ? 1f : 0f) * Smooth(0.035f, 0.02f, seam) : 0f;
             c = Rgb.Lerp(c, c.Scale(0.6f), stitch * 0.6f);
             float ao = 1f - 0.25f * Smooth(0.6f, 0.2f, wrinkle);
+            if (p.hiVis && cell == UCamo) HiVis(u, v, p, seed, ref c, out _);
             if (cell == UCamoMud)
             {
                 // espinillas: barro abajo (v pequeña = tobillo) y rodilla gastada arriba
@@ -142,7 +143,7 @@ namespace SevenDays.Procedural
                 c = Rgb.Lerp(c, new Rgb(0.38f, 0.35f, 0.29f), knee * 0.5f);
                 o.Smooth = 0.18f + mud * 0.25f;
             }
-            else o.Smooth = 0.2f;
+            else o.Smooth = p.hiVis && cell == UCamo && InBand(v) ? 0.55f : 0.2f;   // las bandas reflectantes brillan
             // sangre seca, leve y rara
             float blood = Smooth(0.82f, 0.9f, Fbm(u + 0.3f, v, 5, 4, seed + 41));
             c = Rgb.Lerp(c, new Rgb(0.18f, 0.06f, 0.04f), blood * 0.55f);
@@ -160,6 +161,7 @@ namespace SevenDays.Procedural
             float su = Frac(u * 2f), sv = Frac(v * 2f);
             int creases = sub == 1 ? 7 : 6; float amp = sub == 1 ? 1.35f : 1f;
             Rgb camo = Camo(su, sv, p, seed + sub * 7);
+            if (p.hiVis && sub == 0) HiVis(su, sv, p, seed, ref camo, out _);   // codos de la chaqueta
             float du = Math.Min(su, 1f - su);                 // 0 en el pliegue interior, 0.5 en la punta
             float crook = Smooth(0.42f, 0.08f, du);
             float ridge = 0f;
@@ -179,6 +181,20 @@ namespace SevenDays.Procedural
         }
 
         /// <summary>Woodland oscuro: base, manchas medianas, manchas oscuras y trazos claros, con bordes deformados.</summary>
+        /// <summary>Bandas reflectantes horizontales de la chaqueta (dos por pieza: en el torso quedan como anillos, como en las chaquetas de rescate).</summary>
+        public static bool InBand(float v) => (v > 0.3f && v < 0.37f) || (v > 0.63f && v < 0.7f);
+
+        /// <summary>Chaqueta de alta visibilidad: naranja con algo de suciedad y las bandas plateadas.</summary>
+        private static void HiVis(float u, float v, CharacterVariantData p, int seed, ref Rgb c, out bool band)
+        {
+            float grime = Fbm(u, v, 5, 3, seed + 21);
+            Rgb j = CharacterVariantData.C(p.jacket).Scale(0.86f + 0.2f * grime);
+            band = InBand(v);
+            float twill = (float)Math.Sin((u * 1.0f + v) * 260f * Math.PI) * 0.5f + 0.5f;
+            c = band ? CharacterVariantData.C(p.reflective).Scale(0.9f + 0.1f * twill) : j.Scale(0.94f + 0.08f * twill);
+            c = Rgb.Lerp(c, new Rgb(0.3f, 0.25f, 0.2f), Smooth(0.6f, 0.9f, grime) * 0.3f);   // polvo y hollín
+        }
+
         private static Rgb Camo(float u, float v, CharacterVariantData p, int seed)
         {
             float k = p.camoScale;

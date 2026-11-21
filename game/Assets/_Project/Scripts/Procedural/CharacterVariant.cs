@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SevenDays.Procedural
 {
-    public enum Headgear { SkullHelmet, CapGoggles, MedicHelmet, SniperHood }
+    public enum Headgear { SkullHelmet, CapGoggles, MedicHelmet, SniperHood, HoodCap }
 
     /// <summary>
     /// Variante jugable del soldado (pura y serializable con JsonUtility, validable desde JSON para el backend o el contenido offline): pieza de cabeza, paleta
@@ -38,6 +38,10 @@ namespace SevenDays.Procedural
         public float[] paint = { 0.82f, 0.8f, 0.74f };       // pintura blanca gastada de la calavera
         public float[] accent = { 0.62f, 0.3f, 0.12f };      // naranja apagado (franjas, cintas)
         public float[] fabric = { 0.3f, 0.27f, 0.2f };       // gorra, pañuelo, capucha o red
+        // chaqueta de alta visibilidad (rescatista): torso, brazos y codos en este color con dos bandas reflectantes; el pantalón usa el camuflaje (oscuro)
+        public bool hiVis;
+        public float[] jacket = { 0.93f, 0.4f, 0.07f };
+        public float[] reflective = { 0.74f, 0.76f, 0.74f };
 
         // estadísticas (la Calavera es la referencia: todo 1)
         public float maxHealth = 100f;
@@ -56,6 +60,7 @@ namespace SevenDays.Procedural
             camoBase = Fix(camoBase, d.camoBase); camoMid = Fix(camoMid, d.camoMid); camoDark = Fix(camoDark, d.camoDark); camoLight = Fix(camoLight, d.camoLight);
             gear = Fix(gear, d.gear); gearDark = Fix(gearDark, d.gearDark); leather = Fix(leather, d.leather); boot = Fix(boot, d.boot); pad = Fix(pad, d.pad);
             metal = Fix(metal, d.metal); helmet = Fix(helmet, d.helmet); paint = Fix(paint, d.paint); accent = Fix(accent, d.accent); fabric = Fix(fabric, d.fabric);
+            jacket = Fix(jacket, d.jacket); reflective = Fix(reflective, d.reflective);
             camoScale = Clamp(camoScale, 0.5f, 2f);
             buildScale = Clamp(buildScale, 0.9f, 1.1f);
             maxHealth = Clamp(maxHealth, 60f, 140f);
@@ -103,6 +108,15 @@ namespace SevenDays.Procedural
                 camoBase = new[] { 0.2f, 0.21f, 0.15f }, camoMid = new[] { 0.25f, 0.2f, 0.13f }, camoDark = new[] { 0.08f, 0.08f, 0.06f }, camoLight = new[] { 0.31f, 0.3f, 0.22f },
                 gear = new[] { 0.18f, 0.18f, 0.13f }, fabric = new[] { 0.23f, 0.22f, 0.15f },
                 maxHealth = 95f, weaponSway = 0.8f,
+            },
+            new CharacterVariantData
+            {
+                // rescatista del cómic: chaqueta naranja reflectante con bandas, capucha oscura bajo la gorra, pañuelo como mascarilla, guantes, pantalón oscuro y botas
+                id = "sam_duarte", displayName = "Sam Duarte", headgear = Headgear.HoodCap, visor = false, seed = 59, hiVis = true,
+                camoBase = new[] { 0.12f, 0.12f, 0.13f }, camoMid = new[] { 0.1f, 0.1f, 0.11f }, camoDark = new[] { 0.07f, 0.07f, 0.08f }, camoLight = new[] { 0.16f, 0.16f, 0.17f },
+                gear = new[] { 0.16f, 0.16f, 0.16f }, gearDark = new[] { 0.09f, 0.09f, 0.09f }, leather = new[] { 0.13f, 0.12f, 0.11f }, boot = new[] { 0.14f, 0.11f, 0.08f },
+                fabric = new[] { 0.15f, 0.16f, 0.18f }, accent = new[] { 0.9f, 0.42f, 0.1f },
+                jacket = new[] { 0.93f, 0.4f, 0.07f }, reflective = new[] { 0.74f, 0.76f, 0.74f },
             },
         };
 

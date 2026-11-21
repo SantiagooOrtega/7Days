@@ -190,7 +190,7 @@ namespace SevenDays.Procedural
                     0.38f, 0.079f, 0.088f, 0f, 0.006f,    // cuádriceps (hacia delante)
                     0.62f, 0.070f, 0.076f, 0f, 0.008f,
                     0.86f, 0.056f, 0.058f, 0f, 0.002f,    // desde aquí, medidas absolutas: no pasan de la rótula
-                    1.00f, 0.052f, 0.053f, 0f, 0f), 14, true, true, U(CharacterTextures.UCamo), 0.45f);
+                    1.00f, 0.052f, 0.053f, 0f, 0f), 14, true, true, U(v.hiVis ? CharacterTextures.UCamoMud : CharacterTextures.UCamo), 0.45f);   // con chaqueta: pantalón oscuro
                 Add(ul, "limb", SlotUniform, th);
                 var pocket = new MeshBuilder();
                 pocket.Box(new V3(side * 0.088f * f, -thigh * 0.45f, 0f), new V3(0.026f, 0.12f, 0.1f), new V3(0, 0, 0), 0.008f, G(CharacterTextures.GPouch), 0.15f);
@@ -325,6 +325,19 @@ namespace SevenDays.Procedural
                         patch.Box(at, new V3(0.06f, 0.06f, 0.006f), new V3(-25f, lon, 0), 0.002f, G(CharacterTextures.GArmband), 0.08f);
                     }
                     add(BoneId.Head, "parches", SlotGear, patch, false, default);
+                    break;
+                }
+                case Headgear.HoodCap:
+                {
+                    // rescatista: capucha oscura de punto pegada a la cabeza, gorra encima (con visera) y pañuelo como mascarilla
+                    var hood = new MeshBuilder();
+                    hood.Dome(new V3(0f, 0.108f, -0.014f), new V3(0, 0, 0), new V3(0.122f, 0.124f, 0.134f), lon => HoodCut(lon), 0.008f, 22, 8, U(CharacterTextures.UKnit), 0.4f);
+                    add(BoneId.Head, "capucha", SlotUniform, hood, true, default);
+                    var cap = new MeshBuilder();
+                    cap.Dome(new V3(0f, 0.15f, -0.004f), new V3(0, 0, 0), new V3(0.126f, 0.09f, 0.136f), lon => 0f, 0.008f, 20, 6, HS(CharacterTextures.HHeadwear, CharacterTextures.HwCap), 0.3f);
+                    cap.Box(new V3(0f, 0.158f, 0.15f), new V3(0.17f, 0.008f, 0.085f), new V3(-10f, 0, 0), 0.003f, HS(CharacterTextures.HHeadwear, CharacterTextures.HwCap), 0.2f);   // visera
+                    add(BoneId.Head, "gorra", SlotHelmet, cap, true, default);
+                    Bandana(add);
                     break;
                 }
                 default:   // capucha con red y velo

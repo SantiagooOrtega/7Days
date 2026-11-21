@@ -245,9 +245,9 @@ namespace SevenDays.UI
                 }
                 else
                 {
-                    var tex = UiKit.Make(96, 160, MenuArt.Soldier(96, 160, new[] { 0.85f + v.camoLight[0] * 0.2f, 0.8f, 0.68f }), "Silueta", TextureWrapMode.Clamp); _owned.Add(tex);
+                    var tex = UiKit.Make(96, 160, MenuArt.Soldier(96, 160, v.hiVis ? new[] { v.jacket[0], v.jacket[1] + 0.12f, v.jacket[2] + 0.1f } : new[] { 0.85f + v.camoLight[0] * 0.2f, 0.8f, 0.68f }), "Silueta", TextureWrapMode.Clamp); _owned.Add(tex);
                     _soldier.sprite = Sprite.Create(tex, new Rect(0, 0, 96, 160), Vector2.one * 0.5f);
-                    _info.text = v.displayName.ToUpperInvariant() + "\n\nVida " + Mathf.RoundToInt(v.maxHealth) + "\nVelocidad x" + v.moveSpeed.ToString("0.00") + "\nCuración x" + v.healing.ToString("0.00") + "\nBalanceo del arma x" + v.weaponSway.ToString("0.00");
+                    _info.text = v.displayName.ToUpperInvariant() + "\n\nVida " + Mathf.RoundToInt(v.maxHealth) + "\nVelocidad x" + v.moveSpeed.ToString("0.00") + "\nCuración x" + v.healing.ToString("0.00") + "\nBalanceo del arma x" + v.weaponSway.ToString("0.00") + (v.hiVis ? "\n\nRescatista: chaqueta reflectante, capucha y gorra." : "");
                 }
             }
             _list.Selected += Refresh; Refresh(0);
