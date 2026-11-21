@@ -72,7 +72,7 @@ namespace SevenDays.Procedural
             foreach (var o in l.openings) if (o.id == "inner_door" || o.id == "back_door") o.width = 1.5f;
             l.upperOpenings = new[]
             {
-                new HouseOpening { id = "up_balcony_door", wall = "south", offset = -2.5f, width = 1.2f, height = 2.1f, kind = "door" },
+                new HouseOpening { id = "up_balcony_door", wall = "south", offset = -2.5f, width = 1.5f, height = 2.3f, kind = "door" },
                 new HouseOpening { id = "up_win_south", wall = "south", offset = 2.6f, width = 1.3f, sill = 1.0f, height = 0.9f, kind = "window" },
                 new HouseOpening { id = "up_win_north", wall = "north", offset = -2.6f, width = 1.3f, sill = 1.0f, height = 0.9f, kind = "window" },
                 new HouseOpening { id = "up_win_east", wall = "east", offset = -1.6f, width = 1.3f, sill = 1.0f, height = 0.9f, kind = "window" },

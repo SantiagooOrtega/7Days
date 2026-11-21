@@ -96,6 +96,7 @@ namespace SevenDays.Combat
             _agent.acceleration = 14f; _agent.angularSpeed = 360f; _agent.stoppingDistance = 0.1f; _agent.autoBraking = true;
             _agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance; // evita que se amontonen sin costar mucho
             _agent.avoidancePriority = UnityEngine.Random.Range(30, 70);   // se ajusta por tipo al activarse (Activate)
+            _agent.autoTraverseOffMeshLink = false;   // los enlaces (puertas, ventana grande) se recorren andando, no de golpe (TraverseLink)
             _agent.enabled = false;
             _rb = gameObject.AddComponent<Rigidbody>();
             _rb.isKinematic = true; _rb.useGravity = false;
@@ -261,6 +262,8 @@ namespace SevenDays.Combat
                 AnimateBody(dt, 0f, -1f, 0f);
                 return;
             }
+
+            if (_useAgent && _agent.enabled && _agent.isOnOffMeshLink) { TraverseLink(dt); return; }
 
             if (_knock.sqrMagnitude > 0.0004f)
             {
@@ -720,6 +723,30 @@ namespace SevenDays.Combat
             Vector3 next = transform.position + dir * step;
             if (Physics.Raycast(next + Vector3.up * 1.5f, Vector3.down, out RaycastHit g, 4f, mask, QueryTriggerInteraction.Ignore)) next.y = g.point.y;
             transform.position = next;
+        }
+
+        /// <summary>
+        /// Cruza un enlace del NavMesh caminando hacia su final a la velocidad del agente (más despacio si sube o baja) y mirando hacia delante, con la animación de
+        /// andar; al llegar, lo completa. Antes Unity lo cruzaba en un frame (parecía un teletransporte).
+        /// </summary>
+        private void TraverseLink(float dt)
+        {
+            var data = _agent.currentOffMeshLinkData;
+            Vector3 end = data.endPos + Vector3.up * _agent.baseOffset;
+            Vector3 pos = transform.position;
+            Vector3 to = end - pos;
+            float speed = Mathf.Max(0.8f, _agent.speed) * (Mathf.Abs(to.y) > 0.3f ? 0.6f : 0.85f);
+            float stepLen = speed * dt;
+            if (to.magnitude <= stepLen + 0.02f)
+            {
+                transform.position = end;
+                _agent.CompleteOffMeshLink();
+                return;
+            }
+            transform.position = pos + to.normalized * stepLen;
+            Vector3 flat = new Vector3(to.x, 0f, to.z);
+            if (flat.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flat), 1f - Mathf.Exp(-10f * dt));
+            AnimateBody(dt, 1f, -1f, 0f);
         }
 
         /// <summary>Prioridad de esquive del NavMesh por tipo (menor = más importante): jefes y tanques no ceden el paso; comunes y corredores sí.</summary>

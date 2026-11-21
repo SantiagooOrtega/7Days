@@ -300,12 +300,13 @@ namespace SevenDays.Tests.PlayMode
             var spawn = Array.Find(zm.GetMethods(), x => x.Name == "Spawn" && x.GetParameters()[0].ParameterType == typeof(string));
             var z = (Component)spawn.Invoke(mgr, new object[] { "common", W(2.8f, 0.2f, -1.6f), 1f, 1f, 1f, true });
             Assert.IsNotNull(z);
-            Vector3 prev = z.transform.position; float maxStep = 0f, t1 = Time.time; bool up = false; int frames = 0;
+            Vector3 prev = z.transform.position; float maxStep = 0f, t1 = Time.time; bool up = false; int frames = 0; bool prevLink = false;
             while (Time.time - t1 < 60f)   // tarda 9-25 s según cuándo termina de emerger
             {
                 yield return null; frames++;
                 var p = z.transform.position;
-                float step = Vector3.Distance(p, prev); if (frames > 3) maxStep = Mathf.Max(maxStep, step / Mathf.Max(1f, Time.deltaTime * 60f));
+                float step = Vector3.Distance(p, prev); float norm = step / Mathf.Max(1f, Time.deltaTime * 60f); if (frames > 3 && norm > maxStep) { maxStep = norm; if (norm > 0.35f) Debug.Log("[Escalera] salto en frame " + frames + ": " + prev + " -> " + p + " dt " + Time.deltaTime + " enlace antes=" + prevLink + " estado=" + z.GetType().GetProperty("State")?.GetValue(z)); }
+                var ag = z.GetComponent<UnityEngine.AI.NavMeshAgent>(); prevLink = ag != null && ag.enabled && ag.isOnOffMeshLink;
                 prev = p;
                 if (p.y > y2 - 0.3f) { up = true; break; }
             }

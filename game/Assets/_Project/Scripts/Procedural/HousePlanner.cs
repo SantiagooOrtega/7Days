@@ -82,10 +82,15 @@ namespace SevenDays.Procedural
         public const float FloorThickness = 0.12f;
         public const float RoofThickness = 0.25f;
         public const float DoorFramePad = 0.08f;
+        /// <summary>Alto libre mínimo de una puerta para que el NavMesh (agentes de 2 m) la cruce.</summary>
+        public const float MinDoorHeight = 2.3f;
 
         public static HousePlan Plan(HouseLayoutData l)
         {
             var plan = new HousePlan();
+            // paso libre de las puertas: con agentes de 2 m, 2.1 m se redondeaba por debajo al hornear y el NavMesh no cruzaba la puerta interior ni la trasera
+            foreach (var o in l.openings) if (o.kind == "door" && o.height < MinDoorHeight) o.height = MinDoorHeight;
+            foreach (var o in l.upperOpenings) if (o.kind == "door" && o.height < MinDoorHeight) o.height = MinDoorHeight;
             float W = l.width, D = l.depth, H = l.wallHeight, T = l.wallThickness;
 
             // piso

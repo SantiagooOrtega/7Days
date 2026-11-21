@@ -134,22 +134,7 @@ namespace SevenDays.World
                 vol.size = alongX ? new Vector3(o.width, 2.4f, info.Thickness + 1.0f) : new Vector3(info.Thickness + 1.0f, 2.4f, o.width);
                 vol.center = Vector3.zero;
                 vol.area = 0; // Walkable
-                // y un enlace a través del hueco: con agentes de 0.5 m de radio el horneado cerraba las puertas de 1.1 m (la habitación este quedaba aislada).
-                // El director lo apaga al tapiar la puerta (RegisterLink), igual que la ventana grande.
-                var lg = new GameObject("Link " + o.id);
-                lg.transform.SetParent(house, false);
-                lg.transform.localPosition = new Vector3(center.x, 0f, center.z);
-                var dl = lg.AddComponent<NavMeshLink>();
-                float reach = info.Thickness / 2f + 0.75f;
-                float inY = floorY + HousePlanner.FloorThickness;                                  // suelo de dentro (abajo o piso 2)
-                float outY = o.wall == "interior" || floorY > 0.5f ? inY : 0f;                    // fuera: calle, otra habitación o balcón
-                dl.startPoint = new Vector3(-normal.x * reach, inY, -normal.z * reach);
-                dl.endPoint = new Vector3(normal.x * reach, outY, normal.z * reach);
-                dl.width = Mathf.Max(0.3f, o.width - 0.3f);
-                dl.bidirectional = true;
-                dl.area = 0;
-                dl.autoUpdate = false;
-                controller.RegisterLink(o.id, dl);
+                // sin enlaces: el NavMesh cruza la puerta (alto libre >= 2.3 m, ancho >= 1.2 m) y los zombis la atraviesan andando
                 return;
             }
 
