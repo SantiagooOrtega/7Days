@@ -16255,9 +16255,9 @@
         "brightness": 1.2999999523162842,
         "density": 1.0,
         "groundFogLayers": 4,
-        "groundFogDensity": 2.45,
-        "groundFogAlpha": 0.14,
-        "hazeBanks": 9,
+        "groundFogDensity": 3.05,
+        "groundFogAlpha": 0.16,
+        "hazeBanks": 11,
         "skyDim": 0.08,
         "ash": 0.0,
         "smokeColumns": 0,
@@ -16276,7 +16276,7 @@
         "roadMarkings": false,
         "fireflies": 1.0,
         "soundscape": "forest",
-        "horizonFog": 1.2,
+        "horizonFog": 1.5,
         "distantLights": true,
         "perimeter": "logs"
     }

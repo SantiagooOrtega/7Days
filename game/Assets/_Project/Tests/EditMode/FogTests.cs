@@ -36,5 +36,15 @@ namespace SevenDays.Tests
             Assert.Greater(a.horizonFog, 0f, id + ": pared de bruma en el horizonte");
             CollectionAssert.IsEmpty(MapKit.Validate(JsonUtility.FromJson<MapData>(File.ReadAllText(Path.Combine(Application.dataPath, "_Project/Resources/Maps/" + id + ".json")))));
         }
+
+        [Test]
+        public void SecondRound_Plus25Percent_StillVisibleAt25m()
+        {
+            var c = A("calle_en_ruinas"); var b = A("bosque_oscuro");
+            Assert.GreaterOrEqual(c.fogDensity, 0.0108f * 1.24f, "Calle: +25 % sobre 0.0108");
+            Assert.GreaterOrEqual(b.groundFogDensity, 2.45f * 1.24f, "Bosque: +25 % en la bruma baja (la densidad ya está al máximo de 25 m)");
+            Assert.Greater(b.horizonFog, 1.2f);
+            foreach (var a in new[] { c, b }) Assert.GreaterOrEqual(FogModel.Visibility(a.fogDensity, 25f), FogModel.MinVisibility - 1e-4f);
+        }
     }
 }

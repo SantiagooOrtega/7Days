@@ -167,7 +167,7 @@ namespace SevenDays.Look
 
         // Niebla y ambiente: gris azulado medio (tarde nublada)
         public Color FogColor = new Color(0.50f, 0.5525f, 0.61f);   // un 25 % hacia el cielo: el fondo se funde
-        public float FogDensity = 0.0108f;   // +35 % tras probar (antes 0.008)
+        public float FogDensity = 0.0135f;   // +35 % y luego +25 % tras probar (antes 0.008)
         public Color AmbientSky = new Color(0.50f, 0.56f, 0.64f);
         public Color AmbientEquator = new Color(0.40f, 0.42f, 0.46f);
         public Color AmbientGround = new Color(0.22f, 0.22f, 0.23f);

@@ -285,10 +285,10 @@ namespace SevenDays.Procedural
                 props = props.ToArray(), houses = new[] { cabin }, spawns = spawns, vegetation = new PropLayoutData { items = veg.ToArray() }, loot = Loot(pts),
                 ambience = new MapAmbience
                 {
-                    hour = 22f, fogColor = Rgb(0.13f, 0.17f, 0.26f), fogDensity = 0.047f, horizonFog = 1.2f,   // 0.047: el máximo que deja ver a 25 m (FogModel)
+                    hour = 22f, fogColor = Rgb(0.13f, 0.17f, 0.26f), fogDensity = 0.047f, horizonFog = 1.5f,   // 0.047: el máximo que deja ver a 25 m (FogModel)
                     ambientSky = Rgb(0.24f, 0.31f, 0.48f), ambientEquator = Rgb(0.15f, 0.19f, 0.27f), ambientGround = Rgb(0.07f, 0.07f, 0.08f),
                     sunPitch = 42f, sunYaw = 120f, sunColor = Rgb(0.6f, 0.72f, 1f), sunIntensity = 0.8f, shadowStrength = 0.6f, brightness = 1.3f,
-                    groundFogLayers = 4, groundFogDensity = 2.45f, groundFogAlpha = 0.14f, hazeBanks = 9, skyDim = 0.08f, ash = 0f, smokeColumns = 0, smoke = 0.6f, sparks = 1f,
+                    groundFogLayers = 4, groundFogDensity = 3.05f, groundFogAlpha = 0.16f, hazeBanks = 11, skyDim = 0.08f, ash = 0f, smokeColumns = 0, smoke = 0.6f, sparks = 1f,
                     godRays = 6, godRayIntensity = 0.07f, redFlickerLamps = 0, cracks = 0, weedTufts = 0, puddles = 8, bloodStains = 4, skylineBuildings = 0,
                     dust = false, skyline = false, roadMarkings = false, distantLights = true, perimeter = "logs", fireflies = 1f, soundscape = "forest",
                 },

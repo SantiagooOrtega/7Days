@@ -6291,7 +6291,7 @@
             0.5525,
             0.61
         ],
-        "fogDensity": 0.0108,
+        "fogDensity": 0.0135,
         "ambientSky": [
             0.5,
             0.5600000023841858,
@@ -6319,9 +6319,9 @@
         "brightness": 1.25,
         "density": 1.0,
         "groundFogLayers": 3,
-        "groundFogDensity": 1.35,
-        "groundFogAlpha": 0.095,
-        "hazeBanks": 14,
+        "groundFogDensity": 1.7,
+        "groundFogAlpha": 0.11,
+        "hazeBanks": 17,
         "skyDim": 0.45,
         "ash": 1.0,
         "smokeColumns": 3,
@@ -6340,7 +6340,7 @@
         "roadMarkings": true,
         "fireflies": 0.0,
         "soundscape": "none",
-        "horizonFog": 1.0,
+        "horizonFog": 1.25,
         "perimeter": "trench"
     }
 }
