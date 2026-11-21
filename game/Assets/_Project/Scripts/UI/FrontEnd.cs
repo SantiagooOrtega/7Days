@@ -228,28 +228,26 @@ namespace SevenDays.UI
         public static string MapName(string id) => id == MapLibrary.ForestId ? "Bosque oscuro" : "Calle en ruinas";
 
         // ---------------------------------------------------------------- pantalla de inicio
-        // Emblema propio (calavera con el "7") a la izquierda del título "7DAYS" en el centro, "PULSA ENTER" parpadeando debajo, aviso de estado abajo a la derecha.
-        private static Texture2D _emblem;
+        // Título arriba a la izquierda, "PULSA ENTER PARA EMPEZAR" centrado y latiendo, aviso de VIGÍA arriba a la derecha (cian sobre azul noche) y pie de teclas.
+        public static readonly Color VigiaBg = new Color(0x0A / 255f, 0x1A / 255f, 0x22 / 255f, 0.8f), VigiaCyan = new Color(0x3F / 255f, 0xD0 / 255f, 0xE0 / 255f);
+        public const string PressText = "PULSA ENTER PARA EMPEZAR";
         public PressStart PressStartScreen { get; private set; }
         private FlameBackdrop _backdrop;
 
         private void BuildTitle()
         {
-            _emblem ??= UiKit.Make(512, 512, MenuArt.Emblem(512, 11), "Emblema", TextureWrapMode.Clamp);
-            var e = new GameObject("Emblema", typeof(RectTransform)).AddComponent<RawImage>(); e.transform.SetParent(_screen, false);
-            e.rectTransform.anchoredPosition = new Vector2(-500f, 80f); e.rectTransform.sizeDelta = new Vector2(360f, 360f); e.texture = _emblem; e.raycastTarget = false;
-            var t = UiKit.Text(_screen, "7DAYS", 200, UiKit.White, TextAnchor.MiddleLeft, new Vector2(-300f + 760f * UiKit.Condensed / 2f, 70f), new Vector2(760f, 230f), true);
-            t.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.95f);
-            t.GetComponent<Outline>().effectDistance = new Vector2(4f, -4f);
-            UiKit.Text(_screen, SelectContent.Tracked("SOBREVIVE SIETE DÍAS"), 34, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(-300f + 760f * UiKit.Condensed / 2f, -105f), new Vector2(760f, 50f), true);
-            var press = UiKit.Text(_screen, SelectContent.Tracked("PULSA ENTER"), 30, UiKit.Cream, TextAnchor.MiddleCenter, new Vector2(0f, -330f), new Vector2(600f, 50f), true);
-            // estado abajo a la derecha, como un aviso del sistema
-            var box = UiKit.Panel(_screen, "Panel estado", new Vector2(0.5f, 0.5f), new Vector2(620f, -400f), new Vector2(600f, 86f));
-            UiKit.Image(box, "Barra", new Vector2(0f, 0.5f), new Vector2(5f, 0f), new Vector2(6f, 80f), UiKit.Red);
-            UiKit.Text(box, SelectContent.Tracked("VIGÍA"), 24, UiKit.White, TextAnchor.MiddleLeft, new Vector2(-280f + 520f * UiKit.Condensed / 2f + 30f, 18f), new Vector2(520f, 32f), true);
-            UiKit.Text(box, Session.IsLoggedIn ? "Sesión iniciada: " + FrontEndData.PlayerName : "Señal vital detectada. Planta 7 en línea.", 22, UiKit.Cream, TextAnchor.MiddleLeft,
-                new Vector2(-280f + 540f * UiKit.Condensed / 2f + 30f, -16f), new Vector2(540f, 30f), false);
-            UiKit.Text(_screen, "Proyecto universitario · 2026", 18, UiKit.CreamDim, TextAnchor.MiddleCenter, new Vector2(0f, -500f), new Vector2(700f, 30f), false);
+            Brand("SOBREVIVE SIETE DÍAS", "VALLE HONDO");
+            var press = UiKit.Text(_screen, SelectContent.Tracked(PressText), 36, UiKit.Cream, TextAnchor.MiddleCenter, new Vector2(0f, -330f), new Vector2(1100f, 50f), true, false);
+            press.name = "Pulsa Enter";
+            press.GetComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
+            // aviso de VIGÍA arriba a la derecha
+            var box = UiKit.Image(_screen, "Panel VIGÍA", new Vector2(0.5f, 0.5f), new Vector2(960f - 40f - 310f, 540f - 40f - 52f), new Vector2(620f, 104f), VigiaBg).rectTransform;
+            var ol = box.gameObject.AddComponent<Outline>(); ol.effectColor = VigiaCyan; ol.effectDistance = new Vector2(2f, -2f);
+            UiKit.Image(box, "Barra", new Vector2(0f, 0.5f), new Vector2(4f, 0f), new Vector2(6f, 104f), VigiaCyan);
+            UiKit.Text(box, SelectContent.Tracked("VIGÍA"), 24, VigiaCyan, TextAnchor.MiddleLeft, new Vector2(10f, 24f), new Vector2(560f, 34f), true, false);
+            UiKit.Text(box, Session.IsLoggedIn ? "Sesión iniciada: " + FrontEndData.PlayerName : "Señal vital detectada. Planta 7 en línea.", 24, UiKit.Cream, TextAnchor.MiddleLeft,
+                new Vector2(10f, -18f), new Vector2(560f, 34f), false, false);
+            UiKit.Footer(_screen, "↑↓ Elegir · Enter Aceptar · Esc Volver");
             PressStartScreen = _screen.gameObject.AddComponent<PressStart>(); PressStartScreen.Label = press;
             PressStartScreen.Pressed += () => Open(Session.IsLoggedIn || TestMode ? FrontScreen.Menu : FrontScreen.Login);
         }

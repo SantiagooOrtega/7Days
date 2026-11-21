@@ -50,7 +50,7 @@ namespace SevenDays.Tests.Visual
         }
 
         [Test]
-        public void TitleScreen_HasEmblem_7DAYS_AndPressEnter()
+        public void TitleScreen_7DAYS_PressEnter_VigiaNotice_NoMedallion()
         {
             var fe = T("SevenDays.UI.FrontEnd"); var scr = T("SevenDays.UI.FrontScreen");
             var inst = (Component)fe.GetMethod("Show").Invoke(null, new[] { Enum.Parse(scr, "Title") });
@@ -59,8 +59,9 @@ namespace SevenDays.Tests.Visual
                 var texts = new List<string>();
                 foreach (var t in inst.GetComponentsInChildren(TextT, true)) texts.Add(System.Text.RegularExpressions.Regex.Replace((string)TextT.GetProperty("text").GetValue(t), "\\s+", ""));
                 CollectionAssert.Contains(texts, "7DAYS", "título del juego");
-                CollectionAssert.Contains(texts, "PULSAENTER");
-                Assert.IsNotNull(inst.transform.Find("Canvas menú/Pantalla Title/Emblema"), "emblema propio");
+                CollectionAssert.Contains(texts, "PULSAENTERPARAEMPEZAR");
+                Assert.IsNull(inst.transform.Find("Canvas menú/Pantalla Title/Emblema"), "sin medallón");
+                Assert.IsNotNull(inst.transform.Find("Canvas menú/Pantalla Title/Panel VIGÍA"), "aviso de VIGÍA");
                 Assert.IsNotNull(fe.GetProperty("PressStartScreen").GetValue(inst));
             }
             finally { UnityEngine.Object.DestroyImmediate(inst.gameObject); }

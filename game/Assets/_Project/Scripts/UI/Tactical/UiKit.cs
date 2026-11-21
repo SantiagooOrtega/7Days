@@ -131,10 +131,14 @@ namespace SevenDays.UI.Tactical
             return r;
         }
 
-        /// <summary>Pie con ayudas de teclas.</summary>
-        public static Text Footer(Transform parent, string hints) => FooterKeys(parent, KeyHints(hints), 24);
+        public const int FooterSize = 28;
+        public const float FooterH = 60f;
+        public const string KeyColor = "#FF7A1F";
 
-        /// <summary>"↑↓ Elegir · Enter Aceptar" -> la tecla en blanco y entre corchetes, la acción en crema apagado.</summary>
+        /// <summary>Pie con ayudas de teclas: 28 px, mayúsculas, la tecla en naranja y la acción en crema ("↑↓ ELEGIR · ENTER ACEPTAR · ESC VOLVER").</summary>
+        public static Text Footer(Transform parent, string hints) => FooterKeys(parent, KeyHints(hints), FooterSize);
+
+        /// <summary>"↑↓ Elegir · Enter Aceptar" -> "<naranja>↑↓</naranja> ELEGIR   ·   <naranja>ENTER</naranja> ACEPTAR".</summary>
         public static string KeyHints(string hints)
         {
             var sb = new System.Text.StringBuilder();
@@ -143,8 +147,8 @@ namespace SevenDays.UI.Tactical
                 var seg = raw.Trim(); if (seg.Length == 0) continue;
                 int sp = seg.IndexOf(' ');
                 string key = sp > 0 ? seg.Substring(0, sp) : seg, act = sp > 0 ? seg.Substring(sp + 1) : "";
-                if (sb.Length > 0) sb.Append("        ");
-                sb.Append("<color=#F0ECE6><b>[").Append(key).Append("]</b></color> <color=#9A938A>").Append(act).Append("</color>");
+                if (sb.Length > 0) sb.Append("   ·   ");
+                sb.Append("<color=").Append(KeyColor).Append("><b>").Append(key.ToUpperInvariant()).Append("</b></color> ").Append(act.ToUpperInvariant());
             }
             return sb.ToString();
         }
@@ -152,9 +156,9 @@ namespace SevenDays.UI.Tactical
         /// <summary>Pie grande y centrado con teclas resaltadas ("[Enter] Empezar"): la tecla en naranja y la acción en crema.</summary>
         public static Text FooterKeys(Transform parent, string hints, int size)
         {
-            var bar = Image(parent, "Pie", new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(1920f, 64f), new Color(0f, 0f, 0f, 0.78f));
+            var bar = Image(parent, "Pie", new Vector2(0.5f, 0f), new Vector2(0f, FooterH / 2f), new Vector2(1920f, FooterH), new Color(0f, 0f, 0f, 0.8f));
             Image(bar.transform, "Filo", new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(1920f, 2f), new Color(Red.r, Red.g, Red.b, 0.8f));
-            var t = Text(bar.transform, hints, size, Cream, TextAnchor.MiddleCenter, Vector2.zero, new Vector2(1800f / Condensed, 50f));
+            var t = Text(bar.transform, hints, Mathf.Max(MinFont, size), Cream, TextAnchor.MiddleCenter, Vector2.zero, new Vector2(1800f / Condensed, FooterH - 6f));
             t.supportRichText = true;
             return t;
         }
