@@ -27,9 +27,13 @@ namespace SevenDays.UI.Tactical
         private static Sprite _frameSprite, _highlightSprite;
         public static Texture2D Backdrop => _backdrop != null ? _backdrop : (_backdrop = Make(1024, 576, MenuArt.Backdrop(1024, 576, 7), "Fondo menú", TextureWrapMode.Clamp));
         public static Texture2D GrainTex => _grain != null ? _grain : (_grain = Make(128, 128, MenuArt.Grain(128, 3), "Grano", TextureWrapMode.Repeat));
-        private static Texture2D _flames;
-        public static Texture2D FlameTex => _flames != null ? _flames : (_flames = Make(SevenDays.Procedural.MenuArt.FlameW * SevenDays.Procedural.MenuArt.FlameCols,
-            SevenDays.Procedural.MenuArt.FlameH * (SevenDays.Procedural.MenuArt.FlameFrames / SevenDays.Procedural.MenuArt.FlameCols), SevenDays.Procedural.MenuArt.FlameAtlas(3), "Llamas", TextureWrapMode.Clamp));
+        private static readonly Texture2D[] _flames = new Texture2D[2];
+        /// <summary>Atlas de llamas del plano 0 (grandes, al fondo) o 1 (medias): distinta semilla, otras lenguas.</summary>
+        public static Texture2D FlameTex(int plane) => _flames[plane] != null ? _flames[plane] : (_flames[plane] = Make(SevenDays.Procedural.MenuArt.FlameW * SevenDays.Procedural.MenuArt.FlameCols,
+            SevenDays.Procedural.MenuArt.FlameH * (SevenDays.Procedural.MenuArt.FlameFrames / SevenDays.Procedural.MenuArt.FlameCols), SevenDays.Procedural.MenuArt.FlameAtlas(plane == 0 ? 3 : 8), "Llamas " + plane, TextureWrapMode.Clamp));
+        private static Material _additive;
+        /// <summary>Material aditivo para las llamas (shader en Resources/Look); si no se encuentra, null = mezcla normal.</summary>
+        public static Material Additive { get { if (_additive == null) { var sh = Resources.Load<Shader>("Look/UIAdditive"); if (sh != null) _additive = new Material(sh) { name = "UI aditivo", hideFlags = HideFlags.DontSave }; } return _additive; } }
         public static Texture2D SmokeTex => _smoke != null ? _smoke : (_smoke = Make(256, 128, MenuArt.Smoke(256, 128, 5), "Humo", TextureWrapMode.Repeat));
         public static Sprite FrameSprite { get { if (_frameSprite == null) { _frame = Make(64, 64, MenuArt.Frame(64, 12, 2), "Marco", TextureWrapMode.Clamp); _frameSprite = Sprite.Create(_frame, new Rect(0, 0, 64, 64), Vector2.one * 0.5f, 100, 0, SpriteMeshType.FullRect, new Vector4(14, 14, 14, 14)); } return _frameSprite; } }
         public static Sprite HighlightSprite { get { if (_highlightSprite == null) { _highlight = Make(128, 16, MenuArt.Highlight(128, 16, 4), "Resaltado", TextureWrapMode.Clamp); _highlightSprite = Sprite.Create(_highlight, new Rect(0, 0, 128, 16), Vector2.one * 0.5f); } return _highlightSprite; } }

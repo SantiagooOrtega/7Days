@@ -165,22 +165,42 @@ namespace SevenDays.Procedural
 
         public const int FlameFrames = 32, FlameCols = 8, FlameW = 256, FlameH = 128;
 
+        public const int Tongues = 9;
+
         /// <summary>
-        /// Una llama (u 0..1 se repite en horizontal, v 0 abajo..1 arriba, fase 0..1 se repite en el tiempo) → RGBA 0..1. Ruido que sube con turbulencia,
-        /// rampa de color de rojo oscuro a amarillo casi blanco en la base; la fase 1 es idéntica a la 0 (bucle sin salto).
+        /// Franja de llamas (u 0..1 se repite en horizontal, v 0 abajo..1 arriba, fase 0..1 se repite en el tiempo) → RGBA 0..1. Lenguas irregulares: cada una
+        /// con su altura, ancho, ondulación y fase (y 1 o 2 latidos por vuelta), con ruido que sube para romper los bordes; degradado blanco-amarillo-naranja-rojo.
+        /// La fase 1 es idéntica a la 0 (bucle sin salto).
         /// </summary>
         public static void Flame(float u, float v, float phase, int seed, out float r, out float g, out float b, out float a)
         {
+            const float TwoPi = (float)(Math.PI * 2);
             const int PX = 10, PY = 8;
-            float sx = u * PX, sy = v * 2.2f;
-            float warp = FbmP(sx * 0.5f + 3f, sy * 1.5f - phase * PY, seed + 5, PX / 2, PY, 2) - 0.5f;
-            float n = FbmP(sx + warp * 2.2f, sy - phase * PY, seed, PX, PY, 5);
-            float heat = C01(n * 2.1f - (float)Math.Pow(v, 0.7f) * 1.9f + 0.02f - 0.25f * v * v);
-            heat = heat * heat * (3 - 2 * heat);
-            if (heat < 0.5f) { float t = heat / 0.5f; r = 0.45f + 0.55f * t; g = 0.04f + 0.3f * t; b = 0.01f; }
-            else if (heat < 0.8f) { float t = (heat - 0.5f) / 0.3f; r = 1f; g = 0.34f + 0.42f * t; b = 0.02f + 0.16f * t; }
-            else { float t = (heat - 0.8f) / 0.2f; r = 1f; g = 0.76f + 0.2f * t; b = 0.18f + 0.5f * t; }
-            a = C01(heat * 2.6f);
+            float n = FbmP(u * PX, v * 2.2f - phase * PY, seed + 1, PX, PY, 4);
+            float wob = (FbmP(u * PX * 2f, v * 4f - phase * PY * 2f, seed + 6, PX * 2, PY * 2, 3) - 0.5f) * (0.7f / Tongues);   // bordes rotos que suben
+            float heat = 0f; int i0 = (int)Math.Floor(u * Tongues);
+            for (int d = -1; d <= 1; d++)
+            {
+                int k = ((i0 + d) % Tongues + Tongues) % Tongues;
+                float c = (k + 0.5f + 0.5f * (Hash(k, 0, seed) - 0.5f)) / Tongues;
+                int m = 1 + (int)(Hash(k, 3, seed) * 2f);   // latidos por vuelta (entero: bucle perfecto)
+                float ph = TwoPi * (m * phase + Hash(k, 2, seed));
+                float h = (0.45f + 0.5f * Hash(k, 1, seed)) * (0.82f + 0.18f * (float)Math.Sin(ph));
+                if (v >= h) continue;
+                float t = v / h;
+                float dx = u - c - (0.3f / Tongues) * t * (float)Math.Sin(ph * 1f + v * 7f) + wob * t;
+                dx -= (float)Math.Round(dx);
+                float half = (1.05f / Tongues) * (0.55f + 0.45f * Hash(k, 4, seed)) * (float)Math.Pow(1f - t, 0.75f);
+                float mask = C01(1f - Math.Abs(dx) / Math.Max(half, 1e-4f));
+                heat = Math.Max(heat, (float)Math.Pow(mask, 0.6f) * (float)Math.Pow(1f - t, 0.45f));
+            }
+            heat *= 0.4f + 0.75f * n;
+            heat += C01(0.14f - v) * 2.2f * (0.5f + 0.5f * n);   // base continua de brasas
+            heat = C01(heat);
+            if (heat < 0.35f) { float q = heat / 0.35f; r = 0.55f + 0.45f * q; g = 0.05f + 0.35f * q; b = 0.02f; }
+            else if (heat < 0.62f) { float q = (heat - 0.35f) / 0.27f; r = 1f; g = 0.4f + 0.4f * q; b = 0.03f + 0.2f * q; }
+            else { float q = C01((heat - 0.62f) / 0.38f); r = 1f; g = 0.8f + 0.15f * q; b = 0.23f + 0.45f * q * q; }
+            a = C01(heat * 2.8f);
         }
 
         /// <summary>Atlas de la animación de llamas: FlameFrames fotogramas de FlameW x FlameH en FlameCols columnas (RGBA32, de abajo arriba). Se genera una vez.</summary>

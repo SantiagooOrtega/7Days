@@ -109,8 +109,8 @@ namespace SevenDays.UI.Tactical
                     var r = f.rectTransform; r.anchorMin = r.anchorMax = Vector2.zero; r.pivot = Vector2.zero;
                     float h = i == 0 ? 430f : 300f, w = h * 2f;
                     r.sizeDelta = new Vector2(w, h); r.anchoredPosition = new Vector2(k * w - i * 170f, 30f);
-                    f.texture = UiKit.FlameTex; f.raycastTarget = false;
-                    f.color = i == 0 ? new Color(0.85f, 0.55f, 0.45f, 0.8f) : Color.white;
+                    f.texture = UiKit.FlameTex(i); f.raycastTarget = false; f.material = UiKit.Additive;   // brillo aditivo
+                    f.color = i == 0 ? new Color(0.9f, 0.6f, 0.5f, 0.85f) : new Color(1f, 0.95f, 0.9f, 0.9f);
                     _flames[i * Tiles + k] = f;
                 }
         }
@@ -140,7 +140,7 @@ namespace SevenDays.UI.Tactical
             const int rows = MenuArt.FlameFrames / MenuArt.FlameCols;
             for (int i = 0; i < FlameLayers; i++)
             {
-                int fr = ((int)(t * FlameFps) + i * 11) % MenuArt.FlameFrames;
+                int fr = ((int)(t * (i == 0 ? FlameFps * 0.75f : FlameFps)) + i * 11) % MenuArt.FlameFrames;   // las grandes, más lentas
                 float fw = 1f / MenuArt.FlameCols, fh = 1f / rows;
                 var uv = new Rect((fr % MenuArt.FlameCols) * fw, (rows - 1 - fr / MenuArt.FlameCols) * fh, fw, fh);
                 for (int k = 0; k < Tiles; k++) _flames[i * Tiles + k].uvRect = uv;
