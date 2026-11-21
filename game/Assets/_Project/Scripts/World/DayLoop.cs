@@ -186,15 +186,18 @@ namespace SevenDays.World
             var plan = Wave != null ? Wave.Plan : DayPlans.For(Cycle.Day);
             float waveSeconds = Wave != null ? Time.time - _waveStart : 0f;
             var d = DayStats.From(Cycle.Day, snap, waveSeconds, plan.totalZombies, died, plan.bossId != null, _killsByType);
+            var gm = SevenDays.Combat.GrenadeManager.Instance;
+            if (gm != null) { d.grenadeKills = gm.Kills - _grenadeKillsAtStart; d.grenadesThrown = gm.Thrown - _grenadesThrownAtStart; _grenadeKillsAtStart = gm.Kills; _grenadesThrownAtStart = gm.Thrown; }
             _scoreParts.Clear();
             d.rawScore = PerformanceScore.Raw(d, _scoreParts);
             Score = PerformanceScore.Smooth(Score, d.rawScore);
             d.score = Score;
             Match.days.Add(d);
-            Debug.Log("[7Days] Rendimiento día " + d.day + ": " + d.rawScore.ToString("0") + " -> suavizada " + Score.ToString("0") + " (" + string.Join("", _scoreParts) + ")");
+            Debug.Log("[7Days] Rendimiento día " + d.day + ": " + d.rawScore.ToString("0") + " -> suavizada " + Score.ToString("0") + " (" + string.Join("", _scoreParts) + "; bajas por granada " + d.grenadeKills + "/" + d.kills + ")");
         }
 
         private bool _finished;
+        private int _grenadeKillsAtStart, _grenadesThrownAtStart;   // contadores de GrenadeManager al empezar el día
         private void Finish(bool victory)
         {
             if (_finished) return;

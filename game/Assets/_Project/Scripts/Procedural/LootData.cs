@@ -16,6 +16,7 @@ namespace SevenDays.Procedural
         public static LootItem Weapon(string id, int magazine = -1) => new LootItem { kind = "weapon", id = id, amount = 1, magazine = magazine };
         public static LootItem Ammo(AmmoType t, int n) => new LootItem { kind = "ammo", id = t.ToString().ToLowerInvariant(), amount = n };
         public static LootItem Medkit(MedkitKind k, int n = 1) => new LootItem { kind = "medkit", id = k.ToString().ToLowerInvariant(), amount = n };
+        public static LootItem Grenade(int n = 1) => new LootItem { kind = "grenade", id = "frag", amount = n };
 
         public AmmoType AmmoTypeValue => id == "pistol" ? AmmoType.Pistol : (id == "shotgun" ? AmmoType.Shotgun : (id == "rifle" ? AmmoType.Rifle : AmmoType.None));
         public MedkitKind MedkitKindValue => id == "small" ? MedkitKind.Small : (id == "medium" ? MedkitKind.Medium : (id == "large" ? MedkitKind.Large : MedkitKind.Bandage));

@@ -97,6 +97,8 @@ namespace SevenDays.World
             BloodFx.Create(transform);
             BossHud.Create(transform);
             BlastFx.Create(transform);
+            GrenadeManager.Create(transform).SetPlayer(player);   // granadas (F): pool, detonación y bajas
+            if (player.GetComponent<SevenDays.Player.PlayerGrenade>() == null) player.AddComponent<SevenDays.Player.PlayerGrenade>();
             CombatMetricsTracker.Create(transform, player, _zombies);
             CombatFeedback.Create(transform, player.GetComponent<SevenDays.Player.PlayerShooting>());
 

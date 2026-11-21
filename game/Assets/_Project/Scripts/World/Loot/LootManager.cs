@@ -75,6 +75,33 @@ namespace SevenDays.World.Loot
             if (bad > 0) Debug.LogWarning("[7Days] " + bad + " puntos de botín del JSON fuera del perímetro.");
         }
 
+        // ---------------------------------------------------------------- granadas
+        public int GrenadeDrops { get; private set; }
+
+        /// <summary>Tirada aparte del drop normal: pocas en comunes, más en tanques, siempre en jefes (GrenadeRules). Respeta el tope de pickups del suelo.</summary>
+        public bool TryGrenadeDrop(string dropKind, Vector3 position)
+        {
+            if (_rng.NextDouble() >= GrenadeRules.DropChance(dropKind)) return false;
+            var at = new Vector3(position.x - 0.35f, 0.35f, position.z + 0.2f);
+            var p = dropKind == "boss" ? SpawnForced(LootItem.Grenade(GrenadeRules.DropAmount(dropKind)), at) : Spawn(LootItem.Grenade(GrenadeRules.DropAmount(dropKind)), at, null);
+            if (p != null) GrenadeDrops++;
+            return p != null;
+        }
+
+        private int GrenadePickupsOnFloor() { int n = 0; foreach (var a in _active) if (a != null && a.gameObject.activeSelf && a.Item.kind == "grenade") n++; return n; }
+
+        /// <summary>Granadas sueltas por el mapa: 2 al empezar y 1 más cada día (como mucho 3 en el suelo), en puntos válidos al azar.</summary>
+        public int PlaceGrenades(int count)
+        {
+            int placed = 0;
+            for (int k = 0; k < count && _validPoints.Count > 0 && GrenadePickupsOnFloor() < 3; k++)
+            {
+                var pt = _validPoints[_rng.Next(_validPoints.Count)];
+                if (Spawn(LootItem.Grenade(1), new Vector3(pt.x + 0.6f, 0.35f, pt.z - 0.4f), null) != null) placed++;
+            }
+            return placed;
+        }
+
         /// <summary>Puntos del mapa donde puede aparecer botín (dentro del perímetro y, con el NavMesh listo, alcanzables).</summary>
         public IReadOnlyList<LootPoint> ValidPoints => _perimeter == null ? (IReadOnlyList<LootPoint>)Layout.points : _validPoints;
 
@@ -85,6 +112,7 @@ namespace SevenDays.World.Loot
             _reach.Clear();
             _validPoints.RemoveAll(p => !TryPlace(new Vector3(p.x, 0.35f, p.z), out _, out _));
             for (int i = _active.Count - 1; i >= 0; i--) Revalidate(_active[i]);
+            PlaceGrenades(2);
             Audit("al construir el mapa");
         }
 
@@ -310,6 +338,7 @@ namespace SevenDays.World.Loot
         public bool TryDrop(string zombieKind, Vector3 position)
         {
             DropAttempts++;
+            TryGrenadeDrop(zombieKind, position);
             var item = LootRoller.RollDrop(Layout, zombieKind, _rng);
             if (item == null) return false;
             if (item.kind == "weapon" && OwnedWeapons().Contains(item.id))
@@ -333,6 +362,7 @@ namespace SevenDays.World.Loot
             var item = LootRoller.RollDrop(Layout, "boss", _rng);
             if (item == null) return false;
             HudMessages.Add("¡El jefe soltó un botín raro!", new Color(1f, 0.85f, 0.3f), 3.5f);
+            TryGrenadeDrop("boss", position);
             return Spawn(item, new Vector3(position.x, 0.35f, position.z), null) != null;
         }
 
@@ -355,6 +385,7 @@ namespace SevenDays.World.Loot
                 else if (_containers.TryGetValue(point.id, out var c)) c.Refill();
             }
             RearmGuaranteedWeapons();
+            PlaceGrenades(1);
             Audit("reposición del día " + day);
             HudMessages.Add("Día " + day + ": reaparece algo de botín", new Color(1f, 0.92f, 0.65f));
             return AmmoEconomy.RefillRounds(Layout, refilled);

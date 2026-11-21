@@ -17,6 +17,8 @@ namespace SevenDays.Player
         public readonly List<WeaponState> Weapons = new List<WeaponState>();
         public AmmoReserve Ammo { get; private set; }
         public MedkitInventory Medkits { get; } = new MedkitInventory();
+        /// <summary>Granadas (empieza con 2, máximo 6; F para lanzar).</summary>
+        public GrenadePouch Grenades { get; } = new GrenadePouch();
         public event Action Changed;
         public event Action<WeaponState> WeaponAdded;
 
@@ -119,6 +121,14 @@ namespace SevenDays.Player
             {
                 case "weapon": return TryAddWeapon(item.id, out message, item.magazine);
                 case "ammo": return TryAddAmmo(item.AmmoTypeValue, item.amount, out message);
+                case "grenade":
+                {
+                    int added = Grenades.Add(item.amount);
+                    if (added == 0) { message = "Granadas: ya llevas " + Grenades.Max; return PickupResult.Full; }
+                    message = "+" + added + " granada" + (added > 1 ? "s" : "") + " (" + Grenades.Count + "/" + Grenades.Max + ")";
+                    Changed?.Invoke();
+                    return PickupResult.Picked;
+                }
                 default: return TryAddMedkit(item.MedkitKindValue, item.amount, out message);
             }
         }

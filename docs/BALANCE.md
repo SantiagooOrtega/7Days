@@ -193,3 +193,13 @@ Simulación (Calle en ruinas; el Bosque da lo mismo ±2), relleno en el peor cas
 | 7 | 56 | 44 | 119 | 2 | 3 | 168 | 3.00 |
 
 Total 7 días: ~890 balas frente a 321 con la economía anterior (x2.8). Los días 2, 5 y 6 las fuentes naturales (relleno + drops) ya pasan un poco del objetivo y la economía no añade nada: por eso la prueba admite ±0.3.
+
+## Granadas (`Procedural/Grenades.cs`, `Combat/GrenadeManager.cs`, `Player/PlayerGrenade.cs`; pruebas `GrenadeTests` y `MapsTests.Grenade_...`)
+- **Tecla F**: mantener = trayectoria punteada en arco y marca de impacto; soltar = lanzar. (G ya suelta el arma, E recoge, Q/C/X/B/H/R/Tab/Espacio/Shift/Ctrl ocupadas.) 0.8 s entre lanzamientos.
+- **Mecha** 2.5 s; rebota en paredes y suelo (física, rebote 0.42). Velocidad de salida 15 m/s con algo de elevación: 12-25 m en llano.
+- **Daño de área**: 260 en el centro, cae en línea recta hasta el 25 % a 6 m; fuera, 0. Una cobertura sólida entre la granada y el objetivo lo frena del todo. La cobertura ligera (cajas, barriles, tablones: `Destructible`) a menos de 3.6 m se rompe. Empuje de hasta 9 m/s.
+- **Por tipo** (después se aplica la resistencia de cada zombi): común muere seguro a 4.5 m o menos; tanque, ~40 % de su vida en el centro (x1 con su 35 % de resistencia); blindado x0.6 (~88 %); jefes x0.15 (menos del 5 %).
+- **Jugador**: solo a menos de 4 m, al 55 % (cerca de la granada, ~120 PV de daño a 1 m).
+- **Conteo**: empiezas con 2, máximo 6 (HUD: icono y "xN/6 [F]"). Pickups: 2 sueltas por el mapa al empezar y 1 más cada día (como mucho 3 en el suelo). Drops de zombis aparte de su drop normal: común 2 %, corredor 3 %, lanzador 5 %, blindado 10 %, bruto 15 %, tanque 25 %, jefe siempre 2.
+- **Rendimiento**: pool de 6 granadas y buffers de la trayectoria reservados una vez (sin memoria por frame). El humo y el fuego reutilizan los pools de `BlastFx` y `FireManager`.
+- **Estadísticas**: `DayStats.grenadeKills` y `grenadesThrown` por día (la puntuación del director ya cuenta esas bajas como cualquier otra); la Console lo dice al cerrar cada día. VIGÍA dice "Granada fuera" al lanzar.

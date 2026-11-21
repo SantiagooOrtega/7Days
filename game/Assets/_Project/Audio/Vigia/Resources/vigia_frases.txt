@@ -66,3 +66,4 @@ intro_2	partida	importante	Tú te quedaste. Alguien tenía que buscar a los que 
 intro_3	partida	importante	Me encontraste a mí. Una cámara de seguridad con opiniones. Desde entonces te sigo.
 intro_4	partida	importante	Dicen que el rescate llega en siete días. Dicen muchas cosas.
 intro_5	partida	importante	Siete días. Sobrevive a cada oleada. Yo llevo la cuenta.
+granada_fuera	recurso	importante	Granada fuera. | ¡Granada!

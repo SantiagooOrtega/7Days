@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace SevenDays.Procedural
 {
     /// <summary>Qué suministro es (para modelo, icono y color): munición por calibre, vendas, botiquín pequeño, mediano, mochila de médico (grande) o arma.</summary>
-    public enum SupplyKind { AmmoPistol, AmmoShotgun, AmmoRifle, Bandage, MedkitSmall, MedkitMedium, MedBag, Weapon }
+    public enum SupplyKind { AmmoPistol, AmmoShotgun, AmmoRifle, Bandage, MedkitSmall, MedkitMedium, MedBag, Weapon, Grenade }
 
     /// <summary>Modelo de un suministro: tres partes (cuerpo, detalle y acento luminoso), cada una con su color. El acento es la cruz naranja o la franja del calibre.</summary>
     public sealed class SupplyModelData
@@ -31,6 +31,7 @@ namespace SevenDays.Procedural
         {
             if (item == null) return SupplyKind.AmmoPistol;
             if (item.kind == "weapon") return SupplyKind.Weapon;
+            if (item.kind == "grenade") return SupplyKind.Grenade;
             if (item.kind == "ammo") return item.AmmoTypeValue == AmmoType.Shotgun ? SupplyKind.AmmoShotgun : (item.AmmoTypeValue == AmmoType.Rifle ? SupplyKind.AmmoRifle : SupplyKind.AmmoPistol);
             switch (item.MedkitKindValue)
             {
@@ -51,6 +52,7 @@ namespace SevenDays.Procedural
                 case SupplyKind.AmmoRifle: return new[] { 0.45f, 0.95f, 0.4f };
                 case SupplyKind.Bandage: return new[] { 0.95f, 0.95f, 0.9f };
                 case SupplyKind.Weapon: return new[] { 0.6f, 0.8f, 1f };
+                case SupplyKind.Grenade: return new[] { 0.75f, 0.85f, 0.35f };
                 default: return new[] { 1f, 0.5f, 0.12f };
             }
         }
@@ -142,6 +144,16 @@ namespace SevenDays.Procedural
                     foreach (float x in new[] { -0.07f, 0.07f }) detail.Box(new V3(x, 0.17f, -0.1f), new V3(0.035f, 0.3f, 0.012f), default, 0.003f, Cell, 0.1f);
                     Cross(accent, new V3(0f, 0.22f, 0.092f), 0.12f, 0.003f, true);
                     d.Colors = new[] { BagGreen, Dark, Orange };
+                    break;
+                }
+                case SupplyKind.Grenade:
+                {
+                    // granada de fragmentación genérica: cuerpo ovalado verde oliva, espoleta, palanca y anilla
+                    body.Lathe(new V3(0f, 0.05f, 0f), default, new[] { -0.05f, 0.012f, -0.045f, 0.03f, -0.02f, 0.037f, 0.01f, 0.036f, 0.035f, 0.026f, 0.05f, 0.012f }, 16, 1f, true, true, Cell, 0.2f);
+                    detail.Cylinder(new V3(0f, 0.108f, 0f), default, 0.012f, 0.012f, 0.022f, 10, Cell, 0.1f);
+                    detail.Box(new V3(0.018f, 0.085f, 0f), new V3(0.008f, 0.06f, 0.016f), new V3(0f, 0f, -12f), 0.002f, Cell, 0.1f);
+                    accent.Cylinder(new V3(-0.024f, 0.112f, 0f), new V3(90f, 0f, 0f), 0.011f, 0.011f, 0.004f, 10, Cell, 0.1f);
+                    d.Colors = new[] { new[] { 0.3f, 0.34f, 0.2f }, Dark, TypeColor(kind) };
                     break;
                 }
                 default:
@@ -236,6 +248,14 @@ namespace SevenDays.Procedural
                     float slide = Math.Max(Math.Abs(u + 0.05f) - 0.7f, Math.Abs(v - 0.22f) - 0.15f);
                     float grip = Math.Max(Math.Abs((u + 0.45f) + (v + 0.2f) * 0.35f) - 0.17f, Math.Abs(v + 0.25f) - 0.33f);
                     return Math.Min(slide, grip);
+                }
+                case SupplyKind.Grenade:
+                {
+                    // óvalo con espoleta y anilla
+                    float body = (float)Math.Sqrt(u * u / (0.48f * 0.48f) + (v + 0.12f) * (v + 0.12f) / (0.58f * 0.58f)) - 1f;
+                    float fuze = Math.Max(Math.Abs(u) - 0.14f, Math.Abs(v - 0.55f) - 0.12f);
+                    float ring = Math.Abs((float)Math.Sqrt((u + 0.3f) * (u + 0.3f) + (v - 0.62f) * (v - 0.62f)) - 0.13f) - 0.04f;
+                    return Math.Min(body * 0.5f, Math.Min(fuze, ring));
                 }
                 default:
                     return Math.Min(Math.Max(Math.Abs(u) - 0.62f, Math.Abs(v) - 0.2f), Math.Max(Math.Abs(u) - 0.2f, Math.Abs(v) - 0.62f));   // cruz

@@ -150,7 +150,25 @@ namespace SevenDays.UI
             var a = _inventory.Ammo; var m = _inventory.Medkits;
             string text = "Munición  pistola " + a.Count(AmmoType.Pistol) + "/" + a.Max(AmmoType.Pistol) + "  escopeta " + a.Count(AmmoType.Shotgun) + "/" + a.Max(AmmoType.Shotgun) + "  rifle " + a.Count(AmmoType.Rifle) + "/" + a.Max(AmmoType.Rifle)
                 + "\nVendas " + m.Count(MedkitKind.Bandage) + " [B]   Botiquines  peq. " + m.Count(MedkitKind.Small) + "  med. " + m.Count(MedkitKind.Medium) + "  gran. " + m.Count(MedkitKind.Large) + " [H]";
+            DrawGrenades(w, h);
             GUI.Label(new Rect(60, h - 190, 900, 90), text, new GUIStyle(_label) { fontSize = 20 });
+        }
+
+        private static Texture2D _grenadeIcon;
+        private GUIStyle _grenadeStyle;
+
+        /// <summary>Icono de granada y contador (F para lanzar), encima de la línea de munición.</summary>
+        private void DrawGrenades(float w, float h)
+        {
+            if (_grenadeIcon == null)
+            {
+                _grenadeIcon = new Texture2D(SupplyModel.IconSize, SupplyModel.IconSize, TextureFormat.RGBA32, false) { name = "Icono granada HUD" };
+                _grenadeIcon.SetPixelData(SupplyModel.Icon(SupplyKind.Grenade), 0); _grenadeIcon.Apply(false, true);
+            }
+            if (_grenadeStyle == null) _grenadeStyle = new GUIStyle(_label) { fontSize = 22 };
+            var g = _inventory.Grenades;
+            GUI.DrawTexture(new Rect(60, h - 232, 36, 36), _grenadeIcon);
+            GUI.Label(new Rect(102, h - 228, 300, 32), "x" + g.Count + "/" + g.Max + "  [F]", _grenadeStyle);
         }
 
         /// <summary>Aviso de interacción (E recoger / mantén E buscar) y barras de búsqueda y de curación.</summary>

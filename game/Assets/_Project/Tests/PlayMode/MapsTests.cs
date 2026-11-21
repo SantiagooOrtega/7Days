@@ -220,5 +220,47 @@ namespace SevenDays.Tests.PlayMode
             var lm = T("SevenDays.World.Loot.LootManager").GetProperty("Instance").GetValue(null);
             Assert.AreEqual(0, (int)lm.GetType().GetField("SkippedPoints").GetValue(lm), "todos los muebles con botín encontrados (también arriba)");
         }
+
+        [UnityTest]
+        public IEnumerator Grenade_ThrowCountsDown_ExplodesAfterTheFuse_KillsCommonsAround()
+        {
+            T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, "calle_en_ruinas");
+            _arena = new GameObject("Arena"); _arena.AddComponent(T("SevenDays.World.TestArena"));
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && GameObject.FindWithTag("Player") == null) yield return null;
+            for (int i = 0; i < 30; i++) yield return null;
+            var player = GameObject.FindWithTag("Player");
+            var gmT = T("SevenDays.Combat.GrenadeManager"); var gm = gmT.GetProperty("Instance").GetValue(null);
+            Assert.IsNotNull(gm, "gestor de granadas");
+            var inv = player.GetComponent(T("SevenDays.Player.PlayerInventory"));
+            var pouch = (GrenadePouch)inv.GetType().GetProperty("Grenades").GetValue(inv);
+            Assert.AreEqual(GrenadeRules.Start, pouch.Count, "empiezas con 2");
+            // tres comunes juntos lejos del jugador: una explosión entre ellos los mata
+            var zm = T("SevenDays.Combat.ZombieManager"); var mgr = zm.GetProperty("Instance").GetValue(null);
+            var spawn = Array.Find(zm.GetMethods(), x => x.Name == "Spawn" && x.GetParameters()[0].ParameterType == typeof(string));
+            var center = player.transform.position + player.transform.forward * 12f;
+            var zs = new System.Collections.Generic.List<Component>();
+            foreach (var off in new[] { new Vector3(1f, 0f, 0f), new Vector3(-1f, 0f, 0.5f), new Vector3(0f, 0f, -1.2f) })
+                zs.Add((Component)spawn.Invoke(mgr, new object[] { "common", center + off, 1f, 1f, 1f, true }));
+            yield return null;
+            int killsBefore = (int)gmT.GetProperty("Kills").GetValue(gm);
+            int k = (int)gmT.GetMethod("Explode").Invoke(gm, new object[] { center + Vector3.up * 0.2f });
+            Assert.AreEqual(3, k, "los tres comunes mueren");
+            Assert.AreEqual(killsBefore + 3, (int)gmT.GetProperty("Kills").GetValue(gm), "se cuentan las bajas por granada");
+            // lanzar: el contador baja, vuela y explota a los 2.5 s
+            var pg = player.GetComponent(T("SevenDays.Player.PlayerGrenade"));
+            Assert.IsNotNull(pg, "F para lanzar");
+            int n = (int)pg.GetType().GetMethod("Predict").Invoke(pg, new object[] { Vector3.zero, Vector3.zero });
+            Assert.Greater(n, 2, "trayectoria");
+            Assert.IsTrue((bool)pg.GetType().GetMethod("ThrowNow").Invoke(pg, null));
+            Assert.AreEqual(GrenadeRules.Start - 1, pouch.Count);
+            Assert.AreEqual(1, (int)gmT.GetProperty("Airborne").GetValue(gm));
+            int det = (int)gmT.GetProperty("Detonations").GetValue(gm);
+            float t1 = Time.time;
+            while (Time.time - t1 < GrenadeRules.FuseSeconds + 1f && (int)gmT.GetProperty("Detonations").GetValue(gm) == det) yield return null;
+            Assert.AreEqual(det + 1, (int)gmT.GetProperty("Detonations").GetValue(gm), "explotó");
+            Assert.That(Time.time - t1, Is.InRange(GrenadeRules.FuseSeconds - 0.2f, GrenadeRules.FuseSeconds + 0.3f), "mecha de 2.5 s");
+            Assert.AreEqual(0, (int)gmT.GetProperty("Airborne").GetValue(gm), "vuelve al pool");
+        }
     }
 }

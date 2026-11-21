@@ -11,6 +11,7 @@ namespace SevenDays.Procedural
         public float waveSeconds;          // de "¡OLEADA!" a "OLEADA SUPERADA"
         public int zombiesTotal;           // zombis de la oleada (sin jefe)
         public int kills, headshots, headshotKills, shotsFired, shotsHit;
+        public int grenadeKills, grenadesThrown;   // bajas por granada y granadas lanzadas ese día
         public float damageTaken, coverSeconds, timePlayed;
         public bool died, boss;
         public string[] killTypes = new string[0];
@@ -51,6 +52,7 @@ namespace SevenDays.Procedural
         public int DaysCompleted { get { int n = 0; foreach (var d in days) if (!d.died) n++; return n; } }
         public int Kills { get { int n = 0; foreach (var d in days) n += d.kills; return n; } }
         public int Headshots { get { int n = 0; foreach (var d in days) n += d.headshotKills; return n; } }
+        public int GrenadeKills { get { int n = 0; foreach (var d in days) n += d.grenadeKills; return n; } }
         public float Seconds { get { float n = 0; foreach (var d in days) n += d.timePlayed; return n; } }
         public float Accuracy { get { int f = 0, h = 0; foreach (var d in days) { f += d.shotsFired; h += d.shotsHit; } return f <= 0 ? 0f : h / (float)f; } }
         public float DamageTaken { get { float n = 0; foreach (var d in days) n += d.damageTaken; return n; } }

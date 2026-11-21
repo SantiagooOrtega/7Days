@@ -51,6 +51,7 @@ Prioridades: **critica** interrumpe lo que suene; **importante** pasa delante de
 | `sin_municion` | recurso | critica | Sin munición. Busca suministros. / No te quedan balas. Busca munición. |
 | `municion_baja` | recurso | importante | Munición baja. / Te quedan pocas balas. |
 | `suministro_cercano` | recurso | informativa | Nuevo suministro cercano. / Detecto suministros cerca. |
+| `granada_fuera` | recurso | importante | Granada fuera. / ¡Granada! (al lanzar con F) |
 | `botiquin_usado` | recurso | informativa | Vendado. Sigue. / Botiquín aplicado. |
 | `vida_baja` | recurso | importante | Vida baja. / Estás herido. Cúbrete. |
 | `estado_critico` | recurso | critica | Estado crítico. Cúrate ya. / Estás muy mal. Cúrate. |
