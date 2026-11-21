@@ -18,6 +18,7 @@ namespace SevenDays.Look
 
             GroundFog(atm, look, a);
             Haze(atm, look, a);
+            HorizonWall(atm, look, a);
             Ash(atm, player, a);
             SmokeColumns(atm, a);
             GodRays(atm, look, a);
@@ -141,6 +142,50 @@ namespace SevenDays.Look
 
                 go.SetActive(true);
                 AtmosphereBudget.Register(ps, 2);
+            }
+        }
+
+        // ---------------------------------------------------------------- pared de bruma del horizonte
+        /// <summary>
+        /// Tres anillos de nubes grandes justo fuera del perímetro (a 1.5, 5 y 10 m de alto): abajo del color de la niebla y arriba del color del cielo, para que
+        /// el horizonte se pierda en un degradado y no se vea el borde. Están lejos del jugador (más de 25 m de cualquier zombi que pelee) y el gobernador
+        /// apaga primero los anillos altos.
+        /// </summary>
+        private static void HorizonWall(Transform parent, LookSettings look, AtmosphereSettings a)
+        {
+            float k = a.HorizonFog * a.Density;
+            if (k <= 0f) return;
+            Color fog = look.EffectiveFogColor, sky = look.EffectiveSkyColor;
+            float[] heights = { 1.5f, 5f, 10f };
+            float radius = a.Area * 0.5f + 12f;
+            for (int i = 0; i < heights.Length; i++)
+            {
+                var hc = SevenDays.Procedural.FogModel.HorizonColor(new[] { fog.r, fog.g, fog.b }, new[] { sky.r, sky.g, sky.b }, i / (heights.Length - 1f));
+                var c = new Color(hc[0], hc[1], hc[2]);
+                var ps = New("Horizon " + i, parent, new Vector3(0f, heights[i], 0f), ParticleMaterials.Soft, out var go);
+                go.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                int n = Max(Mathf.RoundToInt(22f * k));
+                var main = ps.main;
+                main.loop = true;
+                main.prewarm = true;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                main.startLifetime = 50f;
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.02f, 0.1f);
+                main.startSize = new ParticleSystem.MinMaxCurve(20f, 34f);
+                main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+                float alpha = Mathf.Clamp01(0.2f * Mathf.Min(1.5f, k)) * (i == 0 ? 1f : 0.75f);
+                main.startColor = new ParticleSystem.MinMaxGradient(new Color(c.r, c.g, c.b, alpha * 0.6f), new Color(c.r, c.g, c.b, alpha));
+                main.maxParticles = n;
+                var em = ps.emission;
+                em.rateOverTime = n / 50f;
+                var shape = ps.shape;
+                shape.shapeType = ParticleSystemShapeType.Circle;
+                shape.radius = radius;
+                shape.radiusThickness = 0.1f;
+                shape.randomDirectionAmount = 1f;
+                FadeInOut(ps, 0.2f, 0.8f);
+                go.SetActive(true);
+                AtmosphereBudget.Register(ps, i == 0 ? 3 : 2);
             }
         }
 

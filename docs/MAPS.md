@@ -35,3 +35,9 @@ Generadores puros en `Procedural/MapLibrary.cs` (probados en `MapLibraryTests`);
 **Mapas jugables**: Calle en ruinas y Bosque oscuro (`MapIO.PlayableIds`). El Barrio abandonado sigue en el repo (JSON y generador) pero no se ofrece para jugar.
 
 **Probar**: Play en la escena `Game` y pulsa **M** para alternar entre los 2 mapas jugables; la escena se recarga con el contenido nuevo.
+
+## Niebla (ajuste tras probar)
+- **Calle en ruinas**: densidad 0.008 → 0.0108 (+35 %), color un 25 % hacia el del cielo, 3 capas de niebla baja (x1.35, alfa 0.095), 14 bancos de bruma, cielo más apagado y pared de bruma en el horizonte (`horizonFog` 1).
+- **Bosque oscuro**: la densidad ya estaba cerca del límite que deja ver un zombi a 25 m, así que sube solo a 0.047 (el máximo, `FogModel.MaxDensity()`) y el +35 % va a la bruma baja (4 capas, x2.45) y a la pared del horizonte (`horizonFog` 1.2).
+- **Pared del horizonte** (`Atmosphere.HorizonWall`): 3 anillos de nubes justo fuera del perímetro con degradado del color de la niebla (abajo) al del cielo (arriba); no se ve el borde del mapa. Son partículas: el gobernador de calidad apaga primero los anillos altos y luego el bajo. La densidad de la niebla de Unity no cuesta FPS.
+- **Regla**: `MapKit.Validate` rechaza un mapa cuya niebla deje menos del 25 % de visibilidad a 25 m (`FogTests`).

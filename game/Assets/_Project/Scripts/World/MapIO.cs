@@ -66,7 +66,7 @@ namespace SevenDays.World
             look.SunPitch = a.sunPitch; look.SunYaw = a.sunYaw; look.SunColor = C(a.sunColor); look.SunIntensity = a.sunIntensity; look.ShadowStrength = a.shadowStrength;
             look.GlobalBrightness = a.brightness;
             var at = look.Atmosphere;
-            at.Density = a.density; at.GroundFogLayers = a.groundFogLayers; at.GroundFogDensity = a.groundFogDensity; at.GroundFogAlpha = a.groundFogAlpha; at.HazeBanks = a.hazeBanks; at.SkyDim = a.skyDim;
+            at.Density = a.density; at.GroundFogLayers = a.groundFogLayers; at.GroundFogDensity = a.groundFogDensity; at.GroundFogAlpha = a.groundFogAlpha; at.HazeBanks = a.hazeBanks; at.SkyDim = a.skyDim; at.HorizonFog = a.horizonFog;
             at.Ash = a.ash; at.SmokeColumns = a.smokeColumns; at.Smoke = a.smoke; at.Sparks = a.sparks; at.GodRays = a.godRays; at.GodRayIntensity = a.godRayIntensity;
             at.Fireflies = a.fireflies;
             at.RedFlickerLamps = a.redFlickerLamps; at.Cracks = a.cracks; at.WeedTufts = a.weedTufts; at.Puddles = a.puddles; at.BloodStains = a.bloodStains; at.SkylineBuildings = a.skylineBuildings;
@@ -81,7 +81,7 @@ namespace SevenDays.World
             {
                 hour = 17f, fogColor = F(look.FogColor), fogDensity = look.FogDensity, ambientSky = F(look.AmbientSky), ambientEquator = F(look.AmbientEquator), ambientGround = F(look.AmbientGround),
                 sunPitch = look.SunPitch, sunYaw = look.SunYaw, sunColor = F(look.SunColor), sunIntensity = look.SunIntensity, shadowStrength = look.ShadowStrength, brightness = look.GlobalBrightness,
-                density = at.Density, groundFogLayers = at.GroundFogLayers, groundFogDensity = at.GroundFogDensity, groundFogAlpha = at.GroundFogAlpha, hazeBanks = at.HazeBanks, skyDim = at.SkyDim,
+                density = at.Density, groundFogLayers = at.GroundFogLayers, groundFogDensity = at.GroundFogDensity, groundFogAlpha = at.GroundFogAlpha, hazeBanks = at.HazeBanks, skyDim = at.SkyDim, horizonFog = at.HorizonFog,
                 ash = at.Ash, smokeColumns = at.SmokeColumns, smoke = at.Smoke, sparks = at.Sparks, godRays = at.GodRays, godRayIntensity = at.GodRayIntensity,
                 redFlickerLamps = at.RedFlickerLamps, cracks = at.Cracks, weedTufts = at.WeedTufts, puddles = at.Puddles, bloodStains = at.BloodStains, skylineBuildings = at.SkylineBuildings,
                 dust = true, skyline = true, roadMarkings = true, fireflies = 0f, soundscape = "none",

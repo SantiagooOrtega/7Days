@@ -6198,10 +6198,10 @@
         "hour": 17.0,
         "fogColor": [
             0.5,
-            0.550000011920929,
-            0.6000000238418579
+            0.5525,
+            0.61
         ],
-        "fogDensity": 0.00800000037997961,
+        "fogDensity": 0.0108,
         "ambientSky": [
             0.5,
             0.5600000023841858,
@@ -6228,11 +6228,11 @@
         ],
         "brightness": 1.25,
         "density": 1.0,
-        "groundFogLayers": 2,
-        "groundFogDensity": 1.0,
-        "groundFogAlpha": 0.07500000298023224,
-        "hazeBanks": 10,
-        "skyDim": 0.30000001192092896,
+        "groundFogLayers": 3,
+        "groundFogDensity": 1.35,
+        "groundFogAlpha": 0.095,
+        "hazeBanks": 14,
+        "skyDim": 0.45,
         "ash": 1.0,
         "smokeColumns": 3,
         "smoke": 1.0,
@@ -6249,6 +6249,7 @@
         "skyline": true,
         "roadMarkings": true,
         "fireflies": 0.0,
-        "soundscape": "none"
+        "soundscape": "none",
+        "horizonFog": 1.0
     }
 }
