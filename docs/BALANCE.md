@@ -84,18 +84,18 @@ const weaponSearch = z.object({
 ```
 
 ## Drops de zombis (un solo drop por muerte)
-Cada muerte hace UNA tirada (`LootRoller.RollDrop`): probabilidad del tipo y, si toca, un objeto de su tabla ponderada. Los drops respetan el tope diario (`maxDropsPerDay` = 8) y el de pickups en el suelo (`maxActivePickups` = 24); un drop sin hueco se descarta con aviso en la Console. Nunca sueltan un arma que el jugador ya tiene (se convierte en munición de su tipo). Brillan con una luz suave (los drops tienen prioridad sobre los demás en el reparto de luces).
+Cada muerte hace UNA tirada (`LootRoller.RollDrop`): probabilidad del tipo y, si toca, un objeto de su tabla ponderada. Los drops respetan el tope diario (`maxDropsPerDay` = 16) y el de pickups en el suelo (`maxActivePickups` = 32); un drop sin hueco se descarta con aviso en la Console. Nunca sueltan un arma que el jugador ya tiene (se convierte en munición de su tipo). Brillan con una luz suave (los drops tienen prioridad sobre los demás en el reparto de luces).
 
 | Tipo | Probabilidad | Tabla |
 |------|--------------|-------|
-| common | 12 % | `drop_common` |
-| runner | 12 % | `drop_special` |
-| explosive | 8 % | `drop_common` |
-| armored | 20 % | `drop_heavy` |
-| tank | 30 % | `drop_heavy` |
-| spitter | 25 % | `drop_special` |
+| common | 26.4 % | `drop_common` |
+| runner | 26.4 % | `drop_special` |
+| explosive | 17.6 % | `drop_common` |
+| armored | 44 % | `drop_heavy` |
+| tank | 66 % | `drop_heavy` |
+| spitter | 55 % | `drop_special` |
 | boss | 100 % (rara o mejor, fuera del tope diario) | `drop_boss` |
-| brute (genérico, sin uso por defecto) | 25 % | `drop_heavy` |
+| brute (genérico, sin uso por defecto) | 55 % | `drop_heavy` |
 
 Pesos de las tablas (probabilidad relativa dentro del drop; armas solo poco comunes o raras, ≈ 4–8 % de los drops):
 - `drop_common`: vendaje 2, munición de pistola 3, de escopeta 0.6, de rifle 0.6, revólver 0.12, subfusil 0.12.
@@ -167,23 +167,29 @@ Devorador (x4) es una esfera en el núcleo del pecho del mismo tamaño que antes
 (`ZombieBodyTests.Devourer_WeakPoint_OnlyWhileExposed_RibsOpen_AndItIsHitFromTheFront`).
 
 ## Economía de munición por día (bucle de 7 días)
-Código: `Procedural/AmmoEconomy.cs` (puro) y `World/Loot/AmmoSupply.cs`. Prueba: `AmmoEconomyTests` (simula los 7 días en los 2 mapas y falla si las balas por zombi salen de rango, ±0.08).
+Código: `Procedural/AmmoEconomy.cs` (puro) y `World/Loot/AmmoSupply.cs`. Prueba: `AmmoEconomyTests` (simula los 7 días en los 2 mapas y falla si las balas por zombi salen de rango: día 1 entre 4 y 5, resto ±0.3 del objetivo, y si no hay al menos x2.4 lo de la economía anterior).
 
 - **Zombis por oleada**: 14 + 7 por día (14 … 56), +40 % respecto a la primera versión (10 + 5 por día).
-- **Presupuesto**: balas por zombi = 1.5 el día 1 y baja en línea recta a 1.2 el día 7 (un cartucho de escopeta cuenta como una bala). No incluye el botín inicial del mapa ni la munición de salida.
+- **Presupuesto**: balas por zombi = 4.5 el día 1 y baja en línea recta a 3 el día 7 (antes 1.5 → 1.2: demasiado escasa al probar) (un cartucho de escopeta cuenta como una bala). No incluye el botín inicial del mapa ni la munición de salida.
 - **Fuentes**: relleno entre días de contenedores y puntos (x1.5 y +3 reapariciones por punto), drops normales de las tablas (con el tope diario) y lo que falta lo completa la economía: 40 % en 4 tandas durante la oleada (a los 20 s y cada 25 s, en puntos no usados en los últimos 60 s y a más de 8 m del jugador) y 60 % como crédito por baja (cuando llega a un paquete, el zombi lo suelta). Todo respeta el tope de pickups activos; lo que no cabe queda como crédito.
-- **Pity timer**: 90 s sin munición en ninguna arma → paquete doble cerca del jugador.
+- **Pity timer**: 60 s sin munición en ninguna arma → paquete doble cerca del jugador.
 
-Simulación (Calle en ruinas; el Bosque da lo mismo ±1), relleno en el peor caso (el jugador vacía todo cada día):
+### Munición generosa (ajuste tras probar el juego)
+- **Reserva máxima**: pistola 132 (antes 48), escopeta 50 (20), rifle 225 (90). `AmmoLimits` y `ammoLimits` del JSON de los 2 mapas.
+- **Munición inicial**: 6 en el cargador + 30 de reserva (antes 6 + 6: x3).
+- **Pickups**: cada entrada de munición de las tablas trae x2.5 balas y pesa el doble (escopeta x1.5, sigue más limitada). Botiquines y armas no cambian de peso, así que salen proporcionalmente menos: la curación de toda la partida sigue < 520 PV y el francotirador sigue siendo casi solo del jefe. Constantes en `LootDefaults` (`AmmoAmountScale`, `AmmoWeightScale`, `ShotgunWeightScale`, `DropChanceScale` = 2.2).
+- **Paquetes de la economía** (tandas, crédito por baja): pistola 14, escopeta 6, rifle 16.
 
-| Día | Zombis | Relleno | Drops tablas | Tandas | Por bajas | Total | Balas/zombi | Antes |
-|----:|-------:|--------:|-------------:|-------:|----------:|------:|------------:|------:|
-| 1 | 14 | 0 | 3 | 7 | 11 | 21 | 1.50 | 2 |
-| 2 | 21 | 18 | 5 | 3 | 4 | 30 | 1.43 | 16 |
-| 3 | 28 | 17 | 7 | 6 | 9 | 39 | 1.39 | 18 |
-| 4 | 35 | 17 | 10 | 8 | 12 | 47 | 1.34 | 7 |
-| 5 | 42 | 18 | 14 | 9 | 14 | 55 | 1.31 | 10 |
-| 6 | 49 | 15 | 18 | 11 | 17 | 61 | 1.24 | 13 |
-| 7 | 56 | 13 | 19 | 14 | 21 | 67 | 1.20 | 15 |
+Simulación (Calle en ruinas; el Bosque da lo mismo ±2), relleno en el peor caso (el jugador vacía todo cada día):
 
-Total 7 días: 320 balas frente a 81 antes; contando el botín inicial (~64), 384 frente a 145. **Ojo:** la proporción pedida (1.5 → 1.2 balas/zombi) da bastante más que +40 %, porque antes la reposición era de ~0.25 balas/zombi. Si se prefiere +40 % exacto, basta bajar `RatioDay1/RatioDay7` en `AmmoEconomy` (la prueba sigue a esas constantes).
+| Día | Zombis | Relleno | Drops tablas | Tandas | Por bajas | Total | Balas/zombi |
+|----:|-------:|--------:|-------------:|-------:|----------:|------:|------------:|
+| 1 | 14 | 0 | 22 | 16 | 24 | 63 | 4.50 |
+| 2 | 21 | 59 | 34 | 0 | 0 | 92 | 4.40 |
+| 3 | 28 | 56 | 49 | 3 | 4 | 112 | 4.00 |
+| 4 | 35 | 56 | 67 | 3 | 5 | 131 | 3.74 |
+| 5 | 42 | 59 | 97 | 0 | 0 | 156 | 3.70 |
+| 6 | 49 | 51 | 117 | 0 | 0 | 168 | 3.43 |
+| 7 | 56 | 44 | 119 | 2 | 3 | 168 | 3.00 |
+
+Total 7 días: ~890 balas frente a 321 con la economía anterior (x2.8). Los días 2, 5 y 6 las fuentes naturales (relleno + drops) ya pasan un poco del objetivo y la economía no añade nada: por eso la prueba admite ±0.3.

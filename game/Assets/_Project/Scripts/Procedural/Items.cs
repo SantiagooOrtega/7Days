@@ -257,7 +257,7 @@ namespace SevenDays.Procedural
     [Serializable]
     public class AmmoLimits
     {
-        public int pistol = 48, shotgun = 20, rifle = 90;
+        public int pistol = 132, shotgun = 50, rifle = 225;   // x2.75 / x2.5 / x2.5 tras probar
         public int For(AmmoType t) => t == AmmoType.Pistol ? pistol : (t == AmmoType.Shotgun ? shotgun : (t == AmmoType.Rifle ? rifle : 0));
     }
 

@@ -86,10 +86,10 @@ namespace SevenDays.Tests
         {
             // la visibilidad no toca la cantidad: mismos topes y mismas tablas que en BALANCE.md / MAPA_SPAWN_LOOT.md
             var l = LootDefaults.Create();
-            Assert.AreEqual(24, l.maxActivePickups); Assert.AreEqual(8, l.maxDropsPerDay); Assert.AreEqual(0.25f, l.respawnFractionPerDay, 1e-6f);
-            Assert.AreEqual(6, l.startMagazine); Assert.AreEqual(6, l.startReserve);
+            Assert.AreEqual(32, l.maxActivePickups); Assert.AreEqual(16, l.maxDropsPerDay); Assert.AreEqual(0.25f, l.respawnFractionPerDay, 1e-6f);
+            Assert.AreEqual(6, l.startMagazine); Assert.AreEqual(30, l.startReserve);
             float common = 0f; foreach (var d in l.drops) if (d.zombie == "common") common = d.chance;
-            Assert.AreEqual(0.12f, common, 1e-6f);
+            Assert.AreEqual(0.264f, common, 1e-6f);
             var a = LootRoller.RollDrop(l, "tank", new Random(7)); var b = LootRoller.RollDrop(LootDefaults.Create(), "tank", new Random(7));
             Assert.AreEqual(a?.id, b?.id, "mismas tiradas con la misma semilla");
         }

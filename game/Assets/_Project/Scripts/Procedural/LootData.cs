@@ -69,10 +69,10 @@ namespace SevenDays.Procedural
     public class LootLayoutData
     {
         public string[] startWeapons = { "pistol", "bar" };
-        public int startMagazine = 6, startReserve = 6; // munición inicial escasa
+        public int startMagazine = 6, startReserve = 30; // munición inicial x3 (6+30 frente a 6+6)
         public AmmoLimits ammoLimits = new AmmoLimits();
-        public int maxActivePickups = 24;     // tope de objetos en el suelo a la vez (puntos + drops)
-        public int maxDropsPerDay = 8;
+        public int maxActivePickups = 32;     // tope de objetos en el suelo a la vez (puntos + drops)
+        public int maxDropsPerDay = 16;
         public float respawnFractionPerDay = 0.25f; // respawn LENTO entre días (lo ajusta el director)
         public int maxRespawnsPerPoint = 1;
         public LootTable[] tables = new LootTable[0];

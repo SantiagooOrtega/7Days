@@ -25,12 +25,11 @@ namespace SevenDays.Tests
         }
 
         [Test]
-        public void StartingLoadout_IsScarce_OnePistolAndABar_SixAndSix()
+        public void StartingLoadout_OnePistolAndABar_SixAndThirty()
         {
             var l = L();
             CollectionAssert.AreEqual(new[] { "pistol", "bar" }, l.startWeapons);
-            Assert.AreEqual(6, l.startMagazine); Assert.AreEqual(6, l.startReserve);
-            Assert.Less(l.startMagazine + l.startReserve, WeaponCatalog.Get("pistol").magazineSize * 2, "menos de dos cargadores");
+            Assert.AreEqual(6, l.startMagazine); Assert.AreEqual(30, l.startReserve);   // x3 tras probar (antes 6 + 6)
             Assert.Less(l.startReserve, l.ammoLimits.pistol / 4);
         }
 
@@ -52,8 +51,8 @@ namespace SevenDays.Tests
             var rng = new Random(5);
             var counts = new Dictionary<string, int>();
             for (int i = 0; i < 4000; i++) { var it = LootRoller.Roll(l, "ground", rng); counts[it.kind + ":" + it.id] = counts.GetValueOrDefault(it.kind + ":" + it.id) + 1; }
-            // bandage (peso 3) debe salir ~3x más que shotgun (peso 1)
-            Assert.Greater(counts["medkit:bandage"], counts["ammo:shotgun"] * 2);
+            // bandage (peso 3) debe salir ~2x más que shotgun (peso 1 x1.5 de la munición generosa)
+            Assert.Greater(counts["medkit:bandage"], counts["ammo:shotgun"] * 1.6);
             Assert.AreEqual(4, counts.Count, "solo salen objetos de la tabla");
             var a = LootRoller.Roll(l, "mid", new Random(9)); var b = LootRoller.Roll(l, "mid", new Random(9));
             Assert.AreEqual(a.id, b.id);
@@ -84,10 +83,10 @@ namespace SevenDays.Tests
             var l = L();
             Assert.LessOrEqual(l.Drop("common").chance, l.Drop("runner").chance);
             Assert.Less(l.Drop("runner").chance, l.Drop("brute").chance);
-            Assert.Less(l.Drop("common").chance, 0.15f, "los comunes pocas veces");
+            Assert.Less(l.Drop("common").chance, 0.3f, "los comunes, una de cada cuatro");
             Assert.IsTrue(l.Drop("boss").guaranteed);
             double Rate(string z) { var rng = new Random(7); int d = 0; for (int i = 0; i < 5000; i++) if (LootRoller.RollDrop(l, z, rng) != null) d++; return d / 5000.0; }
-            Assert.That(Rate("common"), Is.InRange(0.10, 0.14));
+            Assert.That(Rate("common"), Is.InRange(0.24, 0.29));
             Assert.Greater(Rate("brute"), Rate("common") * 1.8);
             Assert.AreEqual(1.0, Rate("boss"), 1e-9, "el jefe siempre suelta algo");
         }
@@ -122,9 +121,10 @@ namespace SevenDays.Tests
         public void Scarcity_TotalAmmoOnTheMapAndFromDrops_IsLowForAWholeWeek()
         {
             var r = ScarcityReport.Evaluate(L(), WeekKills);
-            Assert.Less(r.PistolAmmo, 80, "munición de pistola de toda la partida (esperado ≈ 67)");
-            Assert.Less(r.ShotgunAmmo, 25, "munición de escopeta (≈ 14)");
-            Assert.Less(r.RifleAmmo, 60, "munición de rifle (≈ 33)");
+            // munición generosa (tras probar): x2.5 por pickup, el doble de probable y drops x2.2. La escopeta sigue siendo la más escasa.
+            Assert.That(r.PistolAmmo, Is.InRange(250, 520), "munición de pistola de toda la partida (≈ 384)");
+            Assert.Less(r.ShotgunAmmo, r.PistolAmmo / 3, "escopeta más limitada que pistola");
+            Assert.Less(r.RifleAmmo, r.PistolAmmo, "rifle por debajo de pistola");
             Assert.Greater(r.PistolAmmo + r.RifleAmmo + r.ShotgunAmmo, 40, "pero no es cero: hay con qué pelear");
         }
 
@@ -144,7 +144,7 @@ namespace SevenDays.Tests
         {
             var l = L();
             Assert.LessOrEqual(l.points.Length, l.maxActivePickups, "todos los puntos caben en el tope");
-            Assert.LessOrEqual(l.maxActivePickups, 30);
+            Assert.LessOrEqual(l.maxActivePickups, 40);
             var st = new LootDirectorState(l);
             Assert.IsTrue(st.CanSpawn(l.maxActivePickups - 1));
             Assert.IsFalse(st.CanSpawn(l.maxActivePickups), "con el tope lleno no se spawnea más");
@@ -249,7 +249,7 @@ namespace SevenDays.Tests
     {
         private static readonly Dictionary<string, double> Targets = new Dictionary<string, double>
         {
-            { "common", 0.12 }, { "runner", 0.12 }, { "armored", 0.20 }, { "tank", 0.30 }, { "explosive", 0.08 }, { "spitter", 0.25 },
+            { "common", 0.264 }, { "runner", 0.264 }, { "armored", 0.44 }, { "tank", 0.66 }, { "explosive", 0.176 }, { "spitter", 0.55 },
         };
 
         [Test]
@@ -301,8 +301,8 @@ namespace SevenDays.Tests
             var kills = new Dictionary<string, int> { { "common", 120 }, { "runner", 30 }, { "armored", 12 }, { "tank", 8 }, { "explosive", 10 }, { "spitter", 14 }, { "boss", 3 } };
             int total = 0;
             foreach (var kv in kills) for (int i = 0; i < kv.Value; i++) if (LootRoller.RollDrop(l, ZombieCatalog.Get(kv.Key == "boss" ? "boss_brute" : kv.Key).dropKind, rng) != null) total++;
-            Assert.LessOrEqual(Math.Min(total, l.maxDropsPerDay * 7), 56, "el tope diario mantiene la escasez");
-            Assert.Less(total, 60 + 3, "unos 30-45 drops sin tope en una semana");
+            Assert.LessOrEqual(Math.Min(total, l.maxDropsPerDay * 7), 112, "el tope diario sigue limitando");
+            Assert.Less(total, 110, "unos 70-90 drops sin tope en una semana");
         }
     }
 }

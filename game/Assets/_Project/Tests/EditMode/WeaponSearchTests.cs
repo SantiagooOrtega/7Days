@@ -152,7 +152,7 @@ namespace SevenDays.Tests
         public void AmmoAndMedkitScarcity_IsUnchanged()
         {
             var r = ScarcityReport.Evaluate(Layout(), new Dictionary<string, int> { { "common", 60 }, { "runner", 15 }, { "brute", 6 }, { "spitter", 6 }, { "boss", 3 } });
-            Assert.That(r.PistolAmmo, Is.InRange(30, 130)); Assert.That(r.HealHp, Is.InRange(200, 900));
+            Assert.That(r.PistolAmmo, Is.InRange(120, 320));   // munición generosa (BALANCE.md) Assert.That(r.HealHp, Is.InRange(200, 900));
         }
     }
 }

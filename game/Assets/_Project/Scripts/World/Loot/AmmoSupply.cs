@@ -9,7 +9,7 @@ namespace SevenDays.World.Loot
 {
     /// <summary>
     /// Aplica la economía de munición (AmmoEconomy, pura) en la partida: al empezar cada día calcula cuánto falta para el presupuesto, lo reparte en tandas lentas
-    /// durante la oleada (en puntos del mapa que no se hayan usado en 60 s) y como crédito que sueltan los zombis al morir; y si el jugador pasa 90 s sin munición
+    /// durante la oleada (en puntos del mapa que no se hayan usado en 60 s) y como crédito que sueltan los zombis al morir; y si el jugador pasa 60 s sin munición
     /// en ninguna arma, deja un paquete cerca (pity timer). Todo respeta el tope de pickups activos (lo que no cabe se queda como crédito).
     /// </summary>
     public class AmmoSupply : MonoBehaviour

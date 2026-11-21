@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,7 +7,15 @@ namespace SevenDays.Procedural
     /// <summary>Botín por defecto: tablas de objetos, drops por zombie y puntos repartidos (casa, coches, escombros, arbustos, cajas expuestas y objetos sueltos).</summary>
     public static class LootDefaults
     {
-        private static LootEntry E(string kind, string id, int amount, float weight) => new LootEntry { kind = kind, id = id, amount = amount, weight = weight };
+        /// <summary>Munición generosa (ajuste tras probar): cada pickup de munición trae x2.5 balas y sale el doble de veces (escopeta x1.5: sigue más limitada).
+        /// Botiquines y armas no cambian, así que siguen escasos.</summary>
+        public const float AmmoAmountScale = 2.5f, AmmoWeightScale = 2f, ShotgunWeightScale = 1.5f, DropChanceScale = 2.2f;
+        private static LootEntry E(string kind, string id, int amount, float weight)
+        {
+            if (kind == "ammo") { amount = (int)Math.Round(amount * AmmoAmountScale); weight *= id == "shotgun" ? ShotgunWeightScale : AmmoWeightScale; }
+            return new LootEntry { kind = kind, id = id, amount = amount, weight = weight };
+        }
+        private static float C(float baseChance) => Math.Min(1f, (float)Math.Round(baseChance * DropChanceScale, 3));
 
         public static LootLayoutData Create(IList<PropEntry> props = null, HouseLayoutData house = null)
         {
@@ -29,13 +38,13 @@ namespace SevenDays.Procedural
             };
             l.drops = new[]
             {
-                new DropRule { zombie = "common", chance = 0.12f, table = "drop_common" },
-                new DropRule { zombie = "runner", chance = 0.12f, table = "drop_special" },
-                new DropRule { zombie = "explosive", chance = 0.08f, table = "drop_common" },
-                new DropRule { zombie = "armored", chance = 0.20f, table = "drop_heavy" },
-                new DropRule { zombie = "tank", chance = 0.30f, table = "drop_heavy" },
-                new DropRule { zombie = "brute", chance = 0.25f, table = "drop_heavy" },
-                new DropRule { zombie = "spitter", chance = 0.25f, table = "drop_special" },
+                new DropRule { zombie = "common", chance = C(0.12f), table = "drop_common" },
+                new DropRule { zombie = "runner", chance = C(0.12f), table = "drop_special" },
+                new DropRule { zombie = "explosive", chance = C(0.08f), table = "drop_common" },
+                new DropRule { zombie = "armored", chance = C(0.20f), table = "drop_heavy" },
+                new DropRule { zombie = "tank", chance = C(0.30f), table = "drop_heavy" },
+                new DropRule { zombie = "brute", chance = C(0.25f), table = "drop_heavy" },
+                new DropRule { zombie = "spitter", chance = C(0.25f), table = "drop_special" },
                 new DropRule { zombie = "boss", chance = 1f, table = "drop_boss", guaranteed = true, minRarity = (int)Rarity.Rare },
             };
 

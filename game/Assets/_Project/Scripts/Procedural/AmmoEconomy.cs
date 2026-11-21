@@ -18,13 +18,13 @@ namespace SevenDays.Procedural
     }
 
     /// <summary>
-    /// Economía de munición por día (pura): presupuesto = balas por zombi x zombis de la oleada, con 1.5 balas por zombi el día 1 bajando a 1.2 el día 7 (sigue
-    /// habiendo escasez: no llega para matar a todos a tiros). Las fuentes "naturales" (relleno de contenedores y drops de las tablas) se cuentan primero y la
+    /// Economía de munición por día (pura): presupuesto = balas por zombi x zombis de la oleada, con 4.5 balas por zombi el día 1 bajando a 3 el día 7 (generosa
+    /// tras probar: se puede pelear a tiros; botiquines y armas siguen escasos). Las fuentes "naturales" (relleno de contenedores y drops de las tablas) se cuentan primero y la
     /// economía completa el resto: 40 % en tandas durante la oleada y 60 % como drops de munición de los zombis. No cuenta el botín inicial del mapa ni la munición de salida.
     /// </summary>
     public static class AmmoEconomy
     {
-        public const float RatioDay1 = 1.5f, RatioDay7 = 1.2f;
+        public const float RatioDay1 = 4.5f, RatioDay7 = 3.0f;
         public const double TrickleShare = 0.4;
         public const int TrickleBatches = 4;
         public const float TrickleFirstSeconds = 20f, TrickleIntervalSeconds = 25f;
@@ -34,7 +34,7 @@ namespace SevenDays.Procedural
         public const float RefillScale = 1.5f;
         public const int ExtraRespawns = 3;
         /// <summary>Sin munición en ninguna arma durante este tiempo, el director deja un drop cerca.</summary>
-        public const float PitySeconds = 90f;
+        public const float PitySeconds = 60f;
 
         public static float TargetRatio(int day)
         {
@@ -116,7 +116,7 @@ namespace SevenDays.Procedural
         }
 
         /// <summary>Tamaño de un paquete de munición de ese tipo (lo que suelta un zombi o aparece en una tanda).</summary>
-        public static int PackSize(AmmoType t) => t == AmmoType.Shotgun ? 3 : (t == AmmoType.Rifle ? 8 : 6);
+        public static int PackSize(AmmoType t) => t == AmmoType.Shotgun ? 6 : (t == AmmoType.Rifle ? 16 : 14);
     }
 
     /// <summary>"Pity timer": si el jugador pasa PitySeconds sin munición en ninguna arma, avisa una vez (y vuelve a contar).</summary>
