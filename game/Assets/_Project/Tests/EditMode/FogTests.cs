@@ -89,7 +89,19 @@ namespace SevenDays.Tests
             Assert.GreaterOrEqual(c.groundFogDensity, 2.94f * 1.19f, "Calle: +20 % de bruma baja");
             Assert.GreaterOrEqual(b.groundFogDensity, 5.28f * 1.19f, "Bosque: +20 % en la bruma baja");
             Assert.GreaterOrEqual(b.horizonFog, 2.4f * 1.19f, "Bosque: +20 % en el horizonte");
-            Assert.LessOrEqual(b.horizonFog, 3f, "dentro de la validación");
+            Assert.LessOrEqual(b.horizonFog, 4f, "dentro de la validación");
+            foreach (var a in new[] { c, b }) Assert.GreaterOrEqual(FogModel.Visibility(a.fogDensity, 25f), FogModel.MinVisibility - 1e-4f, "zombis visibles a 25 m");
+        }
+
+        [Test]
+        public void SeventhRound_Plus20Percent_StillVisibleAt25m()
+        {
+            var c = A("calle_en_ruinas"); var b = A("bosque_oscuro");
+            Assert.GreaterOrEqual(c.fogDensity, 0.0281f * 1.19f, "Calle: +20 % de densidad");
+            Assert.GreaterOrEqual(c.groundFogDensity, 3.53f * 1.19f, "Calle: +20 % de bruma baja");
+            Assert.GreaterOrEqual(b.groundFogDensity, 6.34f * 1.19f, "Bosque: +20 % en la bruma baja");
+            Assert.GreaterOrEqual(b.horizonFog, 2.9f * 1.19f, "Bosque: +20 % en el horizonte");
+            Assert.LessOrEqual(b.fogDensity, FogModel.MaxDensity() + 1e-4f, "Bosque: densidad en su tope");
             foreach (var a in new[] { c, b }) Assert.GreaterOrEqual(FogModel.Visibility(a.fogDensity, 25f), FogModel.MinVisibility - 1e-4f, "zombis visibles a 25 m");
         }
     }

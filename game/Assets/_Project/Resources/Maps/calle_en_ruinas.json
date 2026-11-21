@@ -6291,7 +6291,7 @@
             0.5525000095367432,
             0.6100000143051148
         ],
-        "fogDensity": 0.02810000069439411,
+        "fogDensity": 0.03370000049471855,
         "ambientSky": [
             0.5,
             0.5600000023841858,
@@ -6319,11 +6319,11 @@
         "brightness": 1.059999942779541,
         "density": 1.0,
         "groundFogLayers": 3,
-        "groundFogDensity": 3.5299999713897707,
+        "groundFogDensity": 4.239999771118164,
         "groundFogAlpha": 0.10999999940395355,
         "hazeBanks": 20,
         "skyDim": 0.44999998807907107,
-        "horizonFog": 2.5,
+        "horizonFog": 3.0,
         "ash": 1.0,
         "smokeColumns": 3,
         "smoke": 1.0,
