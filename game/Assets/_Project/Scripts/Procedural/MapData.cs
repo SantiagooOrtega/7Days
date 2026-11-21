@@ -37,7 +37,7 @@ namespace SevenDays.Procedural
     {
         public float hour = 17f;                       // informativo: 0-24 (la luz la dan los valores de abajo)
         public float[] fogColor = { 0.5f, 0.55f, 0.6f };
-        public float fogDensity = 0.0195f;
+        public float fogDensity = 0.0234f;
         public float[] ambientSky = { 0.5f, 0.56f, 0.64f }, ambientEquator = { 0.4f, 0.42f, 0.46f }, ambientGround = { 0.22f, 0.22f, 0.23f };
         public float sunPitch = 52f, sunYaw = -35f, sunIntensity = 1f, shadowStrength = 0.78f;
         public float[] sunColor = { 0.96f, 0.95f, 0.93f };
@@ -115,7 +115,7 @@ namespace SevenDays.Procedural
             if (m.ambience == null) e.Add(n + "sin ambientación");
             else if (!(m.ambience.fogDensity >= 0f && m.ambience.fogDensity <= 0.2f)) e.Add(n + "densidad de niebla fuera de 0..0.2");
             else if (m.ambience.fogDensity > FogModel.MaxDensity()) e.Add(n + "niebla tan densa que tapa los zombis a 25 m");
-            else if (!(m.ambience.horizonFog >= 0f && m.ambience.horizonFog <= 2f)) e.Add(n + "horizonFog fuera de 0..2");
+            else if (!(m.ambience.horizonFog >= 0f && m.ambience.horizonFog <= 3f)) e.Add(n + "horizonFog fuera de 0..3");
             return e;
         }
 
