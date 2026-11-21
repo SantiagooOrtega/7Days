@@ -52,7 +52,8 @@ namespace SevenDays.Look
         /// <summary>Corrutina: genera lo que falte. Úsala con "yield return SurfaceLibrary.Build(params)".</summary>
         public static IEnumerator Build(SurfaceParams p)
         {
-            if (Ready) yield break;
+            if (Ready && AllAlive()) yield break;   // ya generadas y vivas: se reutilizan entre días y al reintentar
+            Ready = false;
             var sw = Stopwatch.StartNew();
 
             var jobs = new List<(string name, Task<SurfaceResult> task)>();
@@ -103,6 +104,13 @@ namespace SevenDays.Look
             return tex;
         }
 
+        /// <summary>true si ninguna textura generada se ha destruido (al recargar la escena Unity puede descargar lo que solo guarda un diccionario estático).</summary>
+        public static bool AllAlive()
+        {
+            foreach (var e in Entries.Values) if (e.Diffuse == null || e.Normal == null) return false;
+            return true;
+        }
+
         private static bool IsWholeFace(string name) => name == CrateWood || name == Cardboard;
 
         private static Texture2D ToTexture(byte[] rgba, int size, bool linear, TextureWrapMode wrap)
@@ -114,6 +122,7 @@ namespace SevenDays.Look
                 anisoLevel = 4, // ángulos rasantes (suelo, muros largos) sin borroneo; 4x basta y cuesta la mitad que 8x a pantalla grande
             };
             tex.SetPixelData(rgba, 0);
+            tex.hideFlags = HideFlags.DontUnloadUnusedAsset;   // se genera UNA vez: sobrevive a "Reintentar" (LoadScene descarga lo que no usa la escena)
             return Finish(tex, linear);
         }
 
