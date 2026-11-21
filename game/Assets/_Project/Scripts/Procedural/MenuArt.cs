@@ -35,60 +35,118 @@ namespace SevenDays.Procedural
             return Math.Abs(u - cx) < 0.055f;
         }
 
+        // paleta del fondo
+        public static readonly float[] SkyTop = { 0x0A / 255f, 0x08 / 255f, 0x08 / 255f }, SkyMid = { 0x3A / 255f, 0x0A / 255f, 0x07 / 255f }, SkyLow = { 0x7A / 255f, 0x14 / 255f, 0x0C / 255f };
+        public static readonly float[][] CityColor = { new[] { 0x1A / 255f, 0x06 / 255f, 0x05 / 255f }, new[] { 0x10 / 255f, 0x04 / 255f, 0x03 / 255f }, new[] { 0x08 / 255f, 0x02 / 255f, 0x02 / 255f } };
+        public const float GrainAmount = 0.04f;
+
+        /// <summary>Color del cielo a la altura v (0 abajo, 1 arriba): #7A140C abajo, #3A0A07 en medio, #0A0808 arriba.</summary>
+        public static void Sky(float v, out float r, out float g, out float b)
+        {
+            float[] lo, hi; float t;
+            if (v < 0.5f) { lo = SkyLow; hi = SkyMid; t = Smooth(0f, 0.5f, v); } else { lo = SkyMid; hi = SkyTop; t = Smooth(0.5f, 1f, v); }
+            r = lo[0] + (hi[0] - lo[0]) * t; g = lo[1] + (hi[1] - lo[1]) * t; b = lo[2] + (hi[2] - lo[2]) * t;
+        }
+
         /// <summary>
-        /// Fondo del menú (w x h): muro carmesí con juntas de paneles, grano negro y manchas; ciudad en ruinas en silueta a la izquierda, escombros con fuego abajo y viñeta casi negra en los bordes.
+        /// Fondo del menú (w x h): degradado vertical, humo denso tenue en el cielo, viñeta suave y grano del 4 %. Sin rejilla. La ciudad, las llamas, el humo
+        /// animado y la calavera van en capas aparte.
         /// </summary>
         public static byte[] Backdrop(int w, int h, int seed)
         {
             var px = new byte[w * h * 4];
-            var rng = new Random(seed);
-            // ciudad a la izquierda: torres que suben hacia el borde
-            var city = new float[w];
-            int x0 = 0;
-            while (x0 < w * 0.34f)
-            {
-                int bw = 8 + rng.Next(w / 22 + 1);
-                float u = x0 / (float)w, top = 0.42f + 0.38f * (1f - u / 0.34f) * (0.55f + 0.45f * (float)rng.NextDouble());
-                bool spire = rng.NextDouble() < 0.3;
-                for (int x = x0; x < Math.Min(w, x0 + bw); x++) city[x] = top + (spire && Math.Abs(x - x0 - bw / 2) < 2 ? 0.06f : 0f) - (rng.NextDouble() < 0.08 ? 0.02f : 0f);
-                x0 += bw + rng.Next(4);
-            }
-            // escombros: línea irregular abajo
-            var rubble = new float[w];
-            for (int x = 0; x < w; x++) { float u = x / (float)w; rubble[x] = 0.1f + 0.09f * Fbm(u * 9f, 0.5f, seed + 7, 4) + (Hash(x / 7, 3, seed) < 0.07f ? 0.06f : 0f); }
             for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
                 {
                     float u = x / (float)w, v = y / (float)h;
-                    // muro rojo: más claro detrás de la calavera
-                    float lit = (float)Math.Exp(-((u - 0.63f) * (u - 0.63f) * 3.2f + (v - 0.56f) * (v - 0.56f) * 4f));
-                    float paint = Fbm(u * 6f, v * 4f, seed, 5);
-                    float r = WallDark[0] + (WallBright[0] - WallDark[0]) * (0.35f + 0.65f * lit), g = WallDark[1] + (WallBright[1] - WallDark[1]) * lit, b = WallDark[2] + (WallBright[2] - WallDark[2]) * lit;
-                    r *= 0.85f + 0.3f * paint; g *= 0.85f + 0.3f * paint;
-                    // juntas de paneles del muro (líneas oscuras finas con algo de desorden)
-                    float gu = u * 16f + 0.3f * Fbm(u * 3f, v * 3f, seed + 2, 2), gv = v * 9f;
-                    float joint = Math.Min(Math.Abs(gu - (float)Math.Round(gu)), Math.Abs(gv - (float)Math.Round(gv)) * 1.6f);
-                    float jk = (1f - Smooth(0.01f, 0.05f, joint)) * 0.45f;
-                    r *= 1f - jk; g *= 1f - jk; b *= 1f - jk;
-                    // grano negro fuerte (pintura en spray) y manchas
-                    float speck = Hash(x, y, seed + 11), blot = Fbm(u * 22f, v * 18f, seed + 13, 3);
-                    float dark = (speck > 0.82f ? 0.65f : 0f) + C01((blot - 0.6f) * 2.5f) * 0.5f;
+                    Sky(v, out float r, out float g, out float b);
+                    // nubes de humo: más oscuras arriba, teñidas de rojo abajo
+                    float sm = Fbm(u * 3.2f, v * 2.2f + 0.3f * Fbm(u * 2f, v * 2f, seed + 1, 2), seed, 5);
+                    float dark = C01((sm - 0.45f) * 1.6f) * 0.45f;
                     r *= 1f - dark; g *= 1f - dark; b *= 1f - dark;
-                    // ciudad en silueta negra a la izquierda
-                    if (v < city[x]) { r = 0.02f; g = 0.01f; b = 0.01f; if (v < city[x] - 0.03f && Hash(x / 4, y / 5, seed + 3) < 0.03f) { r = 0.9f; g = 0.35f; b = 0.05f; } }
-                    // fuego sobre los escombros y escombros negros
-                    float fireTop = rubble[x] + 0.2f * Fbm(u * 14f, v * 3f, seed + 17, 3);
-                    if (v < fireTop)
-                    {
-                        float f = Smooth(fireTop, rubble[x], v) * (0.6f + 0.4f * Fbm(u * 30f, v * 12f, seed + 19, 3));
-                        r = r * (1f - f) + 1f * f; g = g * (1f - f) + (0.42f + 0.35f * f) * f; b = b * (1f - f) + 0.06f * f;
-                    }
-                    if (v < rubble[x]) { r = 0.025f; g = 0.012f; b = 0.01f; }
-                    // viñeta casi negra en los bordes (más abajo y a la izquierda)
-                    float dx = u - 0.55f, dy = v - 0.55f, vig = C01(1f - (dx * dx * 2.4f + dy * dy * 3.2f));
-                    vig = 0.08f + 0.92f * vig * vig;
+                    // resplandor naranja desde abajo
+                    float glow = (float)Math.Exp(-v * 5f) * 0.35f;
+                    r += glow * 1f; g += glow * 0.32f; b += glow * 0.05f;
+                    // viñeta suave
+                    float dx = u - 0.5f, dy = v - 0.5f, vig = 1f - 0.55f * C01((dx * dx * 1.6f + dy * dy * 2.2f) * 1.6f);
+                    float gr = 1f + GrainAmount * (Hash(x, y, seed + 11) * 2f - 1f);
                     int o = (y * w + x) * 4;
-                    px[o] = B(r * vig); px[o + 1] = B(g * vig); px[o + 2] = B(b * vig); px[o + 3] = 255;
+                    px[o] = B(r * vig * gr); px[o + 1] = B(g * vig * gr); px[o + 2] = B(b * vig * gr); px[o + 3] = 255;
+                }
+            return px;
+        }
+
+        /// <summary>Perfil de la ciudad de una capa (0 lejana, 1 media, 2 cercana): altura (0..1 del alto de la textura) por columna. Edificios rotos, torres, grúas.</summary>
+        public static float[] Skyline(int w, int layer, int seed)
+        {
+            var hgt = new float[w]; var rng = new Random(seed + layer * 101);
+            float baseH = layer == 0 ? 0.55f : (layer == 1 ? 0.42f : 0.2f), var = layer == 0 ? 0.35f : (layer == 1 ? 0.4f : 0.22f);
+            int x0 = 0;
+            while (x0 < w)
+            {
+                int bw = (int)(w * (layer == 2 ? 0.04f : 0.025f)) + rng.Next((int)(w * 0.04f) + 1);
+                float top = baseH + var * (float)rng.NextDouble();
+                bool broken = rng.NextDouble() < 0.45, spire = rng.NextDouble() < 0.15;
+                for (int x = x0; x < Math.Min(w, x0 + bw); x++)
+                {
+                    float t = (x - x0) / (float)bw, ht = top;
+                    if (broken) ht -= 0.12f * C01((t - 0.4f) * 2f) + 0.03f * (Hash(x / 3, layer, seed) - 0.5f);   // techo derrumbado en diagonal
+                    if (spire && Math.Abs(t - 0.5f) < 0.06f) ht += 0.12f;
+                    hgt[x] = Math.Max(hgt[x], ht);
+                }
+                x0 += bw + (layer == 2 ? rng.Next(w / 30 + 1) : rng.Next(4));
+            }
+            // grúa en la capa media
+            if (layer == 1) { int cx = w * 2 / 3; for (int x = cx; x < Math.Min(w, cx + w / 9); x++) hgt[x] = Math.Max(hgt[x], x - cx < 4 ? 0.95f : (0.9f + (Hash(x / 6, 9, seed) < 0.5f ? 0.03f : 0f))); }
+            if (layer == 2) for (int x = 0; x < w; x++) hgt[x] += 0.05f * Fbm(x * 0.02f, 0.5f, seed + 5, 3);   // escombros irregulares
+            return hgt;
+        }
+
+        /// <summary>Capa de ciudad (w x h): silueta del color de su capa; la cercana lleva un filo de luz naranja del fuego arriba. Alfa 1 dentro.</summary>
+        public static byte[] CityLayer(int w, int h, int layer, int seed)
+        {
+            var px = new byte[w * h * 4]; var sk = Skyline(w, layer, seed); var c = CityColor[layer];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float v = y / (float)h, top = sk[x];
+                    if (v > top) continue;
+                    float edge = C01(1f - (top - v) * h / 6f) * (layer == 2 ? 0.9f : (layer == 1 ? 0.35f : 0.15f));   // luz del fuego en el borde de arriba
+                    float lift = (1f - v / Math.Max(top, 1e-3f)) * (layer == 0 ? 0.25f : 0.12f);                     // el fuego aclara la base
+                    float r = c[0] + edge * 1f + lift * 0.4f, g = c[1] + edge * 0.42f + lift * 0.08f, b = c[2] + edge * 0.08f;
+                    int o = (y * w + x) * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = 255;
+                }
+            return px;
+        }
+
+        /// <summary>Posiciones (u, v de la textura de la capa media) de "count" ventanas encendidas, siempre dentro de un edificio y por debajo de su techo.</summary>
+        public static float[] CityWindows(int w, int seed, int count)
+        {
+            var sk = Skyline(w, 1, seed); var res = new float[count * 2]; var rng = new Random(seed + 77); int n = 0, guard = 0;
+            while (n < count && guard++ < 10000)
+            {
+                int x = rng.Next(w); float top = sk[x];
+                if (top < 0.2f || x < 3 || x > w - 4 || Math.Min(sk[x - 3], sk[x + 3]) < top - 0.02f) continue;
+                float v = 0.08f + (float)rng.NextDouble() * (top - 0.16f);
+                bool clash = false; for (int k = 0; k < n; k++) if (Math.Abs(res[k * 2] - x / (float)w) < 0.012f && Math.Abs(res[k * 2 + 1] - v) < 0.05f) clash = true;
+                if (clash) continue;
+                res[n * 2] = x / (float)w; res[n * 2 + 1] = v; n++;
+            }
+            return res;
+        }
+
+        /// <summary>Columna de humo negro (w x h), periódica en vertical para desplazarla hacia arriba: más ancha arriba, bordes deshilachados.</summary>
+        public static byte[] SmokeColumn(int w, int h, int seed)
+        {
+            var px = new byte[w * h * 4];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = x / (float)w * 2f - 1f, v = y / (float)h;
+                    float n = FbmP(u * 3f + 10f, v * 4f, seed, 64, 4, 4);
+                    float width = 0.55f + 0.35f * (float)Math.Sin(v * Math.PI * 2f) * 0.3f;
+                    float a = C01((width - Math.Abs(u + (n - 0.5f) * 0.8f)) * 2.2f) * C01((n - 0.25f) * 2f) * 0.85f;
+                    int o = (y * w + x) * 4; px[o] = B(0.03f); px[o + 1] = B(0.02f); px[o + 2] = B(0.02f); px[o + 3] = B(a);
                 }
             return px;
         }
@@ -380,7 +438,7 @@ namespace SevenDays.Procedural
         public static byte[] Grain(int n, int seed)
         {
             var px = new byte[n * n * 4];
-            for (int i = 0; i < n * n; i++) { float v = Hash(i % n, i / n, seed); int o = i * 4; px[o] = px[o + 1] = px[o + 2] = B(v); px[o + 3] = B(0.08f); }
+            for (int i = 0; i < n * n; i++) { float v = Hash(i % n, i / n, seed); int o = i * 4; px[o] = px[o + 1] = px[o + 2] = B(v); px[o + 3] = B(GrainAmount); }
             return px;
         }
 
@@ -391,8 +449,8 @@ namespace SevenDays.Procedural
             for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
             {
                 float u = x / (float)w, v = y / (float)h;
-                float n = Fbm(u * 4f, v * 3f, seed, 4);
-                float a = C01((n - 0.42f) * 2.2f) * C01(1.1f - v) * 0.55f;
+                float n = FbmP(u * 4f, v * 3f, seed, 4, 3, 4);   // periódico: se desplaza sin costuras
+                float a = C01((n - 0.42f) * 2.2f) * 0.55f;
                 int o = (y * w + x) * 4; px[o] = B(0.12f); px[o + 1] = B(0.09f); px[o + 2] = B(0.08f); px[o + 3] = B(a);
             }
             return px;

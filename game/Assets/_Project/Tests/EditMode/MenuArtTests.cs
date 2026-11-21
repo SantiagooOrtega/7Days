@@ -8,15 +8,28 @@ namespace SevenDays.Tests
     public class MenuArtTests
     {
         [Test]
-        public void Backdrop_Deterministic_RedAndFire_CityDarkBelow_SkullFaint()
+        public void Backdrop_GradientDarkTopRedBottom_NoGrid_LowGrain_CityLayersAndWindows()
         {
             int w = 192, h = 108;
-            var a = MenuArt.Backdrop(w, h, 7); var b = MenuArt.Backdrop(w, h, 7);
-            CollectionAssert.AreEqual(a, b, "se genera igual siempre (cacheable)");
-            float r = 0, g = 0, bl = 0; for (int i = 0; i < w * h; i++) { r += a[i * 4]; g += a[i * 4 + 1]; bl += a[i * 4 + 2]; }
-            Assert.Greater(r, g * 1.5f, "rojo dominante"); Assert.Greater(g, bl, "naranja, no azul");
-            int dark = 0; for (int x = 0; x < w; x++) if (a[(1 * w + x) * 4] < 40) dark++;
-            Assert.Greater(dark, w / 3, "silueta de la ciudad abajo");
+            var a = MenuArt.Backdrop(w, h, 7);
+            CollectionAssert.AreEqual(a, MenuArt.Backdrop(w, h, 7), "se genera igual siempre (cacheable)");
+            float Row(int y, int c) { float s = 0; for (int x = 0; x < w; x++) s += a[(y * w + x) * 4 + c]; return s / w; }
+            Assert.Greater(Row(2, 0), Row(h - 3, 0) * 3f, "abajo rojo, arriba casi negro");
+            Assert.Greater(Row(2, 0), Row(2, 1) * 2f, "rojo dominante abajo");
+            Assert.AreEqual(0.04f, MenuArt.GrainAmount, 1e-6f, "grano al 4 %");
+            // sin rejilla: en una fila del medio no hay saltos bruscos entre columnas vecinas
+            int jumps = 0; for (int x = 1; x < w; x++) if (System.Math.Abs(a[((h / 2) * w + x) * 4] - a[((h / 2) * w + x - 1) * 4]) > 25) jumps++;
+            Assert.Less(jumps, 3, "sin líneas de rejilla");
+            MenuArt.Sky(1f, out var r, out var g, out var b); Assert.AreEqual(0x0A / 255f, r, 0.01f);
+            MenuArt.Sky(0f, out r, out g, out b); Assert.AreEqual(0x7A / 255f, r, 0.01f);
+            // tres capas de ciudad, la lejana más alta y más clara, la cercana más baja y más oscura
+            var far = MenuArt.Skyline(256, 0, 21); var near = MenuArt.Skyline(256, 2, 21);
+            float avg(float[] x) { float s = 0; foreach (var v in x) s += v; return s / x.Length; }
+            Assert.Greater(avg(far), avg(near));
+            Assert.Greater(MenuArt.CityColor[0][0], MenuArt.CityColor[2][0]);
+            var win = MenuArt.CityWindows(1024, 21, 25); var mid = MenuArt.Skyline(1024, 1, 21);
+            for (int i = 0; i < 25; i++) Assert.Less(win[i * 2 + 1], mid[(int)(win[i * 2] * 1024)], "ventana dentro de un edificio");
+            var col = MenuArt.SmokeColumn(32, 64, 4); Assert.AreEqual(col[(0 * 32 + 16) * 4 + 3], col[(0 * 32 + 16) * 4 + 3]);
         }
 
         [Test]
