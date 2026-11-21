@@ -229,6 +229,7 @@ namespace SevenDays.World
             if (_finished) return;
             _finished = true;
             Match.victory = victory; Match.finished = true;
+            SevenDays.UI.FrontEndData.Record(Match, Cycle.Day);   // perfil local y ranking del servidor si hay sesión
             MatchFinished?.Invoke(Match);
         }
 
@@ -436,6 +437,7 @@ namespace SevenDays.World
         {
             GameInput.InputCaptured = false;
             Time.timeScale = 1f;
+            SevenDays.UI.FrontEnd.SkipNext = true;   // reintentar va directo a la partida
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
@@ -444,8 +446,9 @@ namespace SevenDays.World
         {
             GameInput.InputCaptured = false;
             Time.timeScale = 1f;
-            if (Application.CanStreamedLevelBeLoaded("Menu")) SceneManager.LoadScene("Menu");
-            else Retry();
+            SevenDays.UI.FrontEnd.SkipNext = false;   // el menú vive en la escena Game (FrontEnd)
+            PendingStartDay = 1;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
     }
 }

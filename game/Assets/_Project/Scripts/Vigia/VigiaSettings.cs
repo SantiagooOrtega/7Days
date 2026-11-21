@@ -11,6 +11,8 @@ namespace SevenDays.Vigia
         public static bool Subtitles { get => PlayerPrefs.GetInt(Key + "subs", 1) == 1; set => PlayerPrefs.SetInt(Key + "subs", value ? 1 : 0); }
         /// <summary>Tamaño del texto de los subtítulos (multiplicador 0.8-1.6).</summary>
         public static float SubtitleScale { get => PlayerPrefs.GetFloat(Key + "subsize", 1f); set => PlayerPrefs.SetFloat(Key + "subsize", Mathf.Clamp(value, 0.8f, 1.6f)); }
+        /// <summary>Altura de los subtítulos: fracción de la pantalla desde abajo (0.09 = justo sobre la vida y la munición).</summary>
+        public static float SubtitleHeight { get => PlayerPrefs.GetFloat(Key + "subh", 0.09f); set => PlayerPrefs.SetFloat(Key + "subh", Mathf.Clamp(value, 0.04f, 0.3f)); }
         public static readonly string[] ModeNames = { "Completa", "Reducida", "Solo texto", "Apagada" };
     }
 }

@@ -37,6 +37,7 @@ namespace SevenDays.World
 
         private IEnumerator Start()
         {
+            while (SevenDays.UI.FrontEnd.Blocking) yield return null;   // menú, selección de personaje y mapa (FrontEnd) antes de construir nada
             if (!Session.IsLoggedIn)
                 Debug.LogWarning("[7Days] Jugando sin sesión (modo prueba). Para el flujo completo empieza desde la escena Login.");
 

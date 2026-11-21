@@ -1,0 +1,3 @@
+# Créditos: un nombre por línea (edita este archivo: game/Assets/_Project/Resources/creditos.txt)
+Autor del proyecto
+Equipo 7Days
