@@ -19,6 +19,8 @@ namespace SevenDays.World.Loot
         public double Credit { get; private set; }
         public int RoundsGiven { get; private set; }
         public AmmoPity Pity { get; } = new AmmoPity();
+        public AmmoTypePity TypePity { get; } = new AmmoTypePity();
+        public int TypePityDrops { get; private set; }
 
         private LootManager _loot;
         private PlayerInventory _inventory;
@@ -85,7 +87,10 @@ namespace SevenDays.World.Loot
                 TrySpawnAtPoint();
             }
             // pity timer: nunca sin forma de conseguir munición
-            if (Pity.Tick(Time.deltaTime, _inventory.HasAnyAmmo)) PityDrop();
+            if (Pity.Tick(Time.deltaTime, _inventory.HasAnyAmmo)) PityDrop(PickType());
+            // pity por tipo: 60 s sin balas de un arma que llevas -> paquete de ESE tipo cerca
+            var due = TypePity.Tick(Time.deltaTime, _inventory.Weapons, _inventory.Ammo);
+            if (due != AmmoType.None && PityDrop(due)) TypePityDrops++;
         }
 
         private AmmoType PickType()
@@ -120,9 +125,9 @@ namespace SevenDays.World.Loot
             return false;
         }
 
-        private void PityDrop()
+        /// <summary>Paquete doble cerca del jugador (alcanzable y dentro del perímetro: LootManager lo recoloca o lo descarta si no hay sitio válido).</summary>
+        public bool PityDrop(AmmoType t)
         {
-            var t = PickType();
             Vector3 at = _player.position + _player.forward * 3f;
             if (NavMesh.SamplePosition(at, out var hit, 3f, NavMesh.AllAreas)) at = hit.position;
             int pack = AmmoEconomy.PackSize(t) * 2;
@@ -130,7 +135,9 @@ namespace SevenDays.World.Loot
             {
                 RoundsGiven += pack;
                 HudMessages.Add("Encontraste munición cerca", new Color(1f, 0.85f, 0.3f), 3.5f);
+                return true;
             }
+            return false;
         }
     }
 }

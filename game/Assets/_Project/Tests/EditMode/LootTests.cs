@@ -123,7 +123,7 @@ namespace SevenDays.Tests
             var r = ScarcityReport.Evaluate(L(), WeekKills);
             // munición generosa (tras probar): x2.5 por pickup, el doble de probable y drops x2.2. La escopeta sigue siendo la más escasa.
             Assert.That(r.PistolAmmo, Is.InRange(250, 520), "munición de pistola de toda la partida (≈ 384)");
-            Assert.Less(r.ShotgunAmmo, r.PistolAmmo / 3, "escopeta más limitada que pistola");
+            Assert.Less(r.ShotgunAmmo, r.PistolAmmo / 2.4, "escopeta más limitada que pistola (subió en el ajuste de suministros: ≈ 0.37 de la pistola)");
             Assert.Less(r.RifleAmmo, r.PistolAmmo, "rifle por debajo de pistola");
             Assert.Greater(r.PistolAmmo + r.RifleAmmo + r.ShotgunAmmo, 40, "pero no es cero: hay con qué pelear");
         }
@@ -132,7 +132,7 @@ namespace SevenDays.Tests
         public void Scarcity_Healing_IsLimited_AndWeaponsAreFew_EpicAlmostNever()
         {
             var r = ScarcityReport.Evaluate(L(), WeekKills);
-            Assert.Less(r.HealHp, 520, "pocas curaciones en 7 días");
+            Assert.Less(r.HealHp, 640, "curaciones limitadas en 7 días (≈ 528 con vendas y botiquines pequeños x1.6)");
             Assert.Greater(r.HealHp, 100);
             Assert.Less(r.Weapons, 7, "pocas armas nuevas (≈ 5.4)");
             Assert.Less(r.EpicWeapons, 1.0, "la épica casi no aparece (≈ 0.7, casi todas del jefe)");

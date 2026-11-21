@@ -7,12 +7,20 @@ namespace SevenDays.Procedural
     /// <summary>Botín por defecto: tablas de objetos, drops por zombie y puntos repartidos (casa, coches, escombros, arbustos, cajas expuestas y objetos sueltos).</summary>
     public static class LootDefaults
     {
-        /// <summary>Munición generosa (ajuste tras probar): cada pickup de munición trae x2.5 balas y sale el doble de veces (escopeta x1.5: sigue más limitada).
-        /// Botiquines y armas no cambian, así que siguen escasos.</summary>
-        public const float AmmoAmountScale = 2.5f, AmmoWeightScale = 2f, ShotgunWeightScale = 1.5f, DropChanceScale = 2.2f;
+        /// <summary>Munición generosa (ajuste tras probar): cada pickup de munición trae x2.5 balas y sale el doble de veces. Segundo ajuste: el rifle (fusil y
+        /// francotirador) y la escopeta escaseaban, así que traen x3.2 balas y pesan x3 (rifle) y x2.6 (escopeta, antes x1.5). Vendas y botiquines pequeños pesan x1.6;
+        /// medianos, grandes y armas no cambian.</summary>
+        public const float AmmoAmountScale = 2.5f, AmmoWeightScale = 2f, ShotgunWeightScale = 2.6f, DropChanceScale = 2.2f;
+        public const float RifleWeightScale = 3f, HeavyAmmoAmountScale = 3.2f, SmallHealWeightScale = 1.6f;
         private static LootEntry E(string kind, string id, int amount, float weight)
         {
-            if (kind == "ammo") { amount = (int)Math.Round(amount * AmmoAmountScale); weight *= id == "shotgun" ? ShotgunWeightScale : AmmoWeightScale; }
+            if (kind == "ammo")
+            {
+                bool heavy = id == "shotgun" || id == "rifle";
+                amount = (int)Math.Round(amount * (heavy ? HeavyAmmoAmountScale : AmmoAmountScale));
+                weight *= id == "shotgun" ? ShotgunWeightScale : (id == "rifle" ? RifleWeightScale : AmmoWeightScale);
+            }
+            else if (kind == "medkit" && (id == "bandage" || id == "small")) weight *= SmallHealWeightScale;
             return new LootEntry { kind = kind, id = id, amount = amount, weight = weight };
         }
         private static float C(float baseChance) => Math.Min(1f, (float)Math.Round(baseChance * DropChanceScale, 3));

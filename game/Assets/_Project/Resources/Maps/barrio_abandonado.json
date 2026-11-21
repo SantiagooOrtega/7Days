@@ -1149,7 +1149,11 @@
                     "z": 0.0,
                     "y": 2.0
                 }
-            ]
+            ],
+            "upperFloor": false,
+            "upperHeight": 2.5999999046325685,
+            "upperOpenings": [],
+            "upperFurniture": []
         },
         {
             "x": 17.0,
@@ -1250,7 +1254,11 @@
                     "z": 0.0,
                     "y": 2.0
                 }
-            ]
+            ],
+            "upperFloor": false,
+            "upperHeight": 2.5999999046325685,
+            "upperOpenings": [],
+            "upperFurniture": []
         },
         {
             "x": -17.0,
@@ -1349,7 +1357,11 @@
                     "z": 0.0,
                     "y": 2.0
                 }
-            ]
+            ],
+            "upperFloor": false,
+            "upperHeight": 2.5999999046325685,
+            "upperOpenings": [],
+            "upperFurniture": []
         },
         {
             "x": 17.0,
@@ -1450,7 +1462,11 @@
                     "z": 0.0,
                     "y": 2.0
                 }
-            ]
+            ],
+            "upperFloor": false,
+            "upperHeight": 2.5999999046325685,
+            "upperOpenings": [],
+            "upperFurniture": []
         }
     ],
     "spawns": [
@@ -6478,14 +6494,14 @@
             "bar"
         ],
         "startMagazine": 6,
-        "startReserve": 6,
+        "startReserve": 30,
         "ammoLimits": {
-            "pistol": 48,
-            "shotgun": 20,
-            "rifle": 90
+            "pistol": 132,
+            "shotgun": 50,
+            "rifle": 225
         },
-        "maxActivePickups": 24,
-        "maxDropsPerDay": 8,
+        "maxActivePickups": 32,
+        "maxDropsPerDay": 16,
         "respawnFractionPerDay": 0.25,
         "maxRespawnsPerPoint": 1,
         "tables": [
@@ -6495,26 +6511,26 @@
                     {
                         "kind": "ammo",
                         "id": "pistol",
-                        "amount": 4,
-                        "weight": 3.0
+                        "amount": 10,
+                        "weight": 6.0
                     },
                     {
                         "kind": "medkit",
                         "id": "bandage",
                         "amount": 1,
-                        "weight": 3.0
+                        "weight": 4.800000190734863
                     },
                     {
                         "kind": "ammo",
                         "id": "shotgun",
-                        "amount": 2,
-                        "weight": 1.0
+                        "amount": 6,
+                        "weight": 2.5999999046325685
                     },
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 5,
-                        "weight": 1.0
+                        "amount": 16,
+                        "weight": 3.0
                     }
                 ]
             },
@@ -6524,32 +6540,32 @@
                     {
                         "kind": "ammo",
                         "id": "pistol",
-                        "amount": 5,
-                        "weight": 4.0
+                        "amount": 12,
+                        "weight": 8.0
                     },
                     {
                         "kind": "medkit",
                         "id": "bandage",
                         "amount": 1,
-                        "weight": 4.0
+                        "weight": 6.400000095367432
                     },
                     {
                         "kind": "ammo",
                         "id": "shotgun",
-                        "amount": 2,
-                        "weight": 1.0
+                        "amount": 6,
+                        "weight": 2.5999999046325685
                     },
                     {
                         "kind": "medkit",
                         "id": "small",
                         "amount": 1,
-                        "weight": 1.0
+                        "weight": 1.600000023841858
                     },
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 4,
-                        "weight": 1.0
+                        "amount": 13,
+                        "weight": 3.0
                     }
                 ]
             },
@@ -6559,32 +6575,32 @@
                     {
                         "kind": "ammo",
                         "id": "pistol",
-                        "amount": 7,
-                        "weight": 3.0
+                        "amount": 18,
+                        "weight": 6.0
                     },
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 6,
-                        "weight": 2.0
+                        "amount": 19,
+                        "weight": 6.0
                     },
                     {
                         "kind": "ammo",
                         "id": "shotgun",
-                        "amount": 3,
-                        "weight": 2.0
+                        "amount": 10,
+                        "weight": 5.199999809265137
                     },
                     {
                         "kind": "medkit",
                         "id": "small",
                         "amount": 1,
-                        "weight": 2.0
+                        "weight": 3.200000047683716
                     },
                     {
                         "kind": "medkit",
                         "id": "bandage",
                         "amount": 1,
-                        "weight": 2.0
+                        "weight": 3.200000047683716
                     },
                     {
                         "kind": "weapon",
@@ -6612,20 +6628,20 @@
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 10,
-                        "weight": 3.0
+                        "amount": 32,
+                        "weight": 9.0
                     },
                     {
                         "kind": "ammo",
                         "id": "pistol",
-                        "amount": 8,
-                        "weight": 2.0
+                        "amount": 20,
+                        "weight": 4.0
                     },
                     {
                         "kind": "ammo",
                         "id": "shotgun",
-                        "amount": 4,
-                        "weight": 2.0
+                        "amount": 13,
+                        "weight": 5.199999809265137
                     },
                     {
                         "kind": "medkit",
@@ -6672,25 +6688,25 @@
                         "kind": "medkit",
                         "id": "bandage",
                         "amount": 1,
-                        "weight": 2.0
+                        "weight": 3.200000047683716
                     },
                     {
                         "kind": "ammo",
                         "id": "pistol",
-                        "amount": 3,
-                        "weight": 3.0
+                        "amount": 8,
+                        "weight": 6.0
                     },
                     {
                         "kind": "ammo",
                         "id": "shotgun",
-                        "amount": 2,
-                        "weight": 0.6000000238418579
+                        "amount": 6,
+                        "weight": 1.5600000619888306
                     },
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 3,
-                        "weight": 0.6000000238418579
+                        "amount": 10,
+                        "weight": 1.8000000715255738
                     },
                     {
                         "kind": "weapon",
@@ -6712,32 +6728,32 @@
                     {
                         "kind": "ammo",
                         "id": "pistol",
-                        "amount": 4,
-                        "weight": 3.0
+                        "amount": 10,
+                        "weight": 6.0
                     },
                     {
                         "kind": "ammo",
                         "id": "shotgun",
-                        "amount": 2,
-                        "weight": 2.0
+                        "amount": 6,
+                        "weight": 5.199999809265137
                     },
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 4,
-                        "weight": 2.0
+                        "amount": 13,
+                        "weight": 6.0
                     },
                     {
                         "kind": "medkit",
                         "id": "small",
                         "amount": 1,
-                        "weight": 1.2999999523162842
+                        "weight": 2.0799999237060549
                     },
                     {
                         "kind": "medkit",
                         "id": "bandage",
                         "amount": 1,
-                        "weight": 1.5
+                        "weight": 2.4000000953674318
                     },
                     {
                         "kind": "weapon",
@@ -6765,26 +6781,26 @@
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 6,
-                        "weight": 3.0
+                        "amount": 19,
+                        "weight": 9.0
                     },
                     {
                         "kind": "ammo",
                         "id": "pistol",
-                        "amount": 5,
-                        "weight": 2.0
+                        "amount": 12,
+                        "weight": 4.0
                     },
                     {
                         "kind": "ammo",
                         "id": "shotgun",
-                        "amount": 3,
-                        "weight": 2.0
+                        "amount": 10,
+                        "weight": 5.199999809265137
                     },
                     {
                         "kind": "medkit",
                         "id": "small",
                         "amount": 1,
-                        "weight": 1.5
+                        "weight": 2.4000000953674318
                     },
                     {
                         "kind": "medkit",
@@ -6842,8 +6858,8 @@
                     {
                         "kind": "ammo",
                         "id": "rifle",
-                        "amount": 15,
-                        "weight": 2.0
+                        "amount": 48,
+                        "weight": 6.0
                     }
                 ]
             }
@@ -6851,49 +6867,49 @@
         "drops": [
             {
                 "zombie": "common",
-                "chance": 0.11999999731779099,
+                "chance": 0.2639999985694885,
                 "table": "drop_common",
                 "guaranteed": false,
                 "minRarity": 0
             },
             {
                 "zombie": "runner",
-                "chance": 0.11999999731779099,
+                "chance": 0.2639999985694885,
                 "table": "drop_special",
                 "guaranteed": false,
                 "minRarity": 0
             },
             {
                 "zombie": "explosive",
-                "chance": 0.07999999821186066,
+                "chance": 0.17599999904632569,
                 "table": "drop_common",
                 "guaranteed": false,
                 "minRarity": 0
             },
             {
                 "zombie": "armored",
-                "chance": 0.20000000298023225,
+                "chance": 0.4399999976158142,
                 "table": "drop_heavy",
                 "guaranteed": false,
                 "minRarity": 0
             },
             {
                 "zombie": "tank",
-                "chance": 0.30000001192092898,
+                "chance": 0.6600000262260437,
                 "table": "drop_heavy",
                 "guaranteed": false,
                 "minRarity": 0
             },
             {
                 "zombie": "brute",
-                "chance": 0.25,
+                "chance": 0.550000011920929,
                 "table": "drop_heavy",
                 "guaranteed": false,
                 "minRarity": 0
             },
             {
                 "zombie": "spitter",
-                "chance": 0.25,
+                "chance": 0.550000011920929,
                 "table": "drop_special",
                 "guaranteed": false,
                 "minRarity": 0
@@ -7139,6 +7155,7 @@
         "groundFogAlpha": 0.09000000357627869,
         "hazeBanks": 12,
         "skyDim": 0.44999998807907107,
+        "horizonFog": 0.0,
         "ash": 0.5,
         "smokeColumns": 2,
         "smoke": 1.0,
@@ -7154,6 +7171,13 @@
         "dust": true,
         "skyline": true,
         "roadMarkings": false,
+        "moon": 0.0,
+        "moonSize": 1.0,
+        "moonClouds": 0.0,
+        "stars": 0.0,
+        "milkyWay": 0.0,
+        "perimeter": "",
+        "distantLights": false,
         "fireflies": 0.0,
         "soundscape": "wind"
     }

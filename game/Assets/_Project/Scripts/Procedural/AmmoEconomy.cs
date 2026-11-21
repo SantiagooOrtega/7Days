@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SevenDays.Player;
 
 namespace SevenDays.Procedural
 {
@@ -24,7 +25,7 @@ namespace SevenDays.Procedural
     /// </summary>
     public static class AmmoEconomy
     {
-        public const float RatioDay1 = 4.5f, RatioDay7 = 3.0f;
+        public const float RatioDay1 = 5.2f, RatioDay7 = 3.6f;   // 4.5 -> 3.0 antes: más suministro tras probar
         public const double TrickleShare = 0.4;
         public const int TrickleBatches = 4;
         public const float TrickleFirstSeconds = 20f, TrickleIntervalSeconds = 25f;
@@ -134,6 +135,43 @@ namespace SevenDays.Procedural
             if (_t < Limit) return false;
             _t = 0f;
             return true;
+        }
+    }
+
+    /// <summary>
+    /// Pity por tipo: cuenta por separado cada tipo de munición de las armas que lleva el jugador; si un tipo pasa PitySeconds sin balas (ni en el cargador ni en la
+    /// reserva), devuelve ese tipo para que el director deje un paquete de ESE tipo cerca, y vuelve a contar. Tipos que ya no lleva se olvidan.
+    /// </summary>
+    public class AmmoTypePity
+    {
+        public float Limit = AmmoEconomy.PitySeconds;
+        private readonly Dictionary<AmmoType, float> _t = new Dictionary<AmmoType, float>();
+        private readonly List<AmmoType> _empty = new List<AmmoType>();
+
+        public float Seconds(AmmoType t) => _t.TryGetValue(t, out float v) ? v : 0f;
+
+        /// <summary>Tipo al que le toca un drop (o None).</summary>
+        public AmmoType Tick(float dt, IList<WeaponState> weapons, AmmoReserve ammo)
+        {
+            _empty.Clear();
+            foreach (var w in weapons)
+            {
+                if (!w.Data.UsesAmmo) continue;
+                var t = w.Data.ammoType;
+                bool none = ammo.Count(t) <= 0;
+                if (none) foreach (var o in weapons) if (o.Data.UsesAmmo && o.Data.ammoType == t && o.Magazine > 0) { none = false; break; }
+                if (none && !_empty.Contains(t)) _empty.Add(t);
+            }
+            var keys = new List<AmmoType>(_t.Keys);
+            foreach (var k in keys) if (!_empty.Contains(k)) _t.Remove(k);
+            AmmoType due = AmmoType.None;
+            foreach (var t in _empty)
+            {
+                float v = Seconds(t) + dt;
+                if (v >= Limit && due == AmmoType.None) { due = t; v = 0f; }
+                _t[t] = v;
+            }
+            return due;
         }
     }
 }

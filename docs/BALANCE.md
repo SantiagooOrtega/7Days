@@ -167,7 +167,7 @@ Devorador (x4) es una esfera en el núcleo del pecho del mismo tamaño que antes
 (`ZombieBodyTests.Devourer_WeakPoint_OnlyWhileExposed_RibsOpen_AndItIsHitFromTheFront`).
 
 ## Economía de munición por día (bucle de 7 días)
-Código: `Procedural/AmmoEconomy.cs` (puro) y `World/Loot/AmmoSupply.cs`. Prueba: `AmmoEconomyTests` (simula los 7 días en los 2 mapas y falla si las balas por zombi salen de rango: día 1 entre 4 y 5, resto ±0.3 del objetivo, y si no hay al menos x2.4 lo de la economía anterior).
+Código: `Procedural/AmmoEconomy.cs` (puro) y `World/Loot/AmmoSupply.cs`. Prueba: `AmmoEconomyTests` (simula los 7 días en los 2 mapas y falla si las balas por zombi salen de rango: día 1 entre 4.7 y 5.7, resto ±0.3 del objetivo, y si no hay al menos x2.4 lo de la economía anterior).
 
 - **Zombis por oleada**: 14 + 7 por día (14 … 56), +40 % respecto a la primera versión (10 + 5 por día).
 - **Presupuesto**: balas por zombi = 4.5 el día 1 y baja en línea recta a 3 el día 7 (antes 1.5 → 1.2: demasiado escasa al probar) (un cartucho de escopeta cuenta como una bala). No incluye el botín inicial del mapa ni la munición de salida.
@@ -193,6 +193,28 @@ Simulación (Calle en ruinas; el Bosque da lo mismo ±2), relleno en el peor cas
 | 7 | 56 | 44 | 119 | 2 | 3 | 168 | 3.00 |
 
 Total 7 días: ~890 balas frente a 321 con la economía anterior (x2.8). Los días 2, 5 y 6 las fuentes naturales (relleno + drops) ya pasan un poco del objetivo y la economía no añade nada: por eso la prueba admite ±0.3.
+
+### Más suministros pesados y curación pequeña (segundo ajuste tras probar)
+Al probar faltaba munición de **rifle** (fusil y francotirador) y de **escopeta**, y vendas. Cambios en `LootDefaults` (suelo, contenedores y drops de zombis, y por tanto también la reposición entre días, que tira en las mismas tablas):
+- **Rifle**: cada entrada trae x3.2 balas (antes x2.5) y pesa x3 (antes x2). **Escopeta**: x3.2 balas y peso x2.6 (antes x1.5). Pistola sin cambios (x2.5, x2).
+- **Vendas y botiquines pequeños**: peso x1.6. Medianos, grandes y armas igual.
+- **Presupuesto**: 5.2 balas por zombi el día 1 bajando a 3.6 el día 7 (antes 4.5 → 3).
+- Por tirada de cada tabla (suma de las 7 tablas): rifle 33.5, escopeta 10.9, pistola 24.1 balas esperadas. Semana completa (`LootTests`): escopeta ≈ 0.37 de la pistola (sigue la más escasa) y curación ≈ 528 PV (tope de la prueba 640).
+- **Pity por tipo** (`AmmoTypePity`): cada tipo de munición de las armas que llevas cuenta aparte; si un tipo pasa 60 s sin balas (ni en el cargador ni en la reserva), el director deja un paquete doble de **ese** tipo cerca del jugador. Va por `LootManager.SpawnForced`, que lo coloca solo dentro del perímetro, sobre el NavMesh y con camino desde el inicio (si no hay sitio, lo recoloca o lo descarta con aviso). El pity general (sin balas en ninguna arma) sigue igual. Prueba `AmmoEconomyTests.TypePity_...`.
+
+Simulación nueva (Calle en ruinas):
+
+| Día | Zombis | Relleno | Drops tablas | Tandas | Por bajas | Total | Balas/zombi |
+|----:|-------:|--------:|-------------:|-------:|----------:|------:|------------:|
+| 1 | 14 | 0 | 22 | 20 | 31 | 73 | 5.21 |
+| 2 | 21 | 59 | 34 | 4 | 7 | 104 | 4.95 |
+| 3 | 28 | 56 | 49 | 10 | 15 | 131 | 4.68 |
+| 4 | 35 | 56 | 69 | 11 | 17 | 154 | 4.40 |
+| 5 | 42 | 59 | 104 | 4 | 6 | 174 | 4.14 |
+| 6 | 49 | 52 | 127 | 4 | 6 | 189 | 3.86 |
+| 7 | 56 | 45 | 131 | 11 | 16 | 202 | 3.61 |
+
+Total 7 días: ~1030 balas (antes ~890, +15 %), con mucho más peso de rifle y escopeta en el reparto.
 
 ## Granadas (`Procedural/Grenades.cs`, `Combat/GrenadeManager.cs`, `Player/PlayerGrenade.cs`; pruebas `GrenadeTests` y `MapsTests.Grenade_...`)
 - **Tecla F**: mantener = trayectoria punteada en arco y marca de impacto; soltar = lanzar. (G ya suelta el arma, E recoge, Q/C/X/B/H/R/Tab/Espacio/Shift/Ctrl ocupadas.) 0.8 s entre lanzamientos.
