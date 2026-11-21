@@ -234,7 +234,7 @@ namespace SevenDays.Procedural
 
 
         // ------------------------------------------------------------------ segundo piso
-        public const float SlabThickness = 0.2f, StairWidth = 1.0f, RailHeight = 1.0f;
+        public const float SlabThickness = 0.2f, StairWidth = 1.4f, RailHeight = 1.0f;   // 1.4 m: con agentes de 0.5 m de radio el NavMesh deja paso
         public const int StairSteps = 13;
 
         /// <summary>Altura del suelo del piso 2 (encima del forjado).</summary>
@@ -275,7 +275,7 @@ namespace SevenDays.Procedural
                     Nav = NavFlag.NotWalkable, Cover = true, Tag = tag });
             Rail(w[0], w[1] + 0.06f, w[2] - 0.06f, w[2], Y2, "rail");
             Rail(w[1], w[1] + 0.06f, w[2], w[3], Y2, "rail");
-            // escalera: bloques macizos de 0.255 m (el CharacterController sube 0.3); el NavMesh la cruza con un enlace caro
+            // escalera: bloques macizos de 0.255 m (el CharacterController sube 0.3); el NavMesh la hornea y los zombis la suben andando
             float rise = Y2 / StairSteps, run = (w[1] - w[0]) / StairSteps;
             for (int i = 1; i <= StairSteps; i++)
             {
@@ -283,7 +283,7 @@ namespace SevenDays.Procedural
                 // escalón i: de su borde de subida hasta la llegada, macizo hasta el suelo
                 float edge = w[1] - i * run;
                 plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Floor, Center = new V3((edge + x1) / 2f, top / 2f, (w[2] + w[3]) / 2f), Size = new V3(x1 - edge, top, w[3] - w[2]),
-                    Nav = NavFlag.NotWalkable, Tag = "stair" });
+                    Nav = NavFlag.Default, Tag = "stair" });   // caminable: el NavMesh la hornea (escalón 0.255 < agentClimb 0.75)
             }
             // balcón con barandilla para flanquear y disparar desde arriba
             var b = Balcony(l);

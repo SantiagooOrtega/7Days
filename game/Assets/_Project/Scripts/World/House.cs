@@ -41,11 +41,15 @@ namespace SevenDays.World
                 if (b.Cover) go.AddComponent<CoverObject>(); // trae su Vaultable (la altura decide si se puede saltar)
                 if (b.Nav == NavFlag.NotWalkable) Vegetation.MarkObstacle(go);
                 else if (b.Nav == NavFlag.Ignore) go.AddComponent<NavMeshModifier>().ignoreFromBuild = true;
+                else if (b.Tag == "stair" || b.Tag == "upper_floor" || b.Tag == "balcony")
+                {
+                    // escalera y piso 2: área "Upstairs" (coste x4) para que los zombis prefieran el suelo
+                    var mod = go.AddComponent<NavMeshModifier>(); mod.overrideArea = true; mod.area = UpstairsArea;
+                }
                 if (b.Kind == HouseBoxKind.Barricade) controller.RegisterBarricade(b.OpeningId, go);
             }
 
             foreach (var info in plan.Openings) AddNavigation(houseGo.transform, info, look, controller);
-            if (layout.upperFloor) AddStairLink(houseGo.transform, layout);
             foreach (var t in plan.TorchPositions)
             {
                 var local = new Vector3(t.X, t.Y, t.Z);
@@ -109,27 +113,8 @@ namespace SevenDays.World
         }
 
         // ---------------------------------------------------------------- NavMesh
-        /// <summary>Coste del enlace de la escalera: los zombis la usan solo si el camino por el suelo es mucho peor (prefieren rodear abajo).</summary>
-        public const float StairCost = 8f;
-
-        /// <summary>
-        /// La escalera no se hornea (sus bloques son "no caminables"): un enlace de humanoides del pie a la llegada, bidireccional y caro. El tanque usa otro
-        /// tipo de agente, así que no lo ve y sigue sin poder entrar ni subir.
-        /// </summary>
-        private static void AddStairLink(Transform house, HouseLayoutData l)
-        {
-            var go = new GameObject("Link stairs");
-            go.transform.SetParent(house, false);
-            var link = go.AddComponent<NavMeshLink>();
-            var a = HousePlanner.StairFoot(l); var b = HousePlanner.StairTop(l);
-            link.startPoint = new Vector3(a.X, a.Y, a.Z);
-            link.endPoint = new Vector3(b.X, b.Y, b.Z);
-            link.width = HousePlanner.StairWidth * 0.8f;
-            link.bidirectional = true;
-            link.area = 0;
-            link.costModifier = StairCost;
-            link.autoUpdate = false;
-        }
+        /// <summary>Área del NavMesh del piso 2 (ProjectSettings/NavMeshAreas: "Upstairs", coste 4).</summary>
+        public const int UpstairsArea = 3;
 
         private static void AddNavigation(Transform house, OpeningInfo info, LookSettings look, HouseController controller)
         {

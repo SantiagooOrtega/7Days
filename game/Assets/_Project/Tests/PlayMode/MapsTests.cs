@@ -195,7 +195,7 @@ namespace SevenDays.Tests.PlayMode
             Vector3 W(float lx, float ly, float lz) => new Vector3(h.x + lx, ly, h.z + lz);   // yaw 0
             var start = new Vector3(map.playerStart[0], map.playerStart[1], map.playerStart[2]);
             Assert.IsTrue(NavMesh.SamplePosition(start, out var s0, 4f, NavMesh.AllAreas));
-            var targets = new[] { ("centro del piso 2", W(-2f, y2, -1.5f)), ("balcón", W(-2.5f, y2, -h.depth / 2f - 1.1f)), ("llegada de la escalera", W(HousePlanner.StairTop(h).X - 0.6f, y2, HousePlanner.StairTop(h).Z)) };
+            var targets = new[] { ("centro del piso 2", W(-2f, y2, -1.5f)), ("balcón", W(-2.5f, y2, -h.depth / 2f - 1.1f)), ("llegada de la escalera", W(HousePlanner.StairTop(h).X - 0.3f, y2, HousePlanner.StairTop(h).Z)) };
             var path = new NavMeshPath();
             foreach (var (name, t) in targets)
             {
@@ -261,6 +261,41 @@ namespace SevenDays.Tests.PlayMode
             Assert.AreEqual(det + 1, (int)gmT.GetProperty("Detonations").GetValue(gm), "explotó");
             Assert.That(Time.time - t1, Is.InRange(GrenadeRules.FuseSeconds - 0.2f, GrenadeRules.FuseSeconds + 0.3f), "mecha de 2.5 s");
             Assert.AreEqual(0, (int)gmT.GetProperty("Airborne").GetValue(gm), "vuelve al pool");
+        }
+
+        [UnityTest]
+        public IEnumerator Zombie_WalksUpTheStairs_NoTeleport()
+        {
+            T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, "calle_en_ruinas");
+            _arena = new GameObject("Arena"); var arena = _arena.AddComponent(T("SevenDays.World.TestArena"));
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && GameObject.FindWithTag("Player") == null) yield return null;
+            for (int i = 0; i < 30; i++) yield return null;
+            var map = (MapData)arena.GetType().GetProperty("Map").GetValue(arena);
+            var h = map.houses[0]; float y2 = HousePlanner.UpperFloorY(h);
+            Vector3 W(float lx, float ly, float lz) => new Vector3(h.x + lx, ly, h.z + lz);
+            Assert.IsNull(UnityEngine.Object.FindObjectsByType(Type.GetType("Unity.AI.Navigation.NavMeshLink, Unity.AI.Navigation"), FindObjectsSortMode.None) is UnityEngine.Object[] ls ? Array.Find(ls, l => l.name == "Link stairs") : null, "sin enlace que salte: la escalera se hornea");
+            // el jugador espera arriba; un zombi común abajo, en la habitación este
+            var player = GameObject.FindWithTag("Player");
+            var cc = player.GetComponent<CharacterController>(); if (cc != null) cc.enabled = false;
+            player.transform.position = W(-2.5f, y2 + 0.05f, -1.5f);
+            if (cc != null) cc.enabled = true;
+            var zm = T("SevenDays.Combat.ZombieManager"); var mgr = zm.GetProperty("Instance").GetValue(null);
+            var spawn = Array.Find(zm.GetMethods(), x => x.Name == "Spawn" && x.GetParameters()[0].ParameterType == typeof(string));
+            var z = (Component)spawn.Invoke(mgr, new object[] { "common", W(2.8f, 0.2f, -1.6f), 1f, 1f, 1f, true });
+            Assert.IsNotNull(z);
+            Vector3 prev = z.transform.position; float maxStep = 0f, t1 = Time.time; bool up = false; int frames = 0;
+            while (Time.time - t1 < 40f)
+            {
+                yield return null; frames++;
+                var p = z.transform.position;
+                float step = Vector3.Distance(p, prev); if (frames > 3) maxStep = Mathf.Max(maxStep, step / Mathf.Max(1f, Time.deltaTime * 60f));
+                prev = p;
+                if (p.y > y2 - 0.3f) { up = true; break; }
+            }
+            Debug.Log("[Escalera] subió=" + up + " en " + (Time.time - t1).ToString("0.0") + " s, salto máximo por frame (60 fps) " + maxStep.ToString("0.000") + " m, final " + z.transform.position);
+            Assert.IsTrue(up, "el zombi llega al piso 2");
+            Assert.Less(maxStep, 0.35f, "posición continua: sin teletransporte");
         }
     }
 }

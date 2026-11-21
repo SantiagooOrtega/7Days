@@ -95,7 +95,7 @@ namespace SevenDays.Combat
             _agent = gameObject.AddComponent<NavMeshAgent>();
             _agent.acceleration = 14f; _agent.angularSpeed = 360f; _agent.stoppingDistance = 0.1f; _agent.autoBraking = true;
             _agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance; // evita que se amontonen sin costar mucho
-            _agent.avoidancePriority = UnityEngine.Random.Range(30, 70);
+            _agent.avoidancePriority = UnityEngine.Random.Range(30, 70);   // se ajusta por tipo al activarse (Activate)
             _agent.enabled = false;
             _rb = gameObject.AddComponent<Rigidbody>();
             _rb.isKinematic = true; _rb.useGravity = false;
@@ -170,6 +170,7 @@ namespace SevenDays.Combat
             _agent.agentTypeID = _agentTypeId;
             _agent.radius = giant ? Mathf.Max(type.navRadius, 0.7f) : (type.navRadius > 0f ? type.navRadius : 0.35f * type.scale);
             _agent.height = giant ? 2.8f : 1.8f * type.scale;
+            _agent.avoidancePriority = AvoidancePriority(type);   // los grandes empujan, los pequeños se apartan: no se apilan ni se atraviesan
             _siege.Reset(); _siegeGoal = Vector3.zero; _siegeStuck = 0f; _lastSiegePos = position;
             _useAgent = false;
             var spawnFilter = new NavMeshQueryFilter { agentTypeID = _agentTypeId, areaMask = NavMesh.AllAreas };
@@ -721,12 +722,30 @@ namespace SevenDays.Combat
             transform.position = next;
         }
 
+        /// <summary>Prioridad de esquive del NavMesh por tipo (menor = más importante): jefes y tanques no ceden el paso; comunes y corredores sí.</summary>
+        public static int AvoidancePriority(ZombieTypeData t)
+        {
+            if (t == null) return 50;
+            if (t.isBoss) return 10;
+            if (t.id == ZombieIds.Tank) return 20;
+            if (t.id == ZombieIds.Armored) return 35;
+            if (t.id == ZombieIds.Runner) return 65;
+            return 50 + (int)(UnityEngine.Random.value * 10f);
+        }
+
+        /// <summary>0.6 en pendiente fuerte (escalera), 1 en llano.</summary>
+        public static float SlopeFactor(Vector3 velocity)
+        {
+            float h = new Vector2(velocity.x, velocity.z).magnitude;
+            return Mathf.Abs(velocity.y) > 0.5f * Mathf.Max(0.1f, h) ? 0.6f : 1f;
+        }
+
         internal void MoveTo(Vector3 target, float speed)
         {
             if (_useAgent && _agent.isOnNavMesh)
             {
                 _agent.isStopped = false;
-                _agent.speed = speed;
+                _agent.speed = speed * SlopeFactor(_agent.velocity);   // más despacio subiendo o bajando la escalera
                 _agent.SetDestination(target);
             }
         }
