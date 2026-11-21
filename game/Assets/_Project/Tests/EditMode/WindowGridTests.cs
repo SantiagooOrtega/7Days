@@ -11,7 +11,7 @@ namespace SevenDays.Tests
         public void Generate_MostOff_AFewLit_Deterministic()
         {
             var a = WindowGrid.Generate(11); var b = WindowGrid.Generate(11);
-            Assert.That(WindowGrid.LitRatio(a), Is.InRange(0.08f, 0.16f));
+            Assert.That(WindowGrid.LitRatio(a), Is.InRange(0.025f, 0.06f), "pocas encendidas");
             for (int i = 0; i < a.Length; i++) { Assert.AreEqual(a[i].Lit, b[i].Lit); Assert.That(a[i].Color, Is.InRange(0, WindowGrid.Palette.Length - 1)); }
         }
 
@@ -44,9 +44,9 @@ namespace SevenDays.Tests
             for (int k = 0; k < 2000; k++)
             {
                 foreach (int i in WindowGrid.Flicker(c, rng, 2)) { if (c[i].Lit) on++; else off++; }
-                Assert.That(WindowGrid.LitRatio(c), Is.InRange(0.08f, 0.16f));
+                Assert.That(WindowGrid.LitRatio(c), Is.InRange(0.025f, 0.06f));
             }
-            Assert.Greater(on, 100); Assert.Greater(off, 100);
+            Assert.Greater(on, 50); Assert.Greater(off, 50);
         }
 
         [Test]

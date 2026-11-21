@@ -56,7 +56,7 @@ namespace SevenDays.World
             var pivot = new GameObject("Windows").transform;
             pivot.SetParent(transform, false);
             pivot.position = c; pivot.rotation = Quaternion.Euler(0f, yaw, 0f);
-            float bright = 1.6f + (seed % 7) * 0.25f;   // cada edificio con su brillo
+            float bright = 0.7f + (seed % 7) * 0.1f;   // tenues (antes 1.6-3.1), cada edificio con su brillo
             float bottom = 1.2f, top = h - 0.8f, fh = top - bottom;
             // el quad de Unity mira a -Z: cara interior (-z), y laterales (+x y -x)
             Facade(pivot, new Vector3(0f, bottom + fh / 2f, -d / 2f - 0.04f), Quaternion.identity, w - 0.8f, fh, seed * 3, bright);

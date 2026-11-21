@@ -4,13 +4,13 @@ namespace SevenDays.Procedural
 {
     /// <summary>
     /// Ventanas de los edificios lejanos (puro): una rejilla de Cols x Rows ventanas en una textura de 2 píxeles por ventana (ventana + hueco de pared).
-    /// La mayoría apagadas; ~12 % encendidas en amarillo cálido, naranja o azul pálido. Flicker() cambia unas pocas a la vez manteniendo esa proporción
+    /// Casi todas apagadas; ~4 % encendidas en amarillo cálido, naranja o azul pálido. Flicker() cambia unas pocas a la vez manteniendo esa proporción
     /// (alguna se apaga, otra se enciende): da vida sin luces reales.
     /// </summary>
     public static class WindowGrid
     {
         public const int Cols = 64, Rows = 64, Size = Cols * 2;
-        public const float LitFraction = 0.12f;
+        public const float LitFraction = 0.04f;   // pocas encendidas (antes 12 %)
         /// <summary>Metros por ventana en horizontal y por planta en vertical.</summary>
         public const float WindowMeters = 1.8f, FloorMeters = 3.2f;
 

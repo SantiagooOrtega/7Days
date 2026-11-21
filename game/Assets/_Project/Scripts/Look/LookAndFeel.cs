@@ -139,7 +139,7 @@ namespace SevenDays.Look
         public int TargetFps = 60;
 
         /// <summary>Brillo global. 1 = valores base; por defecto medio-alto para que se distinga bien el escenario.</summary>
-        public float GlobalBrightness = 1.25f;
+        public float GlobalBrightness = 1.06f;   // 1.25 antes: -15 % de exposición para que el fondo no se aprecie
 
         /// <summary>Texturas procedurales: tamaño (512 o 1024), colores, óxido, grietas y suciedad. Ver SurfaceParams.</summary>
         public SurfaceParams Surface = new SurfaceParams { Size = 512 };
@@ -167,7 +167,7 @@ namespace SevenDays.Look
 
         // Niebla y ambiente: gris azulado medio (tarde nublada)
         public Color FogColor = new Color(0.50f, 0.5525f, 0.61f);   // un 25 % hacia el cielo: el fondo se funde
-        public float FogDensity = 0.0135f;   // +35 % y luego +25 % tras probar (antes 0.008)
+        public float FogDensity = 0.0162f;   // +35 % y luego +25 % tras probar (antes 0.008)
         public Color AmbientSky = new Color(0.50f, 0.56f, 0.64f);
         public Color AmbientEquator = new Color(0.40f, 0.42f, 0.46f);
         public Color AmbientGround = new Color(0.22f, 0.22f, 0.23f);
@@ -176,7 +176,7 @@ namespace SevenDays.Look
         public float SunPitch = 52f;
         public float SunYaw = -35f;
         public Color SunColor = new Color(0.96f, 0.95f, 0.93f);
-        public float SunIntensity = 1.0f;
+        public float SunIntensity = 0.83f;
         public float ShadowStrength = 0.78f;
 
         // Post-procesado: sigue desaturado, pero con menos contraste y viñeta

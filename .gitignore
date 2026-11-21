@@ -48,3 +48,4 @@ game/crashlytics-build.session
 *.db
 *.db-journal
 *.sqlite
+docs/ref/
