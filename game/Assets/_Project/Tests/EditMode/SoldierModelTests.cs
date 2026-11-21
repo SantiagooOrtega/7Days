@@ -121,6 +121,10 @@ namespace SevenDays.Tests
             Assert.GreaterOrEqual(ids.Count, 3);
         }
 
+        // piezas de equipo que solo cambian en Sam: sin chaleco táctico y con collarín de la bota de trabajo
+        private static readonly string[] SamGearOnly = { "chaleco", "portacargadores", "radio", "correas", "collarín" };
+        private static bool SamOnly(ModelPiece p) { foreach (var n in SamGearOnly) if (p.Name.EndsWith(" " + n)) return true; return false; }
+
         [Test]
         public void SamDuarte_OnlyClothesChange_SameRigProportionsAndBody()
         {
@@ -129,10 +133,11 @@ namespace SevenDays.Tests
             Assert.AreEqual("Sam Duarte", sam.displayName);
             Assert.IsTrue(sam.hiVis); Assert.AreEqual(Headgear.HoodCap, sam.headgear);
             Assert.AreEqual(1f, sam.buildScale, "mismas proporciones"); Assert.AreEqual(100f, sam.maxHealth);
-            // mismo cuerpo que una variante de referencia (misma constitución, sin brazalete): mismas piezas, huesos y vértices fuera de la cabeza.
-            // El agarre del arma y las hitboxes dependen solo de los huesos y de estas mallas, así que no cambian.
+            // mismo rig (huesos) y mismo cuerpo que una variante de referencia: mismas piezas y vértices fuera de la cabeza, salvo el equipo que solo cambia en Sam.
+            // El agarre del arma y las hitboxes dependen solo de los huesos, las manos y estas mallas, así que no cambian.
             var refV = CharacterVariants.Find(CharacterVariants.Defaults(), "francotirador");
-            var a = Build(sam).FindAll(p => p.Bone != BoneId.Head); var b = Build(refV).FindAll(p => p.Bone != BoneId.Head);
+            var samAll = Build(sam); var refAll = Build(refV);
+            var a = samAll.FindAll(p => p.Bone != BoneId.Head && !SamOnly(p)); var b = refAll.FindAll(p => p.Bone != BoneId.Head && !SamOnly(p));
             Assert.AreEqual(b.Count, a.Count, "mismas piezas del cuerpo");
             for (int i = 0; i < a.Count; i++)
             {
@@ -144,31 +149,81 @@ namespace SevenDays.Tests
                     Assert.Less(Math.Abs(pa.X - pb.X) + Math.Abs(pa.Y - pb.Y) + Math.Abs(pa.Z - pb.Z), 1e-5f, a[i].Name + " vértice " + k);
                 }
             }
-            var head = Build(sam).FindAll(p => p.Bone == BoneId.Head).ConvertAll(p => p.Name);
-            CollectionAssert.IsSupersetOf(head, new[] { "Head pasamontañas", "Head capucha", "Head gorra", "Head pañuelo" }, "capucha bajo la gorra y mascarilla");
+            var samNames = samAll.ConvertAll(p => p.Name); var refNames = refAll.ConvertAll(p => p.Name);
+            foreach (var n in new[] { "chaleco", "portacargadores", "correas" })
+            {
+                Assert.IsFalse(samNames.Exists(x => x.EndsWith(" " + n)), "Sam sin chaleco táctico: " + n);
+                Assert.IsTrue(refNames.Exists(x => x.EndsWith(" " + n)), "las otras variantes conservan el chaleco: " + n);
+            }
+            foreach (var other in CharacterVariants.Defaults())
+                if (!other.hiVis) Assert.IsTrue(Build(other).Exists(p => p.Name.EndsWith(" chaleco")), other.id + " conserva el chaleco");
+            Assert.AreEqual(2, samNames.FindAll(x => x.EndsWith(" collarín")).Count, "botas de trabajo con collarín (separadas del pantalón)");
+            Assert.AreEqual(2, samNames.FindAll(x => x.EndsWith(" bota")).Count, "botas con suela y cordones");
+            var head = samAll.FindAll(p => p.Bone == BoneId.Head).ConvertAll(p => p.Name);
+            CollectionAssert.IsSupersetOf(head, new[] { "Head pasamontañas", "Head capucha", "Head gorra", "Head pañuelo", "Head rostro" }, "capucha bajo la gorra, rostro y pañuelo");
             CollectionAssert.DoesNotContain(head, "Head casco");
+            Assert.LessOrEqual(SoldierModel.Triangles(samAll), 15000, "presupuesto");
         }
 
         [Test]
-        public void SamDuarte_JacketIsOrangeWithReflectiveBands_AndDarkTrousers()
+        public void SamDuarte_HoodShadesEyes_NoseVisible_BandanaBelowNose()
+        {
+            var sam = CharacterVariants.Find(CharacterVariants.Defaults(), "sam_duarte");
+            var pieces = Build(sam);
+            ModelPiece P(string n) => pieces.Find(p => p.Name == "Head " + n);
+            float MinY(ModelPiece p, float minZ) { float y = 9f; foreach (var q in p.Mesh.Positions) if (q.Z > minZ && q.Y < y) y = q.Y; return y; }
+            float MaxY(ModelPiece p, float minZ) { float y = -9f; foreach (var q in p.Mesh.Positions) if (q.Z > minZ && q.Y > y) y = q.Y; return y; }
+            float MaxZ(ModelPiece p) { float z = -9f; foreach (var q in p.Mesh.Positions) z = Math.Max(z, q.Z); return z; }
+            float eyeY = SkullFace.ChinY + (SkullFace.BrowY - SkullFace.ChinY) * 0.7f, noseY = SkullFace.ChinY + (SkullFace.BrowY - SkullFace.ChinY) * 0.45f;
+            var hood = P("capucha"); var face = P("rostro"); var band = P("pañuelo");
+            // borde delantero de la capucha: sobre los ojos (deja la frente cubierta y los ojos en su sombra) y por delante de la cara
+            float hoodEdge = MinY(hood, 0.11f);
+            Assert.Greater(hoodEdge, eyeY, "la capucha no tapa los ojos");
+            Assert.Less(hoodEdge, eyeY + 0.03f, "la capucha cubre la frente y deja los ojos en sombra");
+            Assert.Greater(MaxZ(hood), MaxZ(face) - 0.02f, "la capucha sobresale sobre la cara");
+            // nariz en relieve y pañuelo solo por debajo de la nariz
+            Assert.Greater(MaxZ(face), SoldierModel.HeadCz + SoldierModel.HeadRz + 0.012f + 0.012f, "nariz en relieve");
+            Assert.Less(MaxY(band, 0.06f), noseY, "el pañuelo queda bajo la nariz");
+            // la textura del rostro: piel en las mejillas, ojos oscuros y frente en sombra
+            var atlas = CharacterTextures.Generate(AtlasKind.Helmet, sam, 256);
+            var cell = CharacterTextures.Cell(AtlasKind.Helmet, CharacterTextures.HSkull);
+            float L(float u, float v)
+            {
+                var m = cell.Map(u, v); int x = (int)(m.X * 256), y = (int)(m.Y * 256);
+                int i = (y * 256 + x) * 4; return (atlas.Albedo[i] + atlas.Albedo[i + 1] + atlas.Albedo[i + 2]) / 765f;
+            }
+            Assert.Greater(L(0.2f, 0.5f), 0.3f, "piel");
+            Assert.Less(L(0.33f, 0.7f), L(0.2f, 0.5f) * 0.6f, "ojos");
+            Assert.Less(L(0.5f, 0.92f), L(0.2f, 0.5f) * 0.75f, "frente en sombra");
+        }
+
+        [Test]
+        public void SamDuarte_JacketAndTrousersOrangeWithReflectiveBands_HoodBlack()
         {
             var sam = CharacterVariants.Find(CharacterVariants.Defaults(), "sam_duarte");
             var a = CharacterTextures.Generate(AtlasKind.Uniform, sam, 128);
-            int orange = 0, silver = 0, darkPants = 0, n = 128;
-            for (int y = 0; y < n / 2; y++)
-                for (int x = 0; x < n / 2; x++)
-                {
-                    int i = (y * n + x) * 4; float r = a.Albedo[i] / 255f, g = a.Albedo[i + 1] / 255f, bl = a.Albedo[i + 2] / 255f;
-                    if (r > 0.45f && r > g * 1.6f && r > bl * 3f) orange++;
-                    if (r > 0.45f && Math.Abs(r - g) < 0.08f && Math.Abs(g - bl) < 0.08f) silver++;
-                }
-            for (int y = 0; y < n / 2; y++)
-                for (int x = n / 2; x < n; x++) { int i = (y * n + x) * 4; if (a.Albedo[i] < 80 && a.Albedo[i + 1] < 80) darkPants++; }
-            int cell = (n / 2) * (n / 2);
-            Assert.Greater(orange, cell / 2, "chaqueta naranja (celda del torso y brazos)");
-            Assert.Greater(silver, cell / 20, "bandas reflectantes");
-            Assert.Greater(darkPants, cell * 3 / 4, "pantalón oscuro (celda de las piernas)");
+            int n = 128, half = n / 2;
+            int Count(int x0, int y0, Func<float, float, float, bool> f)
+            {
+                int c = 0;
+                for (int y = y0; y < y0 + half; y++)
+                    for (int x = x0; x < x0 + half; x++) { int i = (y * n + x) * 4; if (f(a.Albedo[i] / 255f, a.Albedo[i + 1] / 255f, a.Albedo[i + 2] / 255f)) c++; }
+                return c;
+            }
+            bool Orange(float r, float g, float bl) => r > 0.45f && r > g * 1.6f && r > bl * 3f;
+            bool Silver(float r, float g, float bl) => r > 0.45f && Math.Abs(r - g) < 0.08f && Math.Abs(g - bl) < 0.08f;
+            int cellPx = half * half;
+            Assert.Greater(Count(0, 0, Orange), cellPx / 2, "chaqueta naranja (celda del torso y brazos)");
+            Assert.Greater(Count(0, 0, Silver), cellPx / 20, "bandas reflectantes de la chaqueta");
+            Assert.Greater(Count(half, 0, Orange), cellPx / 2, "pantalón naranja (celda de las piernas)");
+            Assert.Greater(Count(half, 0, Silver), cellPx / 25, "bandas reflectantes del pantalón");
+            Assert.Greater(Count(half, half, (r, g, bl) => r < 0.1f && g < 0.1f && bl < 0.1f), cellPx * 9 / 10, "capucha negra");
+            Assert.IsTrue(CharacterTextures.InTrouserBand(0.64f) && !CharacterTextures.InTrouserBand(0.3f), "banda bajo la rodilla, por encima de la bota");
             Assert.IsTrue(CharacterTextures.InBand(0.33f) && CharacterTextures.InBand(0.66f) && !CharacterTextures.InBand(0.5f));
+            // las otras variantes siguen con su camuflaje (sin naranja en las piernas)
+            var other = CharacterTextures.Generate(AtlasKind.Uniform, CharacterVariants.Find(CharacterVariants.Defaults(), "francotirador"), 128);
+            int o = 0; for (int y = 0; y < half; y++) for (int x = half; x < n; x++) { int i = (y * n + x) * 4; if (Orange(other.Albedo[i] / 255f, other.Albedo[i + 1] / 255f, other.Albedo[i + 2] / 255f)) o++; }
+            Assert.Less(o, cellPx / 20, "pantalón naranja solo en Sam");
         }
     }
 }

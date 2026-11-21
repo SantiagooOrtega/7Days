@@ -169,6 +169,14 @@ namespace SevenDays.Tests.Visual
         [Test]
         public void Soldier_HasNoBackpack_AndIsSlim()
         {
+            // mide el chaleco: con la variante por defecto (Sam, si quedó elegida, no lleva chaleco)
+            string prev = PlayerPrefs.GetString("7d.variant", "calavera");
+            PlayerPrefs.SetString("7d.variant", "calavera");
+            try { HasNoBackpackAndIsSlim(); } finally { PlayerPrefs.SetString("7d.variant", prev); }
+        }
+
+        private void HasNoBackpackAndIsSlim()
+        {
             var sc = Create(WeaponCatalog.Defaults()[0]);
             var rig = Rig(sc);
             Assert.AreEqual(0, (int)T("SevenDays.Animation.GripProbe").GetMethod("BackpackParts").Invoke(null, new object[] { rig }), "no debe quedar ninguna pieza de mochila");

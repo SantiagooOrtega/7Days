@@ -116,6 +116,7 @@ namespace SevenDays.Procedural
                 float rib = (float)Math.Abs(Math.Sin(u * 90f * Math.PI));
                 float knit = Fbm(u, v, 24, 2, seed);
                 o.Color = Rgb.Lerp(new Rgb(0.06f, 0.06f, 0.06f), new Rgb(0.13f, 0.13f, 0.12f), 0.3f + 0.4f * rib + 0.3f * knit);
+                if (p.hiVis) o.Color = o.Color.Scale(0.6f);   // Sam: capucha negra
                 o.Height = 0.35f * rib + 0.1f * knit; o.Smooth = 0.12f; o.Ao = 0.85f + 0.15f * rib;
                 return;
             }
@@ -133,7 +134,13 @@ namespace SevenDays.Procedural
             c = Rgb.Lerp(c, c.Scale(0.6f), stitch * 0.6f);
             float ao = 1f - 0.25f * Smooth(0.6f, 0.2f, wrinkle);
             if (p.hiVis && cell == UCamo) HiVis(u, v, p, seed, ref c, out _);
-            if (cell == UCamoMud)
+            if (p.hiVis && cell == UCamoMud)
+            {
+                // Sam: pantalón naranja a juego con la chaqueta, banda reflectante bajo la rodilla (espinilla) y en el muslo
+                Trousers(u, v, p, seed, ref c);
+                o.Smooth = InTrouserBand(v) ? 0.55f : 0.2f;
+            }
+            else if (cell == UCamoMud)
             {
                 // espinillas: barro abajo (v pequeña = tobillo) y rodilla gastada arriba
                 float mudNoise = Fbm(u, v, 8, 4, seed + 11);
@@ -162,6 +169,7 @@ namespace SevenDays.Procedural
             int creases = sub == 1 ? 7 : 6; float amp = sub == 1 ? 1.35f : 1f;
             Rgb camo = Camo(su, sv, p, seed + sub * 7);
             if (p.hiVis && sub == 0) HiVis(su, sv, p, seed, ref camo, out _);   // codos de la chaqueta
+            if (p.hiVis && sub == 1) Trousers(su, 0.3f, p, seed, ref camo);     // rodillas del pantalón naranja
             float du = Math.Min(su, 1f - su);                 // 0 en el pliegue interior, 0.5 en la punta
             float crook = Smooth(0.42f, 0.08f, du);
             float ridge = 0f;
@@ -185,6 +193,49 @@ namespace SevenDays.Procedural
         public static bool InBand(float v) => (v > 0.3f && v < 0.37f) || (v > 0.63f && v < 0.7f);
 
         /// <summary>Chaqueta de alta visibilidad: naranja con algo de suciedad y las bandas plateadas.</summary>
+        /// <summary>Banda reflectante del pantalón de Sam (v = 0 abajo): queda bajo la rodilla en la espinilla, por encima de la caña de la bota.</summary>
+        public static bool InTrouserBand(float v) => v > 0.6f && v < 0.68f;
+
+        private static void Trousers(float u, float v, CharacterVariantData p, int seed, ref Rgb c)
+        {
+            HiVis(u, 0.5f, p, seed + 5, ref c, out _);
+            if (InTrouserBand(v)) c = CharacterVariantData.C(p.reflective).Scale(0.9f + 0.1f * ((float)Math.Sin((u + v) * 260f * Math.PI) * 0.5f + 0.5f));
+        }
+
+        /// <summary>
+        /// Rostro simple de Sam en la celda de la calavera (Sam no lleva casco): piel, cejas, ojos, sombra de la nariz y boca. u de izquierda a derecha y v de la barbilla (0)
+        /// a la frente (1), igual que SkullFace.Point; la frente y los ojos quedan en la sombra de la capucha y la visera.
+        /// </summary>
+        public static void Face(float u, float v, CharacterVariantData p, int seed, ref TexSample o)
+        {
+            float n = Fbm(u, v, 12, 3, seed);
+            Rgb skin = new Rgb(0.6f, 0.43f, 0.34f).Scale(0.9f + 0.15f * n);
+            Rgb c = skin;
+            float h = 0f;
+            foreach (float ex in new[] { 0.33f, 0.67f })
+            {
+                float dx = (u - ex) / 0.075f, dy = (v - 0.7f) / 0.032f;
+                float eye = Smooth(1.05f, 0.85f, (float)Math.Sqrt(dx * dx + dy * dy));
+                float iris = Smooth(0.022f, 0.014f, Dist(u, v, ex, 0.7f));
+                c = Rgb.Lerp(c, new Rgb(0.78f, 0.75f, 0.7f), eye);
+                c = Rgb.Lerp(c, new Rgb(0.08f, 0.06f, 0.05f), iris);
+                float lid = Smooth(0.012f, 0.004f, Math.Abs(v - 0.7f - 0.03f * (1f - dx * dx))) * Smooth(1.2f, 0.9f, Math.Abs(dx));
+                c = Rgb.Lerp(c, new Rgb(0.12f, 0.08f, 0.06f), lid * 0.9f);
+                float brow = Smooth(0.022f, 0.01f, Math.Abs(v - 0.8f + 0.02f * dx * dx)) * Smooth(1.3f, 1f, Math.Abs(dx));
+                c = Rgb.Lerp(c, new Rgb(0.1f, 0.07f, 0.05f), brow);
+                h -= eye * 0.4f;
+            }
+            float noseSide = Smooth(0.07f, 0.035f, Math.Abs(Math.Abs(u - 0.5f) - 0.045f)) * Smooth(0.4f, 0.48f, v) * Smooth(0.68f, 0.56f, v);
+            c = c.Scale(1f - 0.25f * noseSide);
+            foreach (float nx in new[] { 0.47f, 0.53f }) c = Rgb.Lerp(c, new Rgb(0.18f, 0.1f, 0.08f), Smooth(0.016f, 0.008f, Dist(u, v, nx, 0.44f)));   // fosas nasales
+            float mouth = Smooth(0.014f, 0.005f, Math.Abs(v - 0.31f + 0.02f * ((u - 0.5f) / 0.1f) * ((u - 0.5f) / 0.1f))) * Smooth(0.12f, 0.09f, Math.Abs(u - 0.5f));
+            c = Rgb.Lerp(c, new Rgb(0.25f, 0.11f, 0.09f), mouth);
+            c = Rgb.Lerp(c, c.Scale(0.75f), Smooth(0.42f, 0.2f, v) * Smooth(0.5f, 0.8f, Fbm(u, v, 40, 2, seed + 3)) * 0.6f);   // barba de días
+            float shade = Smooth(0.58f, 0.95f, v);   // sombra de la capucha y la visera
+            c = c.Scale(1f - 0.5f * shade);
+            o.Color = c; o.Height = h; o.Smooth = 0.3f; o.Ao = 1f - 0.45f * shade; o.Metal = 0f;
+        }
+
         private static void HiVis(float u, float v, CharacterVariantData p, int seed, ref Rgb c, out bool band)
         {
             float grime = Fbm(u, v, 5, 3, seed + 21);
@@ -375,6 +426,7 @@ namespace SevenDays.Procedural
         private static void Helmet(int cell, float u, float v, CharacterVariantData p, ref TexSample o)
         {
             int seed = p.seed * 151 + cell * 17;
+            if (cell == HSkull && p.hiVis) { Face(u, v, p, seed, ref o); return; }
             if (cell == HSkull) { Skull(u, v, p, seed, ref o); return; }
             if (cell == HCover)
             {

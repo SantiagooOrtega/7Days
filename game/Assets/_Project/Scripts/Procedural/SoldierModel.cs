@@ -86,6 +86,7 @@ namespace SevenDays.Procedural
 
                 // chaleco: placas delantera y trasera, cummerbund, portacargadores, radio y velcro (siguen la superficie del pecho nuevo)
                 float chestRx = 0.164f * k, front = Zf(chestRx, 0.68f) + 0.008f * k, back = Zf(chestRx, 0.68f) - 0.008f * k;
+                if (!v.hiVis) {   // Sam (rescatista) no lleva chaleco táctico: solo la chaqueta naranja
                 var vest = new MeshBuilder();
                 vest.Box(new V3(0f, ch * 0.62f, front + 0.012f), new V3(0.27f * k, 0.3f, 0.026f), new V3(-4f, 0, 0), 0.01f, G(CharacterTextures.GVest), 0.35f);
                 vest.Box(new V3(0f, ch * 0.62f, -back - 0.012f), new V3(0.27f * k, 0.3f, 0.026f), new V3(4f, 0, 0), 0.01f, G(CharacterTextures.GVest), 0.35f);
@@ -119,6 +120,7 @@ namespace SevenDays.Procedural
                 }
                 yoke.Box(new V3(0f, uc * 0.42f, ucFront + 0.02f), new V3(0.14f, 0.07f, 0.008f), new V3(0, 0, 0), 0.003f, G(CharacterTextures.GVelcro), 0.15f);
                 Add(BoneId.UpperChest, "correas", SlotGear, yoke, false);
+                }
 
                 float neck = L(BoneId.Neck);
                 var gaiter = new MeshBuilder();   // cuello con trapecio: se ensancha hacia la base
@@ -220,6 +222,14 @@ namespace SevenDays.Procedural
                 var shaft = new MeshBuilder();   // caña de la bota sobre la parte baja de la pantorrilla
                 shaft.Lathe(new V3(0, -shin * 0.6f, 0), new V3(0, 0, 0), Limb(shin * 0.42f, new[] { 0f, 0.057f, 1f, 0.055f }), 12, 1.05f, true, true, G(CharacterTextures.GBoot), 0.25f);
                 Add(ll, "caña", SlotGear, shaft);
+                if (v.hiVis)
+                {
+                    // Sam: botas de trabajo con collarín acolchado en la boca de la caña (separa la bota del pantalón naranja) y cordones subiendo por delante
+                    var cuff = new MeshBuilder();
+                    cuff.Lathe(new V3(0, -shin * 0.6f, 0), new V3(0, 0, 0), new[] { -0.014f, 0.064f, 0.014f, 0.064f }, 12, 1.05f, true, true, G(CharacterTextures.GSole), 0.2f);
+                    cuff.Box(new V3(0f, -shin * 0.8f, 0.06f), new V3(0.03f, shin * 0.36f, 0.008f), new V3(0, 0, 0), 0.003f, G(CharacterTextures.GLaces), 0.15f);
+                    Add(ll, "collarín", SlotGear, cuff, false);
+                }
                 var ankle = new MeshBuilder();
                 ankle.Lathe(new V3(0, 0, 0), new V3(0, 0, 0), Sphere(0.048f, 5), 10, 1f, true, true, G(CharacterTextures.GBoot), 0.2f);
                 Add(foot, "tobillo", SlotGear, ankle, false);
@@ -330,14 +340,20 @@ namespace SevenDays.Procedural
                 case Headgear.HoodCap:
                 {
                     // rescatista: capucha oscura de punto pegada a la cabeza, gorra encima (con visera) y pañuelo como mascarilla
+                    // capucha negra adelantada: su borde cae justo sobre las cejas y deja la frente y los ojos en sombra; la cara queda a medias
                     var hood = new MeshBuilder();
-                    hood.Dome(new V3(0f, 0.108f, -0.014f), new V3(0, 0, 0), new V3(0.122f, 0.124f, 0.134f), lon => HoodCut(lon), 0.008f, 22, 8, U(CharacterTextures.UKnit), 0.4f);
+                    hood.Dome(new V3(0f, 0.108f, 0f), new V3(0, 0, 0), new V3(0.124f, 0.126f, 0.146f), lon => SamHoodCut(lon), 0.009f, 22, 8, U(CharacterTextures.UKnit), 0.4f);
                     add(BoneId.Head, "capucha", SlotUniform, hood, true, default);
                     var cap = new MeshBuilder();
-                    cap.Dome(new V3(0f, 0.15f, -0.004f), new V3(0, 0, 0), new V3(0.126f, 0.09f, 0.136f), lon => 0f, 0.008f, 20, 6, HS(CharacterTextures.HHeadwear, CharacterTextures.HwCap), 0.3f);
-                    cap.Box(new V3(0f, 0.158f, 0.15f), new V3(0.17f, 0.008f, 0.085f), new V3(-10f, 0, 0), 0.003f, HS(CharacterTextures.HHeadwear, CharacterTextures.HwCap), 0.2f);   // visera
+                    cap.Dome(new V3(0f, 0.152f, 0.004f), new V3(0, 0, 0), new V3(0.128f, 0.09f, 0.142f), lon => 0f, 0.008f, 20, 6, HS(CharacterTextures.HHeadwear, CharacterTextures.HwCap), 0.3f);
+                    cap.Box(new V3(0f, 0.16f, 0.16f), new V3(0.17f, 0.008f, 0.085f), new V3(-10f, 0, 0), 0.003f, HS(CharacterTextures.HHeadwear, CharacterTextures.HwCap), 0.2f);   // visera
                     add(BoneId.Head, "gorra", SlotHelmet, cap, true, default);
-                    Bandana(add);
+                    // rostro simple (celda de la calavera repintada con la cara): lámina sobre el pasamontañas con la nariz en relieve
+                    var face = new MeshBuilder();
+                    face.Append(MeshBuilder.Sheet((s, t, side) => SkullFace.Point(0.12f + 0.76f * s, t, (side > 0 ? 0.002f : 0f) + SamFaceRelief(s, t), HeadRx, HeadRz, HeadCz), 18, 16, true),
+                        new V3(0, 0, 0), Mat3.Identity, H(CharacterTextures.HSkull), 0f, exactUv: true);
+                    add(BoneId.Head, "rostro", SlotHelmet, face, false, default);
+                    Bandana(add, 0.3f);
                     break;
                 }
                 default:   // capucha con red y velo
@@ -369,14 +385,34 @@ namespace SevenDays.Procedural
             add(BoneId.Head, "gafas", SlotHelmet, g, false, default);
         }
 
-        private static void Bandana(Action<BoneId, string, int, MeshBuilder, bool, V3> add)
+        /// <summary>Capucha de Sam: abertura de la cara estrecha con el borde sobre las cejas (latitud 8°), cae por las mejillas y cubre la nuca.</summary>
+        public static float SamHoodCut(float lonDeg)
+        {
+            float a = Math.Abs(lonDeg);
+            if (a < 38f) return 8f;
+            if (a < 100f) return Lerp(8f, -30f, (a - 38f) / 62f);
+            return Lerp(-30f, -45f, (a - 100f) / 80f);
+        }
+
+        /// <summary>Relieve de la cara de Sam (s de izquierda a derecha, t de la barbilla a la frente): nariz hacia fuera y cuencas de los ojos hacia dentro.</summary>
+        public static float SamFaceRelief(float s, float t)
+        {
+            float nx = (s - 0.5f) / 0.06f, nose = (float)Math.Exp(-nx * nx) * Smooth01((t - 0.42f) / 0.06f) * Smooth01((0.7f - t) / 0.2f);
+            float socket = 0f;
+            foreach (float ex in new[] { 0.33f, 0.67f }) { float dx = (s - ex) / 0.09f, dy = (t - 0.7f) / 0.07f; socket += (float)Math.Exp(-(dx * dx + dy * dy)); }
+            return 0.017f * nose - 0.004f * socket;
+        }
+
+        private static float Smooth01(float x) { x = Math.Max(0f, Math.Min(1f, x)); return x * x * (3f - 2f * x); }
+
+        private static void Bandana(Action<BoneId, string, int, MeshBuilder, bool, V3> add, float top = 0.55f)
         {
             var b = new MeshBuilder();
             b.Append(MeshBuilder.Sheet((s, t, side) =>
             {
                 // pañuelo: de la nariz al mentón, con la punta colgando por delante
                 float tip = (1f - Math.Abs(s * 2f - 1f)) * 0.25f;
-                return SkullFace.Point(0.04f + s * 0.92f, -tip + t * (0.55f + tip), side > 0 ? 0.01f : 0.006f, HeadRx, HeadRz, HeadCz);
+                return SkullFace.Point(0.04f + s * 0.92f, -tip + t * (top + tip), side > 0 ? 0.01f : 0.006f, HeadRx, HeadRz, HeadCz);
             }, 16, 6, true), new V3(0, 0, 0), Mat3.Identity, HS(CharacterTextures.HHeadwear, CharacterTextures.HwBandana), 0f, exactUv: true);
             add(BoneId.Head, "pañuelo", SlotHelmet, b, false, default);
         }
