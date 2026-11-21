@@ -49,6 +49,7 @@ namespace SevenDays.Procedural
         public int redFlickerLamps = 2;
         public int cracks = 14, weedTufts = 70, puddles = 7, bloodStains = 8, skylineBuildings = 22;
         public bool dust = true, skyline = true, roadMarkings = true;
+        public float moon = 0f, moonSize = 1f, moonClouds = 0f, stars = 0f, milkyWay = 0f;   // cielo nocturno: brillo de la luna (0 = sin luna), tamaño, nubes/humo delante, estrellas y vía láctea
         public string perimeter = "";                  // "" muro liso, "trench" trinchera con alambre (Calle), "logs" cerca de troncos (Bosque)
         public bool distantLights = false;             // halos de luces lejanas en la niebla (cabaña, torre vigía), para mapas sin skyline
         public float fireflies;                        // luciérnagas alrededor del jugador (0 = ninguna)

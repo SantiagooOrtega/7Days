@@ -69,3 +69,9 @@ Generadores puros en `Procedural/MapLibrary.cs` (probados en `MapLibraryTests`);
 - Los muros de siempre siguen como collider invisible (4 m en la Calle, 6 m en el Bosque): bloquean jugador, zombis y balas, y no se saltan.
 - Rendimiento: GPU instancing (`Graphics.RenderMeshInstanced`) con una malla y un material por tipo y las matrices preparadas una vez. LOD: alambre, cercas, banderines y caballos de frisa solo a menos de ~57 m de su tramo. F6 muestra "Perímetro: piezas, instancias, lotes, ms CPU" (en pruebas: Calle 3193 instancias, 41 lotes, 0.03 ms; Bosque 719, 23 lotes, 0.01 ms).
 - **Segunda ronda (+25 %)**: Calle 0.0108 → 0.0135 (a 25 m se sigue viendo el 89 %), bruma baja x1.7, 17 bancos y horizonte 1.25. Bosque: la densidad sigue en 0.047 (máximo de 25 m) y el +25 % va a la bruma baja (x3.05) y al horizonte (1.5).
+
+## Luna y estrellas
+- `ambience.moon` (brillo, 0 = sin luna), `moonSize`, `moonClouds` (nubes/humo delante), `stars` y `milkyWay` en el JSON. Lógica pura en `Procedural/NightSky.cs` (`NightSkyTests`), dibujo en `World/NightSkyRenderer.cs`.
+- La luna (textura de cráteres de 128 px y halo) está donde la luz principal, así que sus sombras cuadran. Añade una luz direccional fría muy tenue (0.08) sin sombras, que no cambia la visibilidad. Hay 700 estrellas x densidad en 4 mallas con parpadeo sutil por grupo, una fugaz cada ~25 s y una vía láctea tenue en el Bosque.
+- Todo va a 105 m siguiendo a la cámara, con un shader sin niebla. La atenuación por niebla, horizonte y nubes se calcula aparte, así que el coste de GPU es mínimo (unos pocos quads y 4 mallas).
+- Calle en ruinas: luna 0.8 entre nubes y humo (0.65), pocas estrellas. Bosque: luna 1.8, más grande (1.25), cielo despejado, más estrellas y vía láctea.

@@ -73,7 +73,7 @@ namespace SevenDays.Look
         {
             foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
             {
-                if (l.type != LightType.Directional) continue;
+                if (l.type != LightType.Directional || l.name == "Luz de luna") continue;
                 l.transform.rotation = Quaternion.Euler(s.SunPitch, s.SunYaw, 0f);
                 l.color = s.SunColor;
                 l.intensity = s.SunIntensity * s.GlobalBrightness;

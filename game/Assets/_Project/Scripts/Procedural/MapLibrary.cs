@@ -290,7 +290,7 @@ namespace SevenDays.Procedural
                     sunPitch = 42f, sunYaw = 120f, sunColor = Rgb(0.6f, 0.72f, 1f), sunIntensity = 0.8f, shadowStrength = 0.6f, brightness = 1.3f,
                     groundFogLayers = 4, groundFogDensity = 3.05f, groundFogAlpha = 0.16f, hazeBanks = 11, skyDim = 0.08f, ash = 0f, smokeColumns = 0, smoke = 0.6f, sparks = 1f,
                     godRays = 6, godRayIntensity = 0.07f, redFlickerLamps = 0, cracks = 0, weedTufts = 0, puddles = 8, bloodStains = 4, skylineBuildings = 0,
-                    dust = false, skyline = false, roadMarkings = false, distantLights = true, perimeter = "logs", fireflies = 1f, soundscape = "forest",
+                    dust = false, skyline = false, roadMarkings = false, distantLights = true, perimeter = "logs", moon = 1.8f, moonSize = 1.25f, moonClouds = 0.1f, stars = 1f, milkyWay = 0.6f, fireflies = 1f, soundscape = "forest",
                 },
             };
         }

@@ -102,6 +102,12 @@ namespace SevenDays.Tests.PlayMode
             for (int i = 0; i < 10; i++) yield return null;
             var sky = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.SkylineLights"));
             var fog = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.FogBeacons"));
+            var sky2 = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.NightSkyRenderer"));
+            Assert.IsNotNull(sky2, "luna y estrellas");
+            Assert.Greater((int)sky2.GetType().GetProperty("StarCount").GetValue(sky2), 100);
+            var mdir = (Vector3)sky2.GetType().GetProperty("MoonDirection").GetValue(sky2);
+            Assert.Greater(Vector3.Dot(mdir, -RenderSettings.sun.transform.forward), 0.99f, "la luna está donde la luz principal");
+            Debug.Log("[Cielo] " + id + ": visibilidad " + ((float)sky2.GetType().GetProperty("Visible").GetValue(sky2)).ToString("0.00"));
             var per = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.PerimeterBarrier"));
             Assert.IsNotNull(per, "perímetro trinchera/troncos");
             Assert.Greater((int)per.GetType().GetProperty("Instances").GetValue(per), 500);

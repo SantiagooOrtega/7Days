@@ -16278,6 +16278,11 @@
         "soundscape": "forest",
         "horizonFog": 1.5,
         "distantLights": true,
-        "perimeter": "logs"
+        "perimeter": "logs",
+        "moon": 1.8,
+        "moonSize": 1.25,
+        "moonClouds": 0.1,
+        "stars": 1.0,
+        "milkyWay": 0.6
     }
 }

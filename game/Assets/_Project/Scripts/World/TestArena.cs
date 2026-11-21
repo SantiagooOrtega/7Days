@@ -199,6 +199,8 @@ namespace SevenDays.World
             }
         }
 
+        private static Light FindMainLight() { foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional && l.name != "Luz de luna") return l; return null; }
+
         private void BuildLevel()
         {
             var root = new GameObject("Level").transform;
@@ -207,7 +209,8 @@ namespace SevenDays.World
             IndustrialRuins.Build(root, _look, _map);   // piezas del kit en el orden del JSON
             if (_map.ambience.skyline) Skyline.Build(root, _look);
             if (_map.ambience.distantLights) FogBeacons.Build(root, _map.halfSize);
-            PerimeterBarrier.Build(root, _map);   // trinchera con alambre (Calle) o cerca de troncos (Bosque); los muros quedan como collider   // luces lejanas en la niebla (Bosque)
+            PerimeterBarrier.Build(root, _map);
+            NightSkyRenderer.Build(root, _map.ambience, RenderSettings.sun != null ? RenderSettings.sun : FindMainLight());   // luna y estrellas (ajustables en el JSON)   // trinchera con alambre (Calle) o cerca de troncos (Bosque); los muros quedan como collider   // luces lejanas en la niebla (Bosque)
             if (_look.House.Enabled) foreach (var h in _map.houses) IndustrialRuins.Anchors.AddRange(HouseIO.PerimeterAnchors(h)); // maleza y sangre también junto a la casa
             GroundDetails.Build(root, _look, IndustrialRuins.Anchors);
             Vegetation.Build(root, _look, _layout);
