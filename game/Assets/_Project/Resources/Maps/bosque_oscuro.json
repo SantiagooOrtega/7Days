@@ -16276,6 +16276,7 @@
         "roadMarkings": false,
         "fireflies": 1.0,
         "soundscape": "forest",
-        "horizonFog": 1.2
+        "horizonFog": 1.2,
+        "distantLights": true
     }
 }

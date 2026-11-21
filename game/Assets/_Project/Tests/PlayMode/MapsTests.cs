@@ -91,5 +91,35 @@ namespace SevenDays.Tests.PlayMode
             File.WriteAllBytes(Path.Combine(dir, "mapa_" + name + ".png"), tex.EncodeToPNG());
             cam.targetTexture = prev; RenderTexture.active = null; UnityEngine.Object.Destroy(tex); rt.Release();
         }
+
+        [UnityTest]
+        public IEnumerator DistantLights_WindowsInTheCity_HalosInTheForest([Values("calle_en_ruinas", MapLibrary.ForestId)] string id)
+        {
+            T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, id);
+            _arena = new GameObject("Arena"); _arena.AddComponent(T("SevenDays.World.TestArena"));
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && GameObject.FindWithTag("Player") == null) yield return null;
+            for (int i = 0; i < 10; i++) yield return null;
+            var sky = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.SkylineLights"));
+            var fog = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.FogBeacons"));
+            if (id == "calle_en_ruinas")
+            {
+                Assert.IsNotNull(sky, "ventanas en los edificios lejanos");
+                int facades = (int)sky.GetType().GetProperty("Facades").GetValue(sky), beacons = (int)sky.GetType().GetProperty("Beacons").GetValue(sky);
+                Debug.Log("[Luces] " + id + ": " + facades + " fachadas con ventanas, " + beacons + " balizas rojas");
+                Assert.Greater(facades, 30); Assert.Greater(beacons, 2);
+                foreach (var l in ((Component)sky).GetComponentsInChildren<Light>(true)) Assert.Fail("sin luces reales: " + l.name);
+                foreach (var r in ((Component)sky).GetComponentsInChildren<Renderer>(true)) Assert.AreEqual(UnityEngine.Rendering.ShadowCastingMode.Off, r.shadowCastingMode, "sin sombras");
+                Assert.IsNull(fog);
+            }
+            else
+            {
+                Assert.IsNull(sky, "el bosque no tiene skyline");
+                Assert.IsNotNull(fog, "luces lejanas en la niebla");
+                Assert.AreEqual(5, (int)fog.GetType().GetProperty("Count").GetValue(fog));
+                float half = ((MapData)_arena.GetComponent(T("SevenDays.World.TestArena")).GetType().GetProperty("Map").GetValue(_arena.GetComponent(T("SevenDays.World.TestArena")))).halfSize;
+                foreach (Transform h in ((Component)fog).transform) Assert.Greater(new Vector2(h.position.x, h.position.z).magnitude, half + 5f, "fuera del mapa");
+            }
+        }
     }
 }

@@ -17,6 +17,7 @@ namespace SevenDays.World
             if (n <= 0) return;
             var parent = new GameObject("Skyline").transform;
             parent.SetParent(root, false);
+            var lights = SkylineLights.Create(parent);   // ventanas iluminadas y balizas rojas (solo emisión + bloom)
             var rng = new System.Random(7);
             float R() => (float)rng.NextDouble();
 
@@ -32,6 +33,7 @@ namespace SevenDays.World
 
                 // cuerpo + azotea rota con 1-2 bloques más bajos o desplazados
                 AddBox(parent, "Building " + i, c + Vector3.up * (h / 2f), new Vector3(w, h, d), yaw, mat);
+                lights.AddBuilding(c, w, h, d, yaw, i + 1, i % 4 == 1);
                 int extra = 1 + (int)(R() * 2f);
                 for (int k = 0; k < extra; k++)
                 {
