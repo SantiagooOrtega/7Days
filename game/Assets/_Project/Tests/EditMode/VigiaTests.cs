@@ -173,6 +173,25 @@ namespace SevenDays.Tests
             foreach (var v in y) Assert.LessOrEqual(Mathf.Abs(v), 1f);
             Assert.Greater(Mathf.Abs(y[(int)(0.03f * rate)]), 0.05f, "bip de apertura");
         }
+
+        [Test]
+        public void RadioFx_IsGentle_WideBand_SubtleEcho_SoftBeep_KeepsDynamics()
+        {
+            Assert.LessOrEqual(RadioFx.LowCut, 200f); Assert.GreaterOrEqual(RadioFx.HighCut, 6000f, "paso banda ancho");
+            Assert.LessOrEqual(RadioFx.EchoGain, 0.1f); Assert.LessOrEqual(RadioFx.EchoSeconds, 0.05f, "eco muy corto y sutil");
+            Assert.LessOrEqual(RadioFx.BeepGain, 0.2f, "bip suave");
+            Assert.LessOrEqual(RadioFx.SaturationMix, 0.3f, "poca distorsión");
+            // un tono de 1 kHz conserva su forma: factor de cresta ~1.41 (una compresión fuerte lo aplasta hacia 1.0)
+            int rate = 44100; var x = new float[rate];
+            for (int i = 0; i < x.Length; i++) x[i] = 0.5f * Mathf.Sin(2 * Mathf.PI * 1000 * i / rate);
+            var y = RadioFx.Process(x, rate);
+            int s0 = (int)((RadioFx.BeepSeconds + RadioFx.Gap) * rate) + rate / 4, s1 = s0 + rate / 2;
+            double sum = 0; float peak = 0f;
+            for (int i = s0; i < s1; i++) { sum += y[i] * y[i]; peak = Mathf.Max(peak, Mathf.Abs(y[i])); }
+            float crest = peak / (float)System.Math.Sqrt(sum / (s1 - s0));
+            Assert.Greater(crest, 1.33f, "la voz no queda aplastada (cresta " + crest.ToString("0.00") + ")");
+            Assert.LessOrEqual(peak, 0.81f, "sin saturar: pico a -2 dBFS");
+        }
     
         [Test]
         public void ComicIntro_EightPanels_ImagesPresent_VigiaOnlyOn6To8WithClips()

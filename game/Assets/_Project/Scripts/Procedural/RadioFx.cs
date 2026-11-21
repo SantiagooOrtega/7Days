@@ -3,37 +3,43 @@ using System;
 namespace SevenDays.Procedural
 {
     /// <summary>
-    /// Procesado de la voz de VIGÍA (puro, sobre muestras mono): filtro de radio (paso banda ~350-3400 Hz), un poco de saturación, eco corto, compresión y
-    /// normalización para que se oiga encima de armas y zombis, y un bip de apertura y otro de cierre.
+    /// Procesado de la voz de VIGÍA (puro, sobre muestras mono): un toque leve de comunicación, no un robot. Paso banda ancho (~180-6500 Hz, conserva el cuerpo
+    /// y la claridad de la voz), saturación muy suave mezclada (25 %), sin compresión fuerte (solo normalización a -2 dBFS), eco muy corto y sutil, y un bip de
+    /// apertura y otro de cierre suaves.
     /// </summary>
     public static class RadioFx
     {
-        public const float LowCut = 350f, HighCut = 3400f, EchoSeconds = 0.085f, EchoGain = 0.22f, BeepHz = 1500f, BeepSeconds = 0.07f, Gap = 0.05f;
+        public const float LowCut = 180f, HighCut = 6500f, EchoSeconds = 0.045f, EchoGain = 0.08f, BeepHz = 1170f, BeepSeconds = 0.06f, Gap = 0.05f;
+        public const float SaturationMix = 0.25f, BeepGain = 0.15f, Peak = 0.8f;
 
         public static float[] Process(float[] input, int rate)
         {
             int beep = (int)(BeepSeconds * rate), gap = (int)(Gap * rate), echo = (int)(EchoSeconds * rate);
             var voice = new float[input.Length + echo];
             Array.Copy(input, voice, input.Length);
-            // paso alto y paso bajo de 2 polos (biquads RBJ)
+            // paso alto y paso bajo de 2 polos (biquads RBJ), banda ancha
             Biquad(voice, rate, LowCut, true);
             Biquad(voice, rate, HighCut, false);
-            // eco corto
+            // eco muy corto y bajo: da "espacio" sin sonar a lata
             for (int i = voice.Length - 1; i >= echo; i--) voice[i] += voice[i - echo] * EchoGain;
-            // saturación suave + compresión (tanh) y normalización a -1 dBFS
+            // saturación suave MEZCLADA (la voz limpia manda) y normalización; sin compresión que aplaste la dinámica
             float peak = 1e-6f;
             for (int i = 0; i < voice.Length; i++) peak = Math.Max(peak, Math.Abs(voice[i]));
-            float drive = 2.2f / peak;
-            for (int i = 0; i < voice.Length; i++) voice[i] = (float)Math.Tanh(voice[i] * drive);
+            float inv = 1f / peak, k = (float)Math.Tanh(1.2);
+            for (int i = 0; i < voice.Length; i++)
+            {
+                float x = voice[i] * inv;
+                voice[i] = x * (1f - SaturationMix) + (float)Math.Tanh(x * 1.2f) / k * SaturationMix;
+            }
             float max = 1e-6f;
             for (int i = 0; i < voice.Length; i++) max = Math.Max(max, Math.Abs(voice[i]));
-            float norm = 0.89f / max;
+            float norm = Peak / max;
             for (int i = 0; i < voice.Length; i++) voice[i] *= norm;
 
             var o = new float[beep + gap + voice.Length + gap + beep];
             WriteBeep(o, 0, beep, rate, BeepHz);
             Array.Copy(voice, 0, o, beep + gap, voice.Length);
-            WriteBeep(o, beep + gap + voice.Length + gap, beep, rate, BeepHz * 0.75f);
+            WriteBeep(o, beep + gap + voice.Length + gap, beep, rate, BeepHz * 0.8f);
             return o;
         }
 
@@ -41,8 +47,8 @@ namespace SevenDays.Procedural
         {
             for (int i = 0; i < n; i++)
             {
-                float env = Math.Min(1f, Math.Min(i, n - i) / (0.008f * rate));
-                o[start + i] = 0.35f * env * (float)Math.Sin(2 * Math.PI * hz * i / rate);
+                float env = Math.Min(1f, Math.Min(i, n - i) / (0.012f * rate));   // entrada y salida suaves (sin chasquido)
+                o[start + i] = BeepGain * env * (float)Math.Sin(2 * Math.PI * hz * i / rate);
             }
         }
 
