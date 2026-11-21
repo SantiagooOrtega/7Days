@@ -78,6 +78,7 @@ namespace SevenDays.UI
                 _map = Mathf.Max(0, System.Array.IndexOf(MapIO.PlayableIds, MapIO.SelectedId));
             }
             if (_screen != null) Destroy(_screen.gameObject);
+            KillPreview();
             _screen = UiKit.Stretch(_canvas, "Pantalla " + screen);
             _current = screen; _list = null; _email = _user = _pass = null; _preview = _soldier = null;
             switch (screen)
@@ -90,6 +91,13 @@ namespace SevenDays.UI
                 case FrontScreen.Options: BuildOptions(); break;
                 default: BuildCredits(); break;
             }
+        }
+
+        private void KillPreview()
+        {
+            if (_cp == null) return;
+            if (Application.isPlaying) Destroy(_cp.gameObject); else DestroyImmediate(_cp.gameObject);
+            _cp = null;
         }
 
         private static int IndexOfVariant(string id) { var all = CharacterVariantLibrary.All; for (int i = 0; i < all.Count; i++) if (all[i].id == id) return i; return 0; }
@@ -220,42 +228,73 @@ namespace SevenDays.UI
         }
 
         // ---------------------------------------------------------------- selección de personaje y mapa
+        // Panel izquierdo: lista grande (personaje, mapa, empezar, volver). Panel derecho: título arriba, imagen a la izquierda (modelo 3D real girando o
+        // miniatura del mapa), datos a la derecha (barras o dificultad) y descripción debajo con ajuste de línea. Medidas en SelectContent (con pruebas).
+        private CharacterPreview _cp;
+        private RawImage _charImage;
+        private Text _pTitle, _pDesc;
+        private readonly Text[] _statLabels = new Text[3];
+        private readonly Image[] _statFills = new Image[3];
+        private readonly Dictionary<string, Sprite> _mapSprites = new Dictionary<string, Sprite>();
+        private const float BarWidth = 380f;
+
+        public CharacterPreview Preview3D => _cp;
+        public RectTransform PreviewPanel { get; private set; }
+        public RectTransform ListPanel { get; private set; }
+
+        private static Vector2 P(float[] r) => new Vector2(r[0], r[1]);
+        private static Vector2 S(float[] r) => new Vector2(r[2], r[3]);
+
         private void BuildSelect()
         {
             Title("PREPARACIÓN");
             var all = CharacterVariantLibrary.All;
-            _list = LeftList("Personaje y mapa", new[] { "Personaje", "Mapa", "Empezar", "Volver" }, new[] { "", "", "", "" });
-            InfoPanel("Vista previa", out _info);
-            _info.rectTransform.anchoredPosition = new Vector2(120f, -40f); _info.rectTransform.sizeDelta = new Vector2(480f, 440f);
-            _soldier = UiKit.Image(_screen, "Silueta", new Vector2(0.5f, 0.5f), new Vector2(200f, -60f), new Vector2(200f, 360f), Color.white);
-            _preview = UiKit.Image(_screen, "Mapa", new Vector2(0.5f, 0.5f), new Vector2(200f, -60f), new Vector2(300f, 300f), Color.white);
-            void Refresh(int row)
+            // lista
+            var lp = UiKit.Panel(_screen, "Panel lista", new Vector2(0.5f, 0.5f), P(SelectContent.ListPanel), S(SelectContent.ListPanel));
+            ListPanel = lp;
+            float lw = SelectContent.ListPanel[2] - 60f, top = SelectContent.ListPanel[3] / 2f;
+            BigHeader(lp, "PERSONAJE Y MAPA", new Vector2(0f, top - 50f), lw + 20f);
+            _list = MenuList.Create(lp, Vector2.zero, lw, new[] { "Personaje", "Mapa", "Empezar", "Volver" }, new[] { "", "", "", "" },
+                SelectContent.RowHeight, SelectContent.OptionSize, SelectContent.ValueSize);
+            _list.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, top - 110f - 4 * SelectContent.RowHeight / 2f);
+            _list.EnableArrows(0, 1);
+            // vista previa
+            var pp = UiKit.Panel(_screen, "Panel vista previa", new Vector2(0.5f, 0.5f), P(SelectContent.PreviewPanel), S(SelectContent.PreviewPanel));
+            PreviewPanel = pp;
+            UiKit.Image(pp, "Banda título", new Vector2(0.5f, 0.5f), P(SelectContent.PreviewTitle), S(SelectContent.PreviewTitle), new Color(0.02f, 0.02f, 0.02f, 0.85f));
+            UiKit.Image(pp, "Barra título", new Vector2(0.5f, 0.5f), new Vector2(-SelectContent.PreviewTitle[2] / 2f + 4f, SelectContent.PreviewTitle[1]), new Vector2(8f, SelectContent.PreviewTitle[3]), UiKit.Red);
+            _pTitle = UiKit.Text(pp, "", SelectContent.TitleSize, UiKit.Cream, TextAnchor.MiddleLeft, Inset(SelectContent.PreviewTitle, 30f, true), new Vector2((SelectContent.PreviewTitle[2] - 60f) / UiKit.Condensed, SelectContent.PreviewTitle[3]), true);
+            _pTitle.horizontalOverflow = HorizontalWrapMode.Wrap; _pTitle.verticalOverflow = VerticalWrapMode.Truncate;
+            _pTitle.resizeTextForBestFit = true; _pTitle.resizeTextMinSize = 40; _pTitle.resizeTextMaxSize = SelectContent.TitleSize;
+            // imagen: fondo con marco (las llamas del menú se ven a través del modelo)
+            UiKit.Image(pp, "Marco imagen", new Vector2(0.5f, 0.5f), P(SelectContent.PreviewImage), S(SelectContent.PreviewImage), new Color(0f, 0f, 0f, 0.35f), UiKit.FrameSprite, true);
+            var ri = UiKit.Rect(pp, "Modelo 3D", new Vector2(0.5f, 0.5f), P(SelectContent.PreviewImage), new Vector2(SelectContent.PreviewImage[3] * CharacterPreview.Width / CharacterPreview.Height, SelectContent.PreviewImage[3]) - new Vector2(8f, 8f));
+            _charImage = ri.gameObject.AddComponent<RawImage>(); _charImage.raycastTarget = false;
+            if (_cp == null) _cp = CharacterPreview.Create(transform);
+            _charImage.texture = _cp.Texture;
+            float side = Mathf.Min(SelectContent.PreviewImage[2], SelectContent.PreviewImage[3]) - 20f;
+            _preview = UiKit.Image(pp, "Miniatura mapa", new Vector2(0.5f, 0.5f), P(SelectContent.PreviewImage), new Vector2(side, side), Color.white);
+            _preview.preserveAspect = true;
+            // datos: 3 filas (etiqueta y barra)
+            var st = SelectContent.PreviewStats;
+            for (int i = 0; i < 3; i++)
             {
-                var v = all[_variant];
-                _list.SetValue(0, "◄ " + v.displayName + " ►"); _list.SetValue(1, "◄ " + MapName(MapIO.PlayableIds[_map]) + " ►");
-                bool showMap = row == 1;
-                _soldier.gameObject.SetActive(!showMap); _preview.gameObject.SetActive(showMap);
-                if (showMap)
-                {
-                    var m = MapIO.LoadLocal(MapIO.PlayableIds[_map]);
-                    if (m != null) { var tex = UiKit.Make(128, 128, MenuArt.MapPreview(m, 128), "Vista mapa", TextureWrapMode.Clamp); _owned.Add(tex); _preview.sprite = Sprite.Create(tex, new Rect(0, 0, 128, 128), Vector2.one * 0.5f); }
-                    _info.text = MapName(MapIO.PlayableIds[_map]).ToUpperInvariant() + "\n\n" + (MapIO.PlayableIds[_map] == MapLibrary.ForestId
-                        ? "Noche cerrada entre pinos, niebla densa y una cabaña con tres entradas. Pocas coberturas duras: muévete."
-                        : "Autopista y nave industrial en ruinas, casa central con segundo piso y balcón. Coberturas de hormigón y coches.");
-                }
-                else
-                {
-                    var tex = UiKit.Make(96, 160, MenuArt.Soldier(96, 160, v.hiVis ? new[] { v.jacket[0], v.jacket[1] + 0.12f, v.jacket[2] + 0.1f } : new[] { 0.85f + v.camoLight[0] * 0.2f, 0.8f, 0.68f }), "Silueta", TextureWrapMode.Clamp); _owned.Add(tex);
-                    _soldier.sprite = Sprite.Create(tex, new Rect(0, 0, 96, 160), Vector2.one * 0.5f);
-                    _info.text = v.displayName.ToUpperInvariant() + "\n\nVida " + Mathf.RoundToInt(v.maxHealth) + "\nVelocidad x" + v.moveSpeed.ToString("0.00") + "\nCuración x" + v.healing.ToString("0.00") + "\nBalanceo del arma x" + v.weaponSway.ToString("0.00") + (v.hiVis ? "\n\nRescatista: chaqueta reflectante, capucha y gorra." : "");
-                }
+                float y = st[1] + st[3] / 2f - 50f - i * 120f, x0 = st[0] - st[2] / 2f + 10f;
+                _statLabels[i] = UiKit.Text(pp, "", SelectContent.LabelSize, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(x0 + (st[2] - 20f) / 2f, y), new Vector2((st[2] - 20f) / UiKit.Condensed, 36f), true);
+                var bg = UiKit.Image(pp, "Barra fondo " + i, new Vector2(0.5f, 0.5f), new Vector2(x0 + BarWidth / 2f, y - 40f), new Vector2(BarWidth, 18f), new Color(0f, 0f, 0f, 0.6f));
+                _statFills[i] = UiKit.Image(bg.transform, "Barra " + i, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(BarWidth, 18f), UiKit.Orange);
+                _statFills[i].rectTransform.pivot = new Vector2(0f, 0.5f);
             }
-            _list.Selected += Refresh; Refresh(0);
+            _pDesc = UiKit.Text(pp, "", SelectContent.DescSize, UiKit.Cream, TextAnchor.UpperLeft, P(SelectContent.PreviewDesc), S(SelectContent.PreviewDesc), false, false);
+            _pDesc.horizontalOverflow = HorizontalWrapMode.Wrap; _pDesc.verticalOverflow = VerticalWrapMode.Truncate; _pDesc.lineSpacing = 1.1f;
+
+            _list.Selected += row => ShowPreview(row);
+            ShowPreview(0);
             _list.Adjusted += (row, dir) =>
             {
                 if (row == 0) _variant = (_variant + dir + all.Count) % all.Count;
                 else if (row == 1) _map = (_map + dir + MapIO.PlayableIds.Length) % MapIO.PlayableIds.Length;
-                Refresh(row);
+                ShowPreview(row);
             };
             _list.Confirmed += i =>
             {
@@ -268,13 +307,71 @@ namespace SevenDays.UI
                 StartGame();
             };
             _list.Back += () => Open(FrontScreen.Menu);
-            UiKit.Footer(_screen, "↑↓ Elegir   ·   ←→ Cambiar   ·   Enter Empezar   ·   Esc Volver");
+            UiKit.FooterKeys(_screen, "<color=#ff8c26>[↑↓]</color> Elegir      <color=#ff8c26>[←→]</color> Cambiar      <color=#ff8c26>[Enter]</color> Empezar      <color=#ff8c26>[Esc]</color> Volver", SelectContent.FooterSize);
         }
+
+        private static Vector2 Inset(float[] r, float left, bool leftAlign) => new Vector2(r[0] - r[2] / 2f + left + (r[2] - 2f * left) / 2f, r[1]);
+
+        private static void BigHeader(Transform parent, string title, Vector2 pos, float width)
+        {
+            var r = UiKit.Rect(parent, "Cabecera " + title, new Vector2(0.5f, 0.5f), pos, new Vector2(width, 64f));
+            UiKit.Image(r, "Banda", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(width, 64f), new Color(0.02f, 0.02f, 0.02f, 0.85f));
+            UiKit.Image(r, "Barra", new Vector2(0f, 0.5f), new Vector2(5f, 0f), new Vector2(8f, 64f), UiKit.Red);
+            var t = UiKit.Text(r, SelectContent.Tracked(title), 40, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(15f, 0f), new Vector2((width - 50f) / UiKit.Condensed, 56f), true);
+            t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate; t.resizeTextForBestFit = true; t.resizeTextMinSize = 28; t.resizeTextMaxSize = 40;
+        }
+
+        /// <summary>Rellena la vista previa: el personaje (filas Personaje, Empezar y Volver) o el mapa (fila Mapa). También la usan las pruebas.</summary>
+        public void ShowPreview(int row)
+        {
+            var all = CharacterVariantLibrary.All;
+            var v = all[_variant]; string mapId = MapIO.PlayableIds[_map];
+            _list.SetValue(0, v.displayName); _list.SetValue(1, MapName(mapId));
+            bool showMap = row == 1;
+            _charImage.gameObject.SetActive(!showMap); _preview.gameObject.SetActive(showMap);
+            if (showMap)
+            {
+                var m = MapIO.LoadLocal(mapId);
+                if (!_mapSprites.TryGetValue(mapId, out var sp) && m != null)
+                {
+                    var tex = UiKit.Make(256, 256, MenuArt.MapPreview(m, 256), "Vista mapa", TextureWrapMode.Clamp); _owned.Add(tex);
+                    sp = Sprite.Create(tex, new Rect(0, 0, 256, 256), Vector2.one * 0.5f); _owned.Add(sp);
+                    _mapSprites[mapId] = sp;
+                }
+                _preview.sprite = sp;
+                int d = m != null ? m.baseDifficulty : 1;
+                _pTitle.text = SelectContent.Tracked(MapName(mapId).ToUpperInvariant());
+                _statLabels[0].text = "DIFICULTAD: " + SelectContent.DifficultyName(d);
+                _statLabels[1].text = "TAMAÑO: " + (m != null ? Mathf.RoundToInt(m.halfSize * 2f) + " m" : "-");
+                _statLabels[2].text = "CASA: " + (m != null && m.houses != null && m.houses.Length > 0 ? m.houses[0].openings.Length + " ENTRADAS" : "-");
+                SetBar(0, d / 5f); SetBar(1, m != null ? Mathf.Clamp01(m.halfSize / 60f) : 0f); SetBar(2, -1f);
+                _pDesc.text = SelectContent.MapDescription(mapId);
+            }
+            else
+            {
+                if (_cp != null) _cp.Show(v);
+                _pTitle.text = SelectContent.Tracked(v.displayName.ToUpperInvariant());
+                var bars = SelectContent.Bars(v);
+                for (int i = 0; i < 3; i++) { _statLabels[i].text = SelectContent.BarNames[i]; SetBar(i, bars[i]); }
+                _pDesc.text = SelectContent.CharacterDescription(v);
+            }
+        }
+
+        private void SetBar(int i, float f)
+        {
+            var bg = _statFills[i].transform.parent.gameObject;
+            bg.SetActive(f >= 0f);
+            if (f >= 0f) _statFills[i].rectTransform.sizeDelta = new Vector2(BarWidth * Mathf.Clamp01(f), 18f);
+        }
+
+        /// <summary>Para las pruebas: elige personaje y mapa por índice.</summary>
+        public void Choose(int variant, int map) { _variant = variant; _map = map; }
 
         /// <summary>Cierra el front-end: la arena (que esperaba) arranca con la intro y la partida.</summary>
         public void StartGame()
         {
             _open = false;
+            KillPreview();
             if (_canvas != null) _canvas.gameObject.SetActive(false);
         }
 

@@ -107,5 +107,15 @@ namespace SevenDays.UI.Tactical
             var bar = Image(parent, "Pie", new Vector2(0.5f, 0f), new Vector2(0f, 34f), new Vector2(1920f, 56f), new Color(0f, 0f, 0f, 0.7f));
             return Text(bar.transform, hints, 22, CreamDim, TextAnchor.MiddleLeft, new Vector2(-200f, 0f), new Vector2(1500f, 40f));
         }
+
+        /// <summary>Pie grande y centrado con teclas resaltadas ("[Enter] Empezar"): la tecla en naranja y la acción en crema.</summary>
+        public static Text FooterKeys(Transform parent, string hints, int size)
+        {
+            var bar = Image(parent, "Pie", new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(1920f, 64f), new Color(0f, 0f, 0f, 0.78f));
+            Image(bar.transform, "Filo", new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(1920f, 2f), new Color(Red.r, Red.g, Red.b, 0.8f));
+            var t = Text(bar.transform, hints, size, Cream, TextAnchor.MiddleCenter, Vector2.zero, new Vector2(1800f / Condensed, 50f));
+            t.supportRichText = true;
+            return t;
+        }
     }
 }
