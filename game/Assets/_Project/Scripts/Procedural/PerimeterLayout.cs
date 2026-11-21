@@ -22,6 +22,7 @@ namespace SevenDays.Procedural
     /// </summary>
     public static class PerimeterLayout
     {
+        public const float LampHeight = 1.6f, AuditDistance = 3f;
         public const float SegmentLength = 3f, Depth = 1f, ParapetHeight = 1.15f, WireTop = 2.0f, WireRadius = 0.28f;
 
         public static List<PerimeterPart> Build(float halfSize, string style, int seed)
@@ -66,10 +67,69 @@ namespace SevenDays.Procedural
                     if (r1 < 0.12) Add(PerimeterPiece.Cheval, 0f, 0.55f, 1.9f, new V3(1.6f, 1.1f, 1.1f));
                     else if (r1 < 0.24) Add(PerimeterPiece.Banner, -segLen / 2f + 0.1f, 2.0f, 0.75f, new V3(0.5f, 0.32f, 0.01f), 0f, (float)(rng.NextDouble() * 30 - 15));
                     else if (r1 < 0.29 && !logs) Add(PerimeterPiece.Barrel, 0.6f, 0.45f, -0.35f, new V3(0.58f, 0.9f, 0.58f));
-                    if (i % 7 == 3) Add(PerimeterPiece.Lamp, segLen * 0.3f, ParapetHeight + 0.2f, 0.35f, new V3(0.22f, 0.18f, 0.22f));
+                    if (i % 7 == 3)
+                    {
+                        // foco sobre su propio mástil (antes flotaba sobre tramos más bajos que el parapeto)
+                        Add(PerimeterPiece.Post, segLen * 0.3f, LampHeight / 2f, 0.35f, new V3(0.07f, LampHeight, 0.07f));
+                        Add(PerimeterPiece.Lamp, segLen * 0.3f, LampHeight + 0.09f, 0.35f, new V3(0.22f, 0.18f, 0.22f));
+                    }
                 }
             }
             return parts;
+        }
+
+        /// <summary>
+        /// Piezas que flotan: su base está a más de 5 cm del suelo y ninguna pieza maciza (o un poste/mástil) las sostiene justo debajo. El alambre y los
+        /// banderines van en los postes y no cuentan.
+        /// </summary>
+        public static List<PerimeterPart> Floating(List<PerimeterPart> parts)
+        {
+            var bad = new List<PerimeterPart>();
+            foreach (var p in parts)
+            {
+                if (p.Kind == PerimeterPiece.Wire || p.Kind == PerimeterPiece.Banner) continue;
+                float bottom = p.Center.Y - p.Size.Y / 2f;
+                if (bottom <= 0.05f) continue;
+                bool held = false;
+                foreach (var q in parts)
+                {
+                    if (q.Side != p.Side || q.Kind == PerimeterPiece.Wire || q.Kind == PerimeterPiece.Banner || q.Kind == PerimeterPiece.Lamp) continue;
+                    if (ReferenceEquals(q, p) || (q.Center.X == p.Center.X && q.Center.Y == p.Center.Y && q.Center.Z == p.Center.Z)) continue;
+                    float top = q.Center.Y + q.Size.Y / 2f;
+                    if (top < bottom - 0.12f || q.Center.Y > p.Center.Y) continue;
+                    // solapan en planta (con medio tamaño a lo largo y de fondo)
+                    float ap = p.Side < 2 ? p.Center.X : p.Center.Z, aq = q.Side < 2 ? q.Center.X : q.Center.Z;
+                    float dp = p.Side < 2 ? p.Center.Z : p.Center.X, dq = q.Side < 2 ? q.Center.Z : q.Center.X;
+                    if (Math.Abs(ap - aq) <= (p.Size.X + q.Size.X) / 2f && Math.Abs(dp - dq) <= (p.Size.Z + q.Size.Z) / 2f + 0.05f) { held = true; break; }
+                }
+                if (!held) bad.Add(p);
+            }
+            return bad;
+        }
+
+        /// <summary>Props del mapa (y vegetación sólida que no son árboles) a menos de 3 m del perímetro, por dentro, que no son la valla: para avisar en la Console.</summary>
+        private static readonly string[] Exempt = { "wall", "boundary", "ground", "road", "rubble_field", "soil", "trail", "boulder" };
+        private static readonly string[] Natural = { "bush", "pine", "fern", "grass", "rock", "boulder", "stump", "log" };
+
+        public static List<string> Intruders(MapData m)
+        {
+            var list = new List<string>();
+            if (m == null) return list;
+            foreach (var p in m.props)
+            {
+                if (Array.IndexOf(Exempt, p.kind) >= 0) continue;   // la valla, el suelo y lo natural
+                float edge = m.halfSize - Math.Max(Math.Abs(p.pos[0]), Math.Abs(p.pos[2])) - Math.Max(p.size[0], p.size[2]) * 0f;
+                float near = m.halfSize - Math.Max(Math.Abs(p.pos[0]) + (Math.Abs(p.pos[0]) >= Math.Abs(p.pos[2]) ? p.size[0] / 2f : 0f), Math.Abs(p.pos[2]) + (Math.Abs(p.pos[2]) > Math.Abs(p.pos[0]) ? p.size[2] / 2f : 0f));
+                if (edge >= 0f && near < AuditDistance) list.Add(p.kind + " '" + p.name + "' a " + near.ToString("0.0") + " m");
+            }
+            if (m.vegetation?.items != null)
+                foreach (var v in m.vegetation.items)
+                {
+                    if (Array.IndexOf(Natural, v.type) >= 0 || v.type.StartsWith("tree") || !SolidCatalog.IsSolid(v.type, v.variant, v.scale)) continue;
+                    float edge = m.halfSize - Math.Max(Math.Abs(v.x), Math.Abs(v.z));
+                    if (edge >= 0f && edge < AuditDistance) list.Add(v.type + " en " + v.x.ToString("0.0") + "," + v.z.ToString("0.0") + " a " + edge.ToString("0.0") + " m");
+                }
+            return list;
         }
 
         private static int Pick(Random rng) { double r = rng.NextDouble(); return r < 0.62 ? 0 : (r < 0.82 ? 1 : 2); }

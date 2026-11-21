@@ -301,7 +301,7 @@ namespace SevenDays.Tests.PlayMode
             var z = (Component)spawn.Invoke(mgr, new object[] { "common", W(2.8f, 0.2f, -1.6f), 1f, 1f, 1f, true });
             Assert.IsNotNull(z);
             Vector3 prev = z.transform.position; float maxStep = 0f, t1 = Time.time; bool up = false; int frames = 0;
-            while (Time.time - t1 < 40f)
+            while (Time.time - t1 < 60f)   // tarda 9-25 s según cuándo termina de emerger
             {
                 yield return null; frames++;
                 var p = z.transform.position;

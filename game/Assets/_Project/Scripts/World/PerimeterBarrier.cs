@@ -35,6 +35,10 @@ namespace SevenDays.World
             string style = map.ambience != null ? map.ambience.perimeter : "";
             if (string.IsNullOrEmpty(style)) return null;
             HideWalls(root, map);
+            // auditoría: nada que no sea la valla a menos de 3 m del perímetro, y ninguna pieza de la valla flotando
+            var intruders = PerimeterLayout.Intruders(map);
+            foreach (var s in intruders) Debug.LogWarning("[7Days] Perímetro: prop a menos de " + PerimeterLayout.AuditDistance + " m del límite que no es la valla: " + s);
+            Debug.Log("[7Days] Auditoría del perímetro (" + map.id + "): " + intruders.Count + " props ajenos a menos de " + PerimeterLayout.AuditDistance + " m.");
             var go = new GameObject("Perimeter " + style);
             go.transform.SetParent(root, false);
             var b = go.AddComponent<PerimeterBarrier>();
@@ -68,7 +72,8 @@ namespace SevenDays.World
         {
             var parts = PerimeterLayout.Build(map.halfSize, style, map.seed + 101);
             Parts = parts.Count;
-            var box = BoxMesh.Get(Vector3.one, 1f, Vector2.zero, 0.12f);
+            var box = BoxMesh.Get(Vector3.one, 1f, Vector2.zero, 0.12f);          // sacos y concreto: bisel redondeado
+            var flat = BoxMesh.Get(Vector3.one, 1f, Vector2.zero, 0f);            // piezas finas: sin bisel (escalado no uniforme deformaba el bisel en picos oscuros)
             var cyl = PrimitiveMesh(PrimitiveType.Cylinder);
             float span = map.halfSize * 2f + PerimeterLayout.Depth * 2f;
             int segs = Mathf.CeilToInt(span / PerimeterLayout.SegmentLength);
@@ -110,17 +115,17 @@ namespace SevenDays.World
                 switch (p.Kind)
                 {
                     case PerimeterPiece.Sandbag: Add(B(p.Kind, box, bagMat, false), pos, rot, size, chunk); break;
-                    case PerimeterPiece.Plank: Add(B(p.Kind, box, woodMat, false), pos, tilt * rot, size, chunk); break;
+                    case PerimeterPiece.Plank: Add(B(p.Kind, flat, woodMat, false), pos, tilt * rot, size, chunk); break;
                     case PerimeterPiece.Concrete: Add(B(p.Kind, box, concreteMat, false, ShadowCastingMode.On), pos, tilt * rot, size, chunk); break;
-                    case PerimeterPiece.FencePanel: Add(B(p.Kind, box, metalMat, true), pos, tilt * rot, size, chunk); break;
-                    case PerimeterPiece.Post: Add(B(p.Kind, box, woodMat, false), pos, tilt * rot, size, chunk); break;
+                    case PerimeterPiece.FencePanel: Add(B(p.Kind, flat, metalMat, true), pos, tilt * rot, size, chunk); break;
+                    case PerimeterPiece.Post: Add(B(p.Kind, flat, woodMat, false), pos, tilt * rot, size, chunk); break;
                     case PerimeterPiece.Log: Add(B(p.Kind, cyl, logMat, false), pos, rot * Quaternion.Euler(0f, 0f, 90f), new Vector3(size.y, size.x / 2f, size.z), chunk); break;
                     case PerimeterPiece.Wire: Add(B(p.Kind, wire, wireMat, true), pos, rot, Vector3.one, chunk); break;
-                    case PerimeterPiece.Banner: Add(B(p.Kind, box, clothMat, true), pos, tilt * rot, size, chunk); break;
+                    case PerimeterPiece.Banner: Add(B(p.Kind, flat, clothMat, true), pos, tilt * rot, size, chunk); break;
                     case PerimeterPiece.Cheval:
                     {
                         // caballo de frisa: un travesaño y dos aspas cruzadas
-                        var bb = B(p.Kind, box, woodMat, true);
+                        var bb = B(p.Kind, flat, woodMat, true);
                         Add(bb, pos, rot, new Vector3(size.x, 0.1f, 0.1f), chunk);
                         foreach (float x in new[] { -0.5f, 0.5f })
                             foreach (float a in new[] { 45f, -45f })

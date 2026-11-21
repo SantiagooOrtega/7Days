@@ -51,5 +51,18 @@ namespace SevenDays.Tests
             Assert.Greater(c.Count, 100);
             Assert.AreEqual(-1.5f, c[0].X, 1e-4f); Assert.AreEqual(1.5f, c[c.Count - 1].X, 1e-4f);
         }
+
+        [TestCaseSource(nameof(Maps))]
+        public void NoFloatingBlocks_AndNoForeignPropsWithin3m(string id, string style)
+        {
+            var m = Map(id);
+            var floating = PerimeterLayout.Floating(PerimeterLayout.Build(m.halfSize, style, m.seed + 101));
+            Assert.AreEqual(0, floating.Count, id + ": piezas flotando: " + string.Join(", ", floating.Select(f => f.Kind + "@" + f.Center.Y.ToString("0.00"))));
+            var intr = PerimeterLayout.Intruders(m);
+            Assert.AreEqual(0, intr.Count, id + ": " + string.Join("; ", intr));
+            // la auditoría detecta un prop pegado al borde
+            var bad = Map(id); var list = bad.props.ToList(); list.Add(new MapProp { kind = "crate", name = "Caja de prueba", pos = new[] { 0f, 0.5f, bad.halfSize - 1f }, size = new[] { 1f, 1f, 1f }, rot = new[] { 0f, 0f, 0f } }); bad.props = list.ToArray();
+            Assert.AreEqual(1, PerimeterLayout.Intruders(bad).Count);
+        }
     }
 }
