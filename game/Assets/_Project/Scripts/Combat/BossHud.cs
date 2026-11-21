@@ -17,8 +17,13 @@ namespace SevenDays.Combat
             return go.AddComponent<BossHud>();
         }
 
+        /// <summary>Pantalla de muerte o victoria: sin barra, nombre ni avisos del jefe; al volver se busca de nuevo el jefe activo.</summary>
+        public bool Hidden => SevenDays.UI.StatsScreen.Blocking;
+        public bool Visible => !Hidden && _boss != null && _alpha > 0.01f;
+
         private void Update()
         {
+            if (Hidden) { _boss = null; _alpha = 0f; _shown = 1f; return; }
             var mgr = ZombieManager.Instance;
             if (mgr != null && mgr.ActiveBoss != null && mgr.ActiveBoss.InUse && mgr.ActiveBoss.Boss != null) _boss = mgr.ActiveBoss;
             if (_boss != null && !_boss.InUse) _boss = null;
@@ -30,7 +35,7 @@ namespace SevenDays.Combat
 
         private void OnGUI()
         {
-            if (_boss == null || _alpha <= 0.01f || Event.current.type != EventType.Repaint) return;
+            if (Hidden || _boss == null || _alpha <= 0.01f || Event.current.type != EventType.Repaint) return;
             if (_name == null)
             {
                 _name = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 22, fontStyle = FontStyle.Bold };

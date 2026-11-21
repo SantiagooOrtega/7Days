@@ -340,9 +340,32 @@ namespace SevenDays.Tests.PlayMode
             Assert.AreEqual(3, ((Component)inst).GetComponentsInChildren<UnityEngine.UI.Button>().Length, "Reintentar día, Menú, Estadísticas");
             Assert.AreEqual(7, (int)st.GetProperty("StatRows").GetValue(inst), "Bajas, Cabeza, Precisión, Daño, Tiempo, Armas, Mejor racha");
             Assert.IsFalse(UnityEngine.Object.FindFirstObjectByType(T("SevenDays.UI.WeaponHud")) is Component wh && wh.GetComponentInChildren<Canvas>() != null && wh.GetComponentInChildren<Canvas>().enabled, "sin HUD de armas");
+            var bh = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.Combat.BossHud"));
+            if (bh != null) Assert.IsFalse((bool)bh.GetType().GetProperty("Visible").GetValue(bh), "sin barra ni avisos del jefe al morir");
+            // panel izquierdo: todo el texto dentro del panel y cada etiqueta sin pisar su valor
+            var left = ((Component)inst).transform.GetComponentsInChildren<RectTransform>(true);
+            RectTransform sec = Array.Find(left, r => r.name == "Estadísticas"), panel = null;
+            foreach (Transform c in sec) if (c.name == "Panel") panel = (RectTransform)c;
+            Rect pr = WorldRect(panel);
+            foreach (var t in sec.GetComponentsInChildren<UnityEngine.UI.Text>(true))
+            {
+                Rect tr = WorldRect(t.rectTransform);
+                Assert.IsTrue(tr.xMin >= pr.xMin - 0.5f && tr.xMax <= pr.xMax + 0.5f, "texto dentro del panel: " + t.text);
+            }
+            foreach (Transform row in Array.Find(left, r => r.name == "Lista"))
+            {
+                var texts = row.GetComponentsInChildren<UnityEngine.UI.Text>(true);
+                if (texts.Length == 2) Assert.LessOrEqual(WorldRect(texts[0].rectTransform).xMax, WorldRect(texts[1].rectTransform).xMin + 0.5f, "etiqueta y valor sin solaparse: " + texts[0].text);
+            }
             T("SevenDays.UI.StatsScreen").GetMethod("Hide").Invoke(null, null);
             UnityEngine.Object.Destroy((Component)inst);
             yield return null;
+        }
+
+        private static Rect WorldRect(RectTransform r)
+        {
+            var c = new Vector3[4]; r.GetWorldCorners(c);
+            return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y);
         }
     }
 }

@@ -35,8 +35,20 @@ namespace SevenDays.UI.Tactical
                 var row = UiKit.Image(r, "Fila " + items[i], new Vector2(0.5f, 1f), new Vector2(0f, -RowHeight * (i + 0.5f)), new Vector2(width, RowHeight - 6f), new Color(0, 0, 0, 0.001f));
                 row.raycastTarget = true;
                 var mr = row.gameObject.AddComponent<MenuRow>(); mr.List = l; mr.Index = i;
-                l._labels.Add(UiKit.Text(row.transform, items[i].ToUpperInvariant(), 30, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-width * 0.05f, 0f), new Vector2(width - 60f, 44f), true));
-                l._values.Add(values != null && i < values.Count ? UiKit.Text(row.transform, values[i], 26, UiKit.Cream, TextAnchor.MiddleRight, new Vector2(width * 0.1f, 0f), new Vector2(width * 0.7f, 44f)) : null);
+                // etiqueta en la mitad izquierda y valor en la derecha, sin solaparse (el texto condensado se escala desde su centro)
+                float c = UiKit.Condensed;
+                l._labels.Add(UiKit.Text(row.transform, items[i].ToUpperInvariant(), 30, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 24f + width * 0.21f, 0f), new Vector2(width * 0.42f / c, 44f), true));
+                Text v = null;
+                if (values != null && i < values.Count)
+                {
+                    v = UiKit.Text(row.transform, values[i], 26, UiKit.Cream, TextAnchor.MiddleRight, new Vector2(width / 2f - 20f - width * 0.24f, 0f), new Vector2(width * 0.48f / c, 44f));
+                    v.horizontalOverflow = HorizontalWrapMode.Wrap; v.verticalOverflow = VerticalWrapMode.Truncate;
+                    v.resizeTextForBestFit = true; v.resizeTextMinSize = 14; v.resizeTextMaxSize = 26;   // listas largas (armas usadas) se encogen o pasan a dos líneas
+                    var lab = l._labels[l._labels.Count - 1];   // etiquetas largas: se encogen en su mitad en vez de pisar el valor
+                    lab.horizontalOverflow = HorizontalWrapMode.Wrap; lab.verticalOverflow = VerticalWrapMode.Truncate;
+                    lab.resizeTextForBestFit = true; lab.resizeTextMinSize = 16; lab.resizeTextMaxSize = 30;
+                }
+                l._values.Add(v);
             }
             l.Select(0, false);
             return l;

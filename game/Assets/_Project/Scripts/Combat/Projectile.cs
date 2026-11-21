@@ -62,7 +62,7 @@ namespace SevenDays.Combat
         private void Update()
         {
             float now = Time.time;
-            if (now >= _end) { if (_line) _linePool.Release(this); else _pool.Release(this); _line = false; return; }
+            if (now >= _end || SevenDays.UI.StatsScreen.Blocking) { if (_line) _linePool.Release(this); else _pool.Release(this); _line = false; return; }
             if (_line) { float w = _lineWidth * (1f + Mathf.Sin(now * 14f) * 0.05f); transform.localScale = new Vector3(w, 0.01f, _lineLength); return; }
             float t = Mathf.InverseLerp(_start, _end, now);
             float pulse = 1f + Mathf.Sin(now * 14f) * 0.04f;

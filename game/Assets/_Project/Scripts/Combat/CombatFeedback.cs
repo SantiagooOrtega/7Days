@@ -104,6 +104,7 @@ namespace SevenDays.Combat
         private void OnGUI()
         {
             if (Event.current.type != EventType.Repaint) return;
+            if (SevenDays.UI.StatsScreen.Blocking) { for (int i = 0; i < MaxPopups; i++) _popups[i].Alive = false; return; }   // al morir: sin números de daño
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
             if (_style == null) _style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
