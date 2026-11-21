@@ -38,7 +38,12 @@ namespace SevenDays.World
                     TileFor(b, size), b.Kind == HouseBoxKind.Furniture && b.Tag == "furniture:crate" ? default : new Vector2(R(), R()), b.Collider, b.Kind == HouseBoxKind.Roof ? 0.03f : 0.02f);
                 go.transform.localRotation = Quaternion.Euler(b.TiltX, b.Yaw, b.TiltZ);
 
-                if (b.Cover) go.AddComponent<CoverObject>(); // trae su Vaultable (la altura decide si se puede saltar)
+                if (b.Cover)
+                {
+                    // muros, barandillas y techo: cobertura que no se rompe (si no, el jefe y las granadas abren huecos y la casa parece transparente)
+                    if (b.Kind != HouseBoxKind.Furniture) go.AddComponent<Destructible>().Strength = Destructible.Structural;
+                    go.AddComponent<CoverObject>(); // trae su Vaultable (la altura decide si se puede saltar)
+                }
                 if (b.Nav == NavFlag.NotWalkable) Vegetation.MarkObstacle(go);
                 else if (b.Nav == NavFlag.Ignore) go.AddComponent<NavMeshModifier>().ignoreFromBuild = true;
                 else if (b.Tag == "stair" || b.Tag == "upper_floor" || b.Tag == "balcony")

@@ -10,7 +10,11 @@ namespace SevenDays.World
     public class Destructible : MonoBehaviour
     {
         public static readonly List<Destructible> All = new List<Destructible>();
+        /// <summary>Fuerza de las piezas estructurales (muros, barandillas y techo de la casa): ningún ataque las rompe. Antes los tramos estrechos de muro quedaban
+        /// con fuerza 0 como una caja y la carga del jefe del día 3, las granadas y los explosivos los ocultaban: la casa se veía "transparente".</summary>
+        public const int Structural = 100;
         public int Strength;
+        public bool Indestructible => Strength >= Structural;
         public bool Broken { get; private set; }
 
         private Collider[] _colliders;
@@ -30,7 +34,7 @@ namespace SevenDays.World
 
         public void Smash(Vector3 point, Vector3 direction)
         {
-            if (Broken) return;
+            if (Broken || Indestructible) return;
             Cache();
             Broken = true;
             foreach (var c in _colliders) c.enabled = false;

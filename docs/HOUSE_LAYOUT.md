@@ -60,3 +60,6 @@ export const houseLayout = z.object({
   torches: z.array(z.object({ x: z.number(), z: z.number(), y: z.number().default(2) })).max(12),
 });
 ```
+
+## Muros indestructibles (bug "casa transparente" del día 3)
+Los muros, barandillas y techo caído son cobertura (`CoverObject`), y toda cobertura recibía un `Destructible`; los tramos estrechos de muro quedaban con fuerza 0 como una caja. Desde el día 3 la carga y el pisotón del Bruto Titán (y granadas y explosivos) los "rompían": se apagaban sus renderers y colliders y la casa se veía llena de huecos, como transparente. Ahora las piezas estructurales llevan `Destructible.Structural` y ningún ataque las rompe (la carga contra un muro aturde al jefe, como estaba diseñado); los muebles siguen rompiéndose. Prueba: `HouseDay3Tests` (los 2 mapas, día 1 frente a día 3 con ataques del jefe y los 4 niveles de calidad).
