@@ -11,7 +11,9 @@ namespace SevenDays.Procedural
         public float waveSeconds;          // de "¡OLEADA!" a "OLEADA SUPERADA"
         public int zombiesTotal;           // zombis de la oleada (sin jefe)
         public int kills, headshots, headshotKills, shotsFired, shotsHit;
-        public int grenadeKills, grenadesThrown;   // bajas por granada y granadas lanzadas ese día
+        public int grenadeKills, grenadesThrown;
+        public int bestStreak;                     // mejor racha (bajas a menos de 4 s entre sí)
+        public string[] weapons = new string[0];   // armas con las que disparó ese día   // bajas por granada y granadas lanzadas ese día
         public float damageTaken, coverSeconds, timePlayed;
         public bool died, boss;
         public string[] killTypes = new string[0];
@@ -77,6 +79,22 @@ namespace SevenDays.Procedural
         public const float GoodAccuracy = 0.6f, GoodHeadshotRatio = 0.4f, BadDamagePerZombie = 8f, SecondsPerZombie = 6f;
 
         private static float C01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
+
+        public static readonly string[] PartNames = { "Precisión", "Cabeza", "Daño evitado", "Rapidez", "Cobertura" };
+        public static readonly float[] PartMax = { 25f, 15f, 30f, 20f, 10f };
+
+        /// <summary>Las cinco partes de la puntuación (precisión, cabeza, daño, rapidez, cobertura), en sus puntos (máximos en PartMax).</summary>
+        public static float[] Parts(DayStats d)
+        {
+            float acc = 25f * C01(d.Accuracy / GoodAccuracy);
+            float head = 15f * C01(d.HeadshotKillRatio / GoodHeadshotRatio);
+            float dmg = d.kills == 0 ? 0f : 30f * (1f - C01(d.damageTaken / Math.Max(1, d.kills) / BadDamagePerZombie));
+            float expected = Math.Max(1, d.zombiesTotal) * SecondsPerZombie;
+            float speed = d.waveSeconds <= 0f ? 10f : 20f * C01(expected / d.waveSeconds);
+            float cr = d.CoverRatio;
+            float cover = cr < 0.1f ? 10f * (0.5f + 5f * cr) : (cr <= 0.6f ? 10f : 10f * C01(1f - (cr - 0.6f) / 0.4f));
+            return new[] { acc, head, dmg, speed, cover };
+        }
 
         public static float Raw(DayStats d, List<string> parts = null)
         {

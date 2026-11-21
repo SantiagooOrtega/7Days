@@ -69,7 +69,10 @@ namespace SevenDays.World
             Instance = d;
             d.Match.mapId = map != null ? map.id : "";
             d._ammo = loot != null ? AmmoSupply.Create(parent, loot, player) : null;
-            d.Cycle = new DayCycle();
+            d.Cycle = new DayCycle(PendingStartDay);   // "Reintentar día" vuelve a empezar en el día en que caíste
+            PendingStartDay = 1;
+            d._shooting = player.GetComponent<SevenDays.Player.PlayerShooting>();
+            if (d._shooting != null) d._shooting.ShotFired += d.OnShot;
             d.Cycle.PhaseChanged += d.OnPhase;
             VigiaVoice.Say("bienvenida");
             d.BeginDay();
@@ -81,6 +84,7 @@ namespace SevenDays.World
             if (Instance == this) Instance = null;
             if (_playerHealth != null) _playerHealth.Died -= OnPlayerDied;
             if (_zombies != null) _zombies.ZombieKilled -= OnZombieKilled;
+            if (_shooting != null) _shooting.ShotFired -= OnShot;
             GameInput.InputCaptured = false;
         }
 
@@ -111,6 +115,7 @@ namespace SevenDays.World
             foreach (var r in reasons) Debug.Log("[7Days] Director: " + r);
             if (day > 1) _playerHealth.Heal(_playerHealth.Max * HealBetweenDays);
             _killsByType.Clear();
+            _streak.Reset(); _bestStreak = 0; _weaponsToday.Clear();
             _titleUntil = Time.unscaledTime + TitleSeconds;
             VigiaVoice.Say("dia_" + day);
             VigiaVoice.Say("preparacion");   // título grande "DÍA N" con fundido
@@ -147,8 +152,8 @@ namespace SevenDays.World
                     _nextReasons.Clear();
                     if (p == DayPhase.Summary) TuningFor(Cycle.Day + 1, _nextReasons);   // lo que hará el director mañana, para explicarlo ya
                     _summary = BuildSummary();
-                    if (p == DayPhase.Victory) { Finish(true); VigiaVoice.Say("victoria"); }
-                    else { VigiaVoice.Say("oleada_superada"); VigiaEvents.DayTips(Match.days[Match.days.Count - 1]); }
+                    if (p == DayPhase.Victory) { Finish(true); VigiaVoice.Say("victoria"); SevenDays.UI.StatsScreen.Show(StatsScreenMode.Victory, Cycle.Day, Match.days, _nextReasons); }
+                    else { VigiaVoice.Say("oleada_superada"); VigiaEvents.DayTips(Match.days[Match.days.Count - 1]); SevenDays.UI.StatsScreen.Show(StatsScreenMode.DaySummary, Cycle.Day, Match.days, _nextReasons); }
                     _summaryUntil = Time.unscaledTime + SummaryPanelSeconds;   // panel pequeño, no bloquea
                     if (p == DayPhase.Summary) HudMessages.Add("OLEADA SUPERADA", new Color(0.6f, 1f, 0.6f), CycleSummarySeconds);
                     break;
@@ -159,6 +164,7 @@ namespace SevenDays.World
                     _summary = BuildSummary();
                     Finish(false);
                     VigiaVoice.Say("derrota");
+                    SevenDays.UI.StatsScreen.Show(StatsScreenMode.Defeat, Cycle.Day, Match.days, _nextReasons);
                     break;
             }
         }
@@ -186,6 +192,7 @@ namespace SevenDays.World
             var plan = Wave != null ? Wave.Plan : DayPlans.For(Cycle.Day);
             float waveSeconds = Wave != null ? Time.time - _waveStart : 0f;
             var d = DayStats.From(Cycle.Day, snap, waveSeconds, plan.totalZombies, died, plan.bossId != null, _killsByType);
+            d.bestStreak = _bestStreak; d.weapons = _weaponsToday.ToArray();
             var gm = SevenDays.Combat.GrenadeManager.Instance;
             if (gm != null) { d.grenadeKills = gm.Kills - _grenadeKillsAtStart; d.grenadesThrown = gm.Thrown - _grenadesThrownAtStart; _grenadeKillsAtStart = gm.Kills; _grenadesThrownAtStart = gm.Thrown; }
             _scoreParts.Clear();
@@ -197,7 +204,26 @@ namespace SevenDays.World
         }
 
         private bool _finished;
-        private int _grenadeKillsAtStart, _grenadesThrownAtStart;   // contadores de GrenadeManager al empezar el día
+        private int _grenadeKillsAtStart, _grenadesThrownAtStart;
+        private SevenDays.Player.PlayerShooting _shooting;
+        private readonly ComboTracker _streak = new ComboTracker();
+        private int _bestStreak;
+        private readonly List<string> _weaponsToday = new List<string>();
+        /// <summary>Día con el que empieza la próxima partida (lo fija "Reintentar día").</summary>
+        public static int PendingStartDay = 1;
+
+        private void OnShot()
+        {
+            var w = _shooting != null ? _shooting.Current : null;
+            if (w != null && w.Data != null && !_weaponsToday.Contains(w.Data.displayName)) _weaponsToday.Add(w.Data.displayName);
+        }
+
+        /// <summary>Reintentar el día en que caíste (la escena se recarga y el ciclo empieza en ese día).</summary>
+        public static void RetryDay()
+        {
+            if (Instance != null && Instance.Cycle != null) PendingStartDay = Instance.Cycle.Day;
+            Retry();
+        }   // contadores de GrenadeManager al empezar el día
         private void Finish(bool victory)
         {
             if (_finished) return;
@@ -308,6 +334,7 @@ namespace SevenDays.World
         private void OnZombieKilled(ZombieController z)
         {
             _sinceKill = 0f;
+            _streak.OnKill(Time.timeAsDouble, false); _bestStreak = Mathf.Max(_bestStreak, _streak.Chain);
             if (z.Type != null) _killsByType[z.Type.id] = (_killsByType.TryGetValue(z.Type.id, out int n) ? n : 0) + 1;
             if (_alive.Remove(z)) { Wave?.OnKilled(); if (_ammo != null) _ammo.OnKill(z.transform.position); }
             if (Wave != null && Cycle.Phase == DayPhase.Wave && VigiaEvents.Instance != null)
@@ -375,13 +402,14 @@ namespace SevenDays.World
                 GUI.color = prev;
             }
             // resumen del día anterior: panel pequeño a la derecha, no bloquea ni pausa
-            if (!Cycle.IsOver && Time.unscaledTime < _summaryUntil && _summary.Length > 0)
+            if (!SevenDays.UI.StatsScreen.Active && !Cycle.IsOver && Time.unscaledTime < _summaryUntil && _summary.Length > 0)
             {
                 Rect r = new Rect(w - 640, 130, 610, 360);
                 Shade(r, 0.55f);
                 GUI.Label(new Rect(r.x + 16, r.y + 8, r.width - 32, 40), "Resumen del día " + (Cycle.Phase == DayPhase.Summary ? Cycle.Day : Cycle.Day - 1), new GUIStyle(_body) { alignment = TextAnchor.UpperLeft, fontStyle = FontStyle.Bold });
                 GUI.Label(new Rect(r.x + 16, r.y + 50, r.width - 32, r.height - 56), _summary, new GUIStyle(_body) { alignment = TextAnchor.UpperLeft, fontSize = 17, wordWrap = true });
             }
+            if (SevenDays.UI.StatsScreen.Active) return;   // la pantalla nueva (uGUI) dibuja victoria y derrota
             if (Cycle.Phase == DayPhase.Victory) Panel(w, "¡HAS SOBREVIVIDO 7 DÍAS!", string.Join("\n", History), "Jugar otra vez", Retry, "Menú", ToMenu);
             else if (Cycle.Phase == DayPhase.Defeat) Panel(w, "HAS MUERTO — DÍA " + Cycle.Day, _summary + "\n" + string.Join("\n", History), "Reintentar", Retry, "Menú", ToMenu);
         }

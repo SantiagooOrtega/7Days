@@ -313,5 +313,33 @@ namespace SevenDays.Tests.PlayMode
             Assert.IsTrue(up, "el zombi llega al piso 2");
             Assert.Less(maxStep, 0.35f, "posición continua: sin teletransporte");
         }
+
+        [UnityTest]
+        public IEnumerator Death_ShowsTacticalStatsScreen_BlocksEsc()
+        {
+            T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, "calle_en_ruinas");
+            _arena = new GameObject("Arena"); _arena.AddComponent(T("SevenDays.World.TestArena"));
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && GameObject.FindWithTag("Player") == null) yield return null;
+            for (int i = 0; i < 30; i++) yield return null;
+            var player = GameObject.FindWithTag("Player");
+            var h = player.GetComponent(T("SevenDays.Core.Health"));
+            var di = Activator.CreateInstance(T("SevenDays.Core.DamageInfo"));
+            di.GetType().GetField("Amount").SetValue(di, 100000f);
+            h.GetType().GetMethod("TakeDamage").Invoke(h, new[] { di });
+            for (int i = 0; i < 90; i++) yield return null;
+            var st = T("SevenDays.UI.StatsScreen");
+            Assert.IsTrue((bool)st.GetProperty("Active").GetValue(null), "pantalla de muerte");
+            Assert.IsTrue((bool)st.GetProperty("Blocking").GetValue(null));
+            Assert.IsTrue((bool)T("SevenDays.Core.GameInput").GetField("EscapeBlocked").GetValue(null), "Esc no abre los ajustes");
+            var inst = st.GetProperty("Instance").GetValue(null);
+            Assert.AreEqual(1, (int)st.GetProperty("Rows").GetValue(inst), "una fila por día jugado");
+            var scaler = ((Component)inst).GetComponentInChildren<UnityEngine.UI.CanvasScaler>();
+            Assert.AreEqual(UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize, scaler.uiScaleMode);
+            Assert.AreEqual(3, ((Component)inst).GetComponentsInChildren<UnityEngine.UI.Button>().Length, "Reintentar día, Menú, Ver estadísticas");
+            T("SevenDays.UI.StatsScreen").GetMethod("Hide").Invoke(null, null);
+            UnityEngine.Object.Destroy((Component)inst);
+            yield return null;
+        }
     }
 }

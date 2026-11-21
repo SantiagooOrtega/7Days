@@ -17,7 +17,7 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
-            if (_camera == null || Cursor.lockState == CursorLockMode.Locked) return;
+            if (_camera == null || Cursor.lockState == CursorLockMode.Locked || StatsScreen.Blocking) return;   // no se solapa con la pantalla de muerte/victoria
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 18, normal = { textColor = Color.white } };
             _title ??= new GUIStyle(_label) { fontSize = 22, fontStyle = FontStyle.Bold };
             var s = _camera.Settings;
