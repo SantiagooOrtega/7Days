@@ -40,7 +40,7 @@ namespace SevenDays.Tests.Visual
             {
                 tris += (int)mf.sharedMesh.GetIndexCount(0) / 3;
                 mats.Add(mf.GetComponent<Renderer>().sharedMaterial);
-                StringAssert.DoesNotContain("mochila", mf.name.ToLowerInvariant());
+                if (id != "medico") StringAssert.DoesNotContain("mochila", mf.name.ToLowerInvariant());   // solo el médico lleva su mochila médica
                 // UV y tangentes válidas en la malla de Unity
                 foreach (var t in mf.sharedMesh.tangents) Assert.IsTrue(Mathf.Abs(t.w) == 1f, mf.name + ": signo de tangente");
             }

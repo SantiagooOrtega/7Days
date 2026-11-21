@@ -248,6 +248,7 @@ namespace SevenDays.Procedural
 
         private static Rgb Camo(float u, float v, CharacterVariantData p, int seed)
         {
+            if (p.IsMedic) return CharacterVariantData.C(p.camoBase).Scale(0.9f + 0.18f * Fbm(u, v, 5, 3, seed + 5));   // uniforme quirúrgico liso
             float k = p.camoScale;
             float wu = u + (Fbm(u, v, 3, 2, seed + 1) - 0.5f) * 0.18f, wv = v + (Fbm(u, v, 3, 2, seed + 2) - 0.5f) * 0.18f;
             Rgb c = CharacterVariantData.C(p.camoBase);
@@ -289,6 +290,18 @@ namespace SevenDays.Procedural
                         c = Rgb.Lerp(c, c.Scale(0.75f), flapEdge);
                         h += (1f - flap) * 0.3f - flapEdge * 0.4f;
                     }
+                    if (p.IsMedic)
+                    {
+                        // chaleco médico blanco sucio: manchas de sangre seca y barro, desgaste en los bordes; cruz verde propia en el centro de cada placa
+                        float stain = Smooth(0.6f, 0.75f, Fbm(u, v, 6, 4, seed + 31)), blood = Smooth(0.72f, 0.82f, Fbm(u + 0.4f, v, 9, 3, seed + 37));
+                        c = Rgb.Lerp(c, new Rgb(0.42f, 0.36f, 0.28f), stain * 0.45f);
+                        c = Rgb.Lerp(c, new Rgb(0.32f, 0.08f, 0.06f), blood * 0.6f);
+                        if (cell == GVest)
+                        {
+                            float cx = Math.Abs(u - 0.5f), cy = Math.Abs(v - 0.55f);
+                            if ((cx < 0.06f && cy < 0.2f) || (cy < 0.06f && cx < 0.2f)) { c = CharacterVariantData.C(p.accent).Scale(0.9f + 0.15f * grime); h += 0.3f; }
+                        }
+                    }
                     float st = Stitch(u, v, 0.05f);
                     c = Rgb.Lerp(c, c.Scale(0.65f), st * 0.7f);
                     c = Rgb.Lerp(c, new Rgb(0.3f, 0.27f, 0.22f), Smooth(0.6f, 0.9f, grime) * 0.3f);   // polvo
@@ -318,6 +331,13 @@ namespace SevenDays.Procedural
                 }
                 case GGlove:
                 {
+                    if (p.IsMedic)
+                    {
+                        // guantes de látex azules: lisos, brillantes, con arrugas finas
+                        float wr = Fbm(u * 2f, v, 20, 2, seed);
+                        o.Color = CharacterVariantData.C(p.leather).Scale(0.88f + 0.25f * wr); o.Height = 0.15f * wr; o.Smooth = 0.62f; o.Ao = 0.95f;
+                        return;
+                    }
                     // cuero sintético con poros y zona de agarre punteada
                     float pores = Fbm(u, v, 48, 2, seed);
                     float dots = (Frac(u * 18f) - 0.5f) * (Frac(u * 18f) - 0.5f) + (Frac(v * 18f) - 0.5f) * (Frac(v * 18f) - 0.5f) < 0.06f ? 1f : 0f;

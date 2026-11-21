@@ -77,10 +77,14 @@ namespace SevenDays.Tests
         }
 
         [Test]
-        public void NoBackpack()
+        public void NoBackpack_ExceptTheMedicsMedicalPack()
         {
             foreach (var v in CharacterVariants.Defaults())
-                foreach (var p in Build(v)) StringAssert.DoesNotContain("mochila", p.Name.ToLowerInvariant());
+            {
+                bool any = false;
+                foreach (var p in Build(v)) if (p.Name.ToLowerInvariant().Contains("mochila")) { any = true; Assert.IsTrue(v.IsMedic, v.id + ": solo el médico lleva mochila (" + p.Name + ")"); }
+                if (v.IsMedic) Assert.IsTrue(any, "el médico lleva su mochila médica");
+            }
         }
 
         [Test]
@@ -224,6 +228,71 @@ namespace SevenDays.Tests
             var other = CharacterTextures.Generate(AtlasKind.Uniform, CharacterVariants.Find(CharacterVariants.Defaults(), "francotirador"), 128);
             int o = 0; for (int y = 0; y < half; y++) for (int x = half; x < n; x++) { int i = (y * n + x) * 4; if (Orange(other.Albedo[i] / 255f, other.Albedo[i + 1] / 255f, other.Albedo[i + 2] / 255f)) o++; }
             Assert.Less(o, cellPx / 20, "pantalón naranja solo en Sam");
+        }
+
+        private static float[] Mean(byte[] a, int n, int cx, int cy, int grid)
+        {
+            int c = n / grid; double r = 0, g = 0, b = 0; int k = 0;
+            for (int y = cy * c + c / 8; y < (cy + 1) * c - c / 8; y++)
+                for (int x = cx * c + c / 8; x < (cx + 1) * c - c / 8; x++) { int i = (y * n + x) * 4; r += a[i]; g += a[i + 1]; b += a[i + 2]; k++; }
+            return new[] { (float)(r / k / 255), (float)(g / k / 255), (float)(b / k / 255) };
+        }
+
+        [Test]
+        public void Medic_Recognizable_SurgicalUniform_WhiteVestGreenCross_BlueLatex_LightBoots()
+        {
+            var med = CharacterVariants.Find(CharacterVariants.Defaults(), "medico");
+            Assert.IsTrue(med.IsMedic); Assert.AreEqual(Headgear.MedicHelmet, med.headgear); Assert.IsTrue(med.armband);
+            const int n = 128;
+            var uni = CharacterTextures.Generate(AtlasKind.Uniform, med, n).Albedo;
+            var torso = Mean(uni, n, 0, 0, 2);
+            Assert.Greater(torso[1], torso[0] * 1.4f, "uniforme verde quirúrgico (verde azulado)"); Assert.Greater(torso[2], torso[0] * 1.3f);
+            var gear = CharacterTextures.Generate(AtlasKind.Gear, med, n).Albedo;
+            var vest = Mean(gear, n, CharacterTextures.GVest % 4, CharacterTextures.GVest / 4, 4);
+            Assert.Greater((vest[0] + vest[1] + vest[2]) / 3f, 0.5f, "chaleco claro (blanco sucio)");
+            var glove = Mean(gear, n, CharacterTextures.GGlove % 4, CharacterTextures.GGlove / 4, 4);
+            Assert.Greater(glove[2], glove[0] * 2f, "guantes de látex azules");
+            var boot = Mean(gear, n, CharacterTextures.GBoot % 4, CharacterTextures.GBoot / 4, 4);
+            Assert.Greater((boot[0] + boot[1] + boot[2]) / 3f, 0.3f, "botas claras");
+            // cruz propia: verde (no roja como la de la Cruz Roja) en el centro del brazalete
+            int c = n / 4, ax = CharacterTextures.GArmband % 4, ay = CharacterTextures.GArmband / 4;
+            int ci = ((ay * c + c / 2) * n + ax * c + c / 2) * 4;
+            Assert.Greater(gear[ci + 1], gear[ci] * 2, "cruz verde"); Assert.Less(gear[ci], 120, "nada de cruz roja");
+            // mochila médica con cruz, bolsas de suministros, rodilleras y gafas
+            var names = Build(med).ConvertAll(p => p.Name);
+            foreach (var part in new[] { "mochila médica", "cruz mochila", "bolsas médicas", "rodillera", "gafas", "brazalete" })
+                Assert.IsTrue(names.Exists(x => x.EndsWith(" " + part)), "pieza " + part);
+            Assert.LessOrEqual(SoldierModel.Triangles(Build(med)), 15000, "presupuesto");
+        }
+
+        [Test]
+        public void Medic_DistinctColorsFromEveryOtherVariant()
+        {
+            const int n = 64;
+            var all = CharacterVariants.Defaults();
+            var med = CharacterVariants.Find(all, "medico");
+            var mt = Mean(CharacterTextures.Generate(AtlasKind.Uniform, med, n).Albedo, n, 0, 0, 2);
+            var mv = Mean(CharacterTextures.Generate(AtlasKind.Gear, med, n).Albedo, n, 0, 0, 4);
+            foreach (var o in all)
+            {
+                if (o.id == med.id) continue;
+                var ot = Mean(CharacterTextures.Generate(AtlasKind.Uniform, o, n).Albedo, n, 0, 0, 2);
+                var ov = Mean(CharacterTextures.Generate(AtlasKind.Gear, o, n).Albedo, n, 0, 0, 4);
+                float d = Math.Abs(mt[0] - ot[0]) + Math.Abs(mt[1] - ot[1]) + Math.Abs(mt[2] - ot[2]) + Math.Abs(mv[0] - ov[0]) + Math.Abs(mv[1] - ov[1]) + Math.Abs(mv[2] - ov[2]);
+                Assert.Greater(d, 0.35f, "el médico se distingue de " + o.id);
+            }
+        }
+
+        [Test]
+        public void MedicAsset_MatchesCodeColors()
+        {
+            var med = CharacterVariants.Find(CharacterVariants.Defaults(), "medico");
+            string y = System.IO.File.ReadAllText(System.IO.Path.Combine(UnityEngine.Application.dataPath, "_Project/Resources/Config/Variants/medico.asset"));
+            foreach (var (k, v) in new[] { ("camoBase", med.camoBase), ("gear", med.gear), ("leather", med.leather), ("boot", med.boot), ("helmet", med.helmet), ("accent", med.accent) })
+            {
+                string block = "    " + k + ":\n    - " + v[0].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n    - " + v[1].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n    - " + v[2].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n";
+                StringAssert.Contains(block, y.Replace("\r\n", "\n"), "medico.asset (manda sobre el código) con el color nuevo de " + k);
+            }
         }
     }
 }

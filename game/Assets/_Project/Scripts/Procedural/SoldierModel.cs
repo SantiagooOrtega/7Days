@@ -69,6 +69,14 @@ namespace SevenDays.Procedural
                 var dump = new MeshBuilder();
                 dump.Box(new V3(-0.166f * k, 0.0f, -0.04f), new V3(0.05f, 0.11f, 0.09f), new V3(0, 0, 8f), 0.012f, G(CharacterTextures.GPouch), 0.15f);   // bolsa en la cadera izquierda
                 Add(BoneId.Hips, "bolsa", SlotGear, dump);
+                if (v.IsMedic)
+                {
+                    // bolsas de suministros en el cinturón (derecha y detrás), con la cruz
+                    var med = new MeshBuilder();
+                    med.Box(new V3(0.166f * k + 0.02f, 0.0f, 0.03f), new V3(0.06f, 0.12f, 0.1f), new V3(0, 0, -8f), 0.014f, G(CharacterTextures.GArmband), 0.12f);
+                    med.Box(new V3(0f, 0.02f, -0.166f * k * 0.66f * d - 0.04f), new V3(0.16f, 0.09f, 0.07f), new V3(0, 0, 0), 0.014f, G(CharacterTextures.GPouch), 0.12f);
+                    Add(BoneId.Hips, "bolsas médicas", SlotGear, med, false);
+                }
 
                 var spine = new MeshBuilder();
                 spine.Loft(new V3(0, 0, 0), new V3(0, 0, 0), Torso(-0.02f, 0.158f, 0.66f, 0f, sp * 0.5f, 0.159f, 0.66f, 0.002f, sp * 1.08f, 0.162f, 0.65f, 0.004f), 16, true, true, U(CharacterTextures.UCamo), 0.45f);
@@ -109,6 +117,21 @@ namespace SevenDays.Procedural
                 radio.Box(new V3(-0.157f * k, ch * 0.75f, front * 0.4f), new V3(0.045f, 0.11f, 0.06f), new V3(0, 0, 0), 0.008f, G(CharacterTextures.GRadio), 0.15f);
                 radio.Cylinder(new V3(-0.167f * k, ch * 0.75f + 0.15f, front * 0.4f - 0.01f), new V3(0, 0, -6f), 0.0035f, 0.002f, 0.2f, 6, G(CharacterTextures.GMetal), 0.3f);   // antena
                 Add(BoneId.Chest, "radio", SlotGear, radio, false);
+                if (v.IsMedic)
+                {
+                    // mochila médica (solo el médico): cuerpo claro detrás de la placa trasera, solapa arriba, bolsas laterales y parche con la cruz verde propia
+                    float bz = -back - 0.025f - 0.085f;
+                    var pack = new MeshBuilder();
+                    // estrecha (no toca los brazos al balancearse): las bolsas van en la cara trasera, no a los lados
+                    pack.Box(new V3(0f, ch * 0.62f, bz), new V3(0.22f * k, 0.38f, 0.17f), new V3(4f, 0, 0), 0.03f, G(CharacterTextures.GPouch), 0.2f);
+                    pack.Box(new V3(0f, ch * 0.62f + 0.17f, bz - 0.01f), new V3(0.23f * k, 0.07f, 0.18f), new V3(4f, 0, 0), 0.025f, G(CharacterTextures.GPouch), 0.15f);   // solapa
+                    foreach (float sx in new[] { -1f, 1f })
+                        pack.Box(new V3(sx * 0.06f * k, ch * 0.4f, bz - 0.095f), new V3(0.08f * k, 0.1f, 0.05f), new V3(4f, 0, 0), 0.012f, G(CharacterTextures.GPouch), 0.12f);
+                    Add(BoneId.Chest, "mochila médica", SlotGear, pack);
+                    var badge = new MeshBuilder();
+                    badge.Box(new V3(0f, ch * 0.72f, bz - 0.09f), new V3(0.13f, 0.13f, 0.01f), new V3(4f, 0, 0), 0.004f, G(CharacterTextures.GArmband), 0.05f);
+                    Add(BoneId.Chest, "cruz mochila", SlotGear, badge, false);
+                }
 
                 var yoke = new MeshBuilder();   // parte alta del chaleco: correas de hombro, panel de velcro y parche
                 float ucFront = Zf(0.166f * k, 0.68f) + 0.009f * k, ucBack = Zf(0.166f * k, 0.68f) - 0.009f * k;

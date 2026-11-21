@@ -49,6 +49,9 @@ namespace SevenDays.Procedural
         public float healing = 1f;         // multiplica lo que curan botiquines y vendas
         public float weaponSway = 1f;      // multiplica el balanceo del arma al mover la mira
 
+        /// <summary>El médico (casco médico): uniforme liso, chaleco claro, látex y mochila médica.</summary>
+        public bool IsMedic => headgear == Headgear.MedicHelmet;
+
         public static Rgb C(float[] c) => c != null && c.Length >= 3 ? new Rgb(c[0], c[1], c[2]) : new Rgb(0.5f, 0.5f, 0.5f);
 
         /// <summary>Corrige valores imposibles (colores fuera de 0..1, estadísticas fuera de rango) y rellena los que falten.</summary>
@@ -97,9 +100,11 @@ namespace SevenDays.Procedural
             },
             new CharacterVariantData
             {
+                // médico de campo: uniforme verde quirúrgico, chaleco blanco sucio, cruz verde propia (no la de la Cruz Roja), látex azul y botas claras
                 id = "medico", displayName = "Médico", headgear = Headgear.MedicHelmet, visor = false, armband = true, seed = 33,
-                camoBase = new[] { 0.27f, 0.29f, 0.27f }, camoMid = new[] { 0.21f, 0.23f, 0.22f }, camoDark = new[] { 0.1f, 0.11f, 0.11f }, camoLight = new[] { 0.4f, 0.41f, 0.39f },
-                gear = new[] { 0.19f, 0.21f, 0.2f }, helmet = new[] { 0.24f, 0.25f, 0.23f }, fabric = new[] { 0.16f, 0.17f, 0.17f }, accent = new[] { 0.58f, 0.22f, 0.14f },
+                camoBase = new[] { 0.2f, 0.38f, 0.36f }, camoMid = new[] { 0.18f, 0.35f, 0.33f }, camoDark = new[] { 0.12f, 0.24f, 0.23f }, camoLight = new[] { 0.28f, 0.46f, 0.43f },
+                gear = new[] { 0.74f, 0.72f, 0.66f }, gearDark = new[] { 0.3f, 0.3f, 0.28f }, leather = new[] { 0.2f, 0.4f, 0.8f }, boot = new[] { 0.52f, 0.46f, 0.36f },
+                pad = new[] { 0.32f, 0.34f, 0.32f }, helmet = new[] { 0.66f, 0.66f, 0.62f }, fabric = new[] { 0.7f, 0.69f, 0.64f }, accent = new[] { 0.12f, 0.6f, 0.3f },
                 healing = 1.3f,
             },
             new CharacterVariantData
