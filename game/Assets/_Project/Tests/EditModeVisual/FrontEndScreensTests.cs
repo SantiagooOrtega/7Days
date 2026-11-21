@@ -57,9 +57,9 @@ namespace SevenDays.Tests.Visual
             try
             {
                 var texts = new List<string>();
-                foreach (var t in inst.GetComponentsInChildren(TextT, true)) texts.Add(((string)TextT.GetProperty("text").GetValue(t)).Replace(" ", ""));
+                foreach (var t in inst.GetComponentsInChildren(TextT, true)) texts.Add(System.Text.RegularExpressions.Regex.Replace((string)TextT.GetProperty("text").GetValue(t), "\\s+", ""));
                 CollectionAssert.Contains(texts, "7DAYS", "título del juego");
-                CollectionAssert.Contains(texts, "PULSA ENTER");
+                CollectionAssert.Contains(texts, "PULSAENTER");
                 Assert.IsNotNull(inst.transform.Find("Canvas menú/Pantalla Title/Emblema"), "emblema propio");
                 Assert.IsNotNull(fe.GetProperty("PressStartScreen").GetValue(inst));
             }

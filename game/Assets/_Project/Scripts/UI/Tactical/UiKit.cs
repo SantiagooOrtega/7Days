@@ -17,7 +17,25 @@ namespace SevenDays.UI.Tactical
         public static readonly Color Cream = new Color(0.851f, 0.804f, 0.706f), CreamDim = new Color(0.6f, 0.565f, 0.5f), Red = new Color(0.702f, 0.149f, 0.102f),
             Orange = new Color(1f, 0.478f, 0.122f), Amber = new Color(1f, 0.702f, 0.278f), Ink = new Color(0.039f, 0.031f, 0.031f, 0.75f), Olive = new Color(0.55f, 0.66f, 0.38f),
             White = new Color(0.94f, 0.925f, 0.9f), Grey = new Color(0.227f, 0.239f, 0.251f), Maroon = new Color(0.557f, 0.106f, 0.071f), Charcoal = new Color(0.039f, 0.031f, 0.031f);
+        public static readonly Color TitleCream = new Color(0xEA / 255f, 0xDF / 255f, 0xC8 / 255f), TitleShadow = new Color(0xB3 / 255f, 0x20 / 255f, 0x0F / 255f),
+            SubOrange = new Color(1f, 0x6A / 255f, 0x1F / 255f), WarmGrey = new Color(0xA8 / 255f, 0x9C / 255f, 0x8E / 255f);
         public const float Condensed = 0.84f;
+        public const int MinFont = 24;
+
+        private static Font _titleFont;
+        /// <summary>Fuente condensada y gruesa para el título (Impact o similar del sistema); si no hay, la normal.</summary>
+        public static Font TitleFont
+        {
+            get
+            {
+                if (_titleFont != null) return _titleFont;
+                try { var installed = Font.GetOSInstalledFontNames(); foreach (var n in new[] { "Impact", "Haettenschweiler", "Arial Black", "Arial Narrow Bold" }) if (System.Array.IndexOf(installed, n) >= 0) { _titleFont = Font.CreateDynamicFontFromOSFont(n, 64); break; } }
+                catch { }
+                return _titleFont != null ? _titleFont : (_titleFont = Font);
+            }
+        }
+        private static Texture2D _scratch;
+        public static Texture2D ScratchTex => _scratch != null ? _scratch : (_scratch = Make(512, 128, SevenDays.Procedural.MenuArt.Scratches(512, 128, 6), "Arañazos", TextureWrapMode.Clamp));
         public static readonly Vector2 Reference = new Vector2(1920, 1080);
 
         private static Font _font;
@@ -106,7 +124,8 @@ namespace SevenDays.UI.Tactical
             var cut = Image(r, "Corte", new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(40f, 60f), new Color(0.02f, 0.02f, 0.02f, 0.85f)); cut.rectTransform.localRotation = Quaternion.Euler(0, 0, 35f);
             Image(r, "Barra", new Vector2(0f, 0.5f), new Vector2(5f, 0f), new Vector2(8f, 44f), Red);
             Text(r, "///", 26, Red, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 48f, 0f), new Vector2(60f, 40f), true);
-            Text(r, SevenDays.Procedural.SelectContent.Tracked(title.ToUpperInvariant()), 28, Cream, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 90f + (width - 120f) / 2f * Condensed, 0f), new Vector2(width - 120f, 40f), true);   // borde izquierdo visual en -w/2+90 tras condensar
+            var ht = Text(r, SevenDays.Procedural.SelectContent.Tracked(title.ToUpperInvariant()), 28, Cream, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 90f + (width - 120f) / 2f * Condensed, 0f), new Vector2(width - 120f, 40f), true);   // borde izquierdo visual en -w/2+90 tras condensar
+            ht.horizontalOverflow = HorizontalWrapMode.Wrap; ht.verticalOverflow = VerticalWrapMode.Truncate; ht.resizeTextForBestFit = true; ht.resizeTextMinSize = MinFont; ht.resizeTextMaxSize = 28;   // cabeceras largas: se encogen hasta 24 px
             return r;
         }
 

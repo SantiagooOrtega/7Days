@@ -514,6 +514,23 @@ namespace SevenDays.Procedural
             return px;
         }
 
+        /// <summary>Arañazos para el título (w x h): trazos finos casi horizontales y diagonales del color del fondo, para que la letra parezca rayada.</summary>
+        public static byte[] Scratches(int w, int h, int seed)
+        {
+            var px = new byte[w * h * 4]; var rng = new Random(seed);
+            for (int k = 0; k < 26; k++)
+            {
+                float x0 = (float)rng.NextDouble() * w, y0 = (float)rng.NextDouble() * h, len = 20f + (float)rng.NextDouble() * 90f, ang = (float)(rng.NextDouble() - 0.5) * 1.2f;
+                float a = 0.55f + 0.4f * (float)rng.NextDouble();
+                for (int s = 0; s < (int)len; s++)
+                {
+                    int x = (int)(x0 + Math.Cos(ang) * s), y = (int)(y0 + Math.Sin(ang) * s); if (x < 0 || y < 0 || x >= w || y >= h) continue;
+                    int o = (y * w + x) * 4; px[o] = B(0.05f); px[o + 1] = B(0.03f); px[o + 2] = B(0.03f); px[o + 3] = B(a * (1f - Math.Abs(s / len - 0.5f)));
+                }
+            }
+            return px;
+        }
+
         /// <summary>Marco de panel (n x n, para 9-slice con borde "border"): banda negra al 75 % con una línea gris fina desgastada y grano leve.</summary>
         public static byte[] Frame(int n, int border, int seed)
         {

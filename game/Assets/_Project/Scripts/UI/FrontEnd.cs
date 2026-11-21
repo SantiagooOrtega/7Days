@@ -105,13 +105,42 @@ namespace SevenDays.UI
         private static int IndexOfVariant(string id) { var all = CharacterVariantLibrary.All; for (int i = 0; i < all.Count; i++) if (all[i].id == id) return i; return 0; }
 
         // ---------------------------------------------------------------- piezas comunes
-        private void Title(string sub)
+        // Título "7DAYS" arriba a la izquierda (x = 120 px desde el borde): fuente condensada gruesa, crema #EADFC8 con sombra roja #B3200F a 8 px, cortes de
+        // stencil y arañazos. Debajo, el lema espaciado en naranja y "VALLE HONDO" en gris cálido. En las demás pantallas, más pequeño y con el nombre de la pantalla.
+        public const float BrandLeft = -960f + 120f;
+        public const int BrandSize = 215, BrandSmall = 120;
+
+        public float BrandBottom { get; private set; }
+
+        private void Brand(string line1, string line2, bool big = true)
         {
-            var t = UiKit.Text(_screen, "7DAYS", 150, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(-560f, 410f), new Vector2(900f, 170f), true);
-            // marcas de stencil: cortes horizontales a través del título
-            foreach (float y in new[] { 395f, 440f }) UiKit.Image(_screen, "Stencil", new Vector2(0.5f, 0.5f), new Vector2(-640f, y), new Vector2(640f, 6f), new Color(0.35f, 0.04f, 0.03f, 0.9f));
-            UiKit.Text(_screen, sub, 34, UiKit.Orange, TextAnchor.MiddleLeft, new Vector2(-560f, 292f), new Vector2(900f, 44f), true);   // bajo el título, sin rozarlo
+            int size = big ? BrandSize : BrandSmall;
+            float h = size * 1.24f, top = 532f, cy = top - h / 2f, w = size * 3.1f;
+            var t = UiKit.Text(_screen, "7DAYS", size, UiKit.TitleCream, TextAnchor.MiddleLeft, new Vector2(BrandLeft + w / 2f, cy), new Vector2(w, h), false, false);
+            t.font = UiKit.TitleFont; t.name = "Título 7DAYS";
+            var sh = t.GetComponent<Shadow>(); sh.effectColor = UiKit.TitleShadow; sh.effectDistance = new Vector2(8f, -8f);
+            float ink = Mathf.Min(w, t.preferredWidth), cap = size * 0.72f;
+            // stencil: dos cortes finos que cruzan las letras; arañazos encima
+            foreach (float f in new[] { 0.36f, -0.18f })
+                UiKit.Image(_screen, "Stencil", new Vector2(0.5f, 0.5f), new Vector2(BrandLeft + ink / 2f, cy + f * cap), new Vector2(ink + 4f, Mathf.Max(3f, size * 0.022f)), UiKit.Charcoal);
+            var sc = new GameObject("Arañazos", typeof(RectTransform)).AddComponent<RawImage>(); sc.transform.SetParent(_screen, false); sc.raycastTarget = false;
+            sc.texture = UiKit.ScratchTex; sc.rectTransform.anchoredPosition = new Vector2(BrandLeft + ink / 2f, cy); sc.rectTransform.sizeDelta = new Vector2(ink, cap * 1.05f);
+            float y = top - h - 6f;
+            if (!string.IsNullOrEmpty(line1))
+            {
+                int s1 = big ? 34 : 34;
+                var a = UiKit.Text(_screen, SelectContent.Tracked(line1), s1, UiKit.SubOrange, TextAnchor.MiddleLeft, new Vector2(BrandLeft + 450f, y - 22f), new Vector2(900f, 44f), true, false);
+                a.name = "Lema"; y -= 50f;
+            }
+            if (!string.IsNullOrEmpty(line2))
+            {
+                var b = UiKit.Text(_screen, SelectContent.Tracked(line2), 26, UiKit.WarmGrey, TextAnchor.MiddleLeft, new Vector2(BrandLeft + 450f, y - 17f), new Vector2(900f, 34f), true, false);
+                b.name = "Lugar"; y -= 38f;
+            }
+            BrandBottom = y;
         }
+
+        private void Title(string screenName) => Brand(screenName, null, false);
 
         private void Notice(string text) { _notice = UiKit.Text(_screen, text, 22, UiKit.Orange, TextAnchor.MiddleRight, new Vector2(560f, 470f), new Vector2(700f, 34f), true); _noticeAt = Time.unscaledTime; }
 
@@ -136,7 +165,7 @@ namespace SevenDays.UI
         // ---------------------------------------------------------------- login
         private void BuildLogin()
         {
-            Title("VALLE HONDO");
+            Brand("SOBREVIVE SIETE DÍAS", "VALLE HONDO", false);
             var p = UiKit.Panel(_screen, "Panel login", new Vector2(0.5f, 0.5f), new Vector2(-300f, -60f), new Vector2(760f, 560f));
             UiKit.Header(p, _register ? "Crear cuenta" : "Iniciar sesión", new Vector2(0f, 245f), 720f);
             float y = 160f;
@@ -232,8 +261,7 @@ namespace SevenDays.UI
 
         private void BuildMenu()
         {
-            UiKit.Text(_screen, "7DAYS", 72, UiKit.White, TextAnchor.MiddleLeft, new Vector2(MenuBandX - MenuBandW / 2f + 10f + 400f * UiKit.Condensed / 2f, 420f), new Vector2(400f, 90f), true)
-                .gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+            Brand("SOBREVIVE SIETE DÍAS", "VALLE HONDO");
             var band = UiKit.Panel(_screen, "Panel menú", new Vector2(0.5f, 0.5f), new Vector2(MenuBandX, 70f), new Vector2(MenuBandW, 7 * 50f + 40f));
             _list = MenuList.Create(band, new Vector2(0f, 0f), MenuBandW - 40f, MenuItems, null, 50f, 28, 26);
             _list.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;   // centrada en su banda

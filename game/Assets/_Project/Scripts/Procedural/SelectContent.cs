@@ -60,10 +60,17 @@ namespace SevenDays.Procedural
         public static string Tracked(string s)
         {
             if (string.IsNullOrEmpty(s)) return s;
-            var b = new System.Text.StringBuilder(s.Length * 2);
-            for (int i = 0; i < s.Length; i++) { b.Append(s[i]); if (i < s.Length - 1 && s[i] != ' ' && s[i + 1] != ' ') b.Append(' '); }
+            var b = new System.Text.StringBuilder(s.Length * 2 + 8);
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i] == ' ') { if (i > 0 && s[i - 1] != ' ') b.Append(WordGap); continue; }   // entre palabras: hueco triple (si no, se leen pegadas)
+                b.Append(s[i]); if (i < s.Length - 1 && s[i + 1] != ' ') b.Append('\u2009');   // espacio fino entre letras
+            }
             return b.ToString();
         }
+
+        /// <summary>Hueco entre palabras del texto espaciado: tres espacios normales (las letras van separadas por un espacio fino).</summary>
+        public const string WordGap = "   ";
 
         /// <summary>¿Se solapan dos rectángulos (centro x, y, ancho, alto)? Lo usan las pruebas de la pantalla.</summary>
         public static bool Overlap(float[] a, float[] b) => Math.Abs(a[0] - b[0]) * 2f < a[2] + b[2] && Math.Abs(a[1] - b[1]) * 2f < a[3] + b[3];
