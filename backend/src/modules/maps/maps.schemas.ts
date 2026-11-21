@@ -59,6 +59,9 @@ export const mapAmbienceSchema = z
   })
   .passthrough();
 
+/** Margen (m) del botín respecto al perímetro del mapa. */
+export const LOOT_MARGIN = 1;
+
 export const mapSchema = z
   .object({
     version: z.literal(1),
@@ -92,6 +95,11 @@ export const mapSchema = z
       if (edge > 6 || edge < 0.5) ctx.addIssue({ code: 'custom', path: ['spawns', i], message: `spawn ${s.id} no está en el borde` });
     });
     if (sides.size < 3) ctx.addIssue({ code: 'custom', path: ['spawns'], message: 'spawns en menos de 3 lados' });
+    // todo el botín dentro del perímetro con 1 m de margen (igual que LootPlacement en Unity)
+    const inner = m.halfSize - LOOT_MARGIN;
+    m.loot.points.forEach((p, i) => {
+      if (Math.abs(p.x) > inner || Math.abs(p.z) > inner) ctx.addIssue({ code: 'custom', path: ['loot', 'points', i], message: `botín ${p.id} fuera del perímetro` });
+    });
   });
 
 export type MapJson = z.infer<typeof mapSchema>;

@@ -75,6 +75,7 @@ namespace SevenDays.World
             _fire = FireManager.Create(transform, _look.Fire); // antes del mapa: los barriles, fogatas, coches y antorchas lo usan
             _lootLayout = _map.loot; // botín del mapa: tablas, drops y puntos (coches y arbustos de este mapa)
             _lootManager = LootManager.Create(transform, _lootLayout, 20240517);
+            _lootManager.SetBounds(_map.halfSize, new Vector3(_map.playerStart[0], _map.playerStart[1], _map.playerStart[2]));   // todo el botín dentro del perímetro
             BuildLevel();
 
             var ps = _map.playerStart;
@@ -91,6 +92,7 @@ namespace SevenDays.World
 
             _zombies = ZombieManager.Create(transform, ZombieIO.Load());
             _zombies.BakeNavMesh(); // después de construir el nivel y de la auditoría: usa los colliders ya definitivos
+            _lootManager.OnNavMeshReady();   // valida el botín con el NavMesh (alcanzable desde el inicio) y escribe "Loot: N válidos, 0 fuera de rango"
             _zombies.SetPlayer(player.transform);
             BloodFx.Create(transform);
             BossHud.Create(transform);

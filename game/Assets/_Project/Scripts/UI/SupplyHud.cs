@@ -39,7 +39,7 @@ namespace SevenDays.UI
             float bestAngle = float.MaxValue;
             foreach (var p in mgr.Active)
             {
-                if (p == null || !p.gameObject.activeInHierarchy) continue;
+                if (p == null || !p.gameObject.activeInHierarchy || !p.Reachable) continue;   // solo lo alcanzable
                 Vector3 c = p.GlintPosition;
                 float d = Vector3.Distance(eye, c);
                 if (d <= SupplyVisibility.CompassRange) _near.Add((p, d));

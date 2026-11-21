@@ -109,6 +109,7 @@ namespace SevenDays.Procedural
             else foreach (var h in m.houses) if (h.openings == null || h.openings.Length < 3) e.Add(n + "cada casa necesita 3 entradas o más");
             e.AddRange(ValidateSpawns(m));
             if (m.loot == null || m.loot.points == null || m.loot.points.Length == 0) e.Add(n + "sin puntos de botín");
+            if (m.loot != null) foreach (var id in LootPlacement.Outside(m.loot, m.halfSize)) e.Add(n + "botín " + id + " fuera del perímetro (margen " + LootPlacement.Margin + " m)");
             if (m.ambience == null) e.Add(n + "sin ambientación");
             else if (!(m.ambience.fogDensity >= 0f && m.ambience.fogDensity <= 0.2f)) e.Add(n + "densidad de niebla fuera de 0..0.2");
             else if (m.ambience.fogDensity > FogModel.MaxDensity()) e.Add(n + "niebla tan densa que tapa los zombis a 25 m");

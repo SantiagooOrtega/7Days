@@ -100,7 +100,7 @@ namespace SevenDays.World.Loot
         {
             var t = PickType();
             int pack = Mathf.Min(AmmoEconomy.PackSize(t), Mathf.Max(1, (int)Credit));
-            var pts = _loot.Points;
+            var pts = _loot.ValidPoints;   // solo puntos dentro del perímetro y alcanzables
             if (pts == null || pts.Count == 0 || Credit < 1.0) return false;
             int start = Random.Range(0, pts.Count);
             for (int i = 0; i < pts.Count; i++)
@@ -109,10 +109,12 @@ namespace SevenDays.World.Loot
                 if (_lastUse.TryGetValue(p.id, out float used) && Time.time - used < AmmoEconomy.PointCooldownSeconds) continue;
                 var pos = new Vector3(p.x, 0.35f, p.z);
                 if ((pos - _player.position).sqrMagnitude < 64f) continue;
-                if (_loot.Spawn(LootItem.Ammo(t, pack), pos, null) == null) return false;   // suelo lleno: queda como crédito
+                var made = _loot.Spawn(LootItem.Ammo(t, pack), pos, null);
+                if (made == null) return false;   // suelo lleno o sin sitio válido: queda como crédito
+                pos = made.transform.position;
                 _lastUse[p.id] = Time.time;
                 Credit -= pack; RoundsGiven += pack;
-                if ((pos - _player.position).sqrMagnitude < 35f * 35f) SevenDays.Vigia.VigiaVoice.Say("suministro_cercano");
+                if (made.Reachable && (pos - _player.position).sqrMagnitude < 35f * 35f) SevenDays.Vigia.VigiaVoice.Say("suministro_cercano");
                 return true;
             }
             return false;

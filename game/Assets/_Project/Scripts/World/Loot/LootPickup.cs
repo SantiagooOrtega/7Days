@@ -28,6 +28,8 @@ namespace SevenDays.World.Loot
         public Rarity Rarity { get; private set; }
         public SupplyKind Kind { get; private set; }
         public string SourcePointId { get; private set; }
+        /// <summary>Validado: dentro del perímetro, sobre el NavMesh y con camino desde el inicio. Solo los alcanzables muestran marcador, flecha y ping.</summary>
+        public bool Reachable { get; set; } = true;
         public float NextFullToast;
         /// <summary>El jugador ya oyó el "ping" de este objeto (se avisa una vez al entrar en el radio).</summary>
         public bool Pinged;
@@ -186,7 +188,7 @@ namespace SevenDays.World.Loot
                 _nextLos = Time.time + 0.3f + Phase * 0.1f;
                 _los = ClearLine(cam.transform.position, center);
             }
-            bool show = SupplyVisibility.ShowMarker(dist, _los);
+            bool show = Reachable && SupplyVisibility.ShowMarker(dist, _los);
             if (show != _marker.gameObject.activeSelf) _marker.gameObject.SetActive(show);
             if (show)
             {

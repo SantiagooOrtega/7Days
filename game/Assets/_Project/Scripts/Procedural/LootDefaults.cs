@@ -17,7 +17,7 @@ namespace SevenDays.Procedural
         }
         private static float C(float baseChance) => Math.Min(1f, (float)Math.Round(baseChance * DropChanceScale, 3));
 
-        public static LootLayoutData Create(IList<PropEntry> props = null, HouseLayoutData house = null)
+        public static LootLayoutData Create(IList<PropEntry> props = null, HouseLayoutData house = null, float halfSize = 30f)
         {
             var l = new LootLayoutData();
             l.tables = new[]
@@ -61,9 +61,10 @@ namespace SevenDays.Procedural
             if (props != null)
             {
                 int n = 0;
-                foreach (var c in props.Where(e => e.type == PropTypes.CarWreck && e.state != "burning").Take(3)) P("car_" + (++n), c.x, c.z, "car", "mid", 1, 2.0f, false);
+                foreach (var c in props.Where(e => e.type == PropTypes.CarWreck && e.state != "burning" && LootPlacement.Inside(halfSize, e.x, e.z)).Take(3)) P("car_" + (++n), c.x, c.z, "car", "mid", 1, 2.0f, false);
                 n = 0;
-                foreach (var b in props.Where(e => e.type == PropTypes.Bush && e.variant == 0 && e.scale >= 1.1f).Take(3)) P("bush_" + (++n), b.x, b.z, "bush", n == 1 ? "mid" : "low", 1, 1.0f, false);
+                // solo arbustos dentro del perímetro: antes salían dos detrás del muro (botín inalcanzable)
+                foreach (var b in props.Where(e => e.type == PropTypes.Bush && e.variant == 0 && e.scale >= 1.1f && LootPlacement.Inside(halfSize, e.x, e.z)).Take(3)) P("bush_" + (++n), b.x, b.z, "bush", n == 1 ? "mid" : "low", 1, 1.0f, false);
             }
             // restos entre escombros
             P("rubble_a", -17f, -9f, "rubble", "low", 0, 1.2f, false);

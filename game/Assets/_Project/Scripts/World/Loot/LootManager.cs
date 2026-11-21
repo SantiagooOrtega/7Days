@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Pool;
 using SevenDays.Core;
 using SevenDays.Player;
@@ -32,7 +33,20 @@ namespace SevenDays.World.Loot
         private System.Random _rng;
         private Transform _player;
         private PlayerInventory _inventory;
-        private float _pickTimer, _glintTimer;
+        private float _pickTimer, _glintTimer, _boundsTimer;
+
+        // ---------------------------------------------------------------- regla dura de colocación
+        private float[][] _perimeter;
+        private Vector3 _start;
+        private bool _navReady;
+        private NavMeshPath _path;
+        private readonly Dictionary<long, bool> _reach = new Dictionary<long, bool>();
+        private readonly List<LootPoint> _validPoints = new List<LootPoint>();
+        public float HalfSize { get; private set; }
+        /// <summary>Pickups movidos a un sitio válido y descartados por no tener ninguno (se avisa en la Console).</summary>
+        public int Relocated { get; private set; }
+        public int Discarded { get; private set; }
+        public bool NavReady => _navReady;
 
         public static LootManager Create(Transform root, LootLayoutData layout, int seed)
         {
@@ -46,6 +60,118 @@ namespace SevenDays.World.Loot
             SceneStatics.ResetAll();   // nada de la partida anterior debe sobrevivir
             Instance = m;
             return m;
+        }
+
+        /// <summary>Perímetro del mapa (cuadrado ±halfSize) e inicio del jugador (de ahí se mide si algo es alcanzable).</summary>
+        public void SetBounds(float halfSize, Vector3 playerStart)
+        {
+            HalfSize = halfSize;
+            _perimeter = LootPlacement.Square(halfSize);
+            _start = playerStart;
+            int bad = 0;
+            foreach (var id in LootPlacement.Outside(Layout, halfSize)) { bad++; Debug.LogWarning("[7Days] Punto de botín " + id + " fuera del perímetro: no se usa."); }
+            _validPoints.Clear();
+            foreach (var p in Layout.points) if (LootPlacement.Inside(_perimeter, p.x, p.z)) _validPoints.Add(p);
+            if (bad > 0) Debug.LogWarning("[7Days] " + bad + " puntos de botín del JSON fuera del perímetro.");
+        }
+
+        /// <summary>Puntos del mapa donde puede aparecer botín (dentro del perímetro y, con el NavMesh listo, alcanzables).</summary>
+        public IReadOnlyList<LootPoint> ValidPoints => _perimeter == null ? (IReadOnlyList<LootPoint>)Layout.points : _validPoints;
+
+        /// <summary>El NavMesh ya está horneado: revisa los puntos y lo que ya hay en el suelo, recoloca lo que no valga y escribe la auditoría.</summary>
+        public void OnNavMeshReady()
+        {
+            _navReady = true;
+            _reach.Clear();
+            _validPoints.RemoveAll(p => !TryPlace(new Vector3(p.x, 0.35f, p.z), out _, out _));
+            for (int i = _active.Count - 1; i >= 0; i--) Revalidate(_active[i]);
+            Audit("al construir el mapa");
+        }
+
+        /// <summary>
+        /// Valida una posición de botín: dentro del perímetro con 1 m de margen, sobre el NavMesh y con camino completo desde el inicio del jugador. Si no vale,
+        /// la acerca al centro, la pega al NavMesh o usa el punto válido más cercano. false si no hay ninguna (se descarta).
+        /// </summary>
+        public bool TryPlace(Vector3 wanted, out Vector3 placed, out bool moved)
+        {
+            placed = wanted; moved = false;
+            if (_perimeter == null) return true;
+            float lift = Mathf.Clamp(wanted.y, 0.3f, 0.6f);
+            var c = LootPlacement.Clamp(_perimeter, wanted.x, wanted.z);
+            var p = new Vector3(c[0], wanted.y, c[1]);
+            moved = (p - wanted).sqrMagnitude > 0.01f;
+            if (!_navReady) { placed = p; return true; }
+            if (NavMesh.SamplePosition(p, out var hit, 2.5f, NavMesh.AllAreas) || NavMesh.SamplePosition(p, out hit, 8f, NavMesh.AllAreas))
+            {
+                if (LootPlacement.Inside(_perimeter, hit.position.x, hit.position.z) && Reachable(hit.position))
+                {
+                    var flat = new Vector3(hit.position.x - wanted.x, 0f, hit.position.z - wanted.z);
+                    moved |= flat.sqrMagnitude > 0.6f * 0.6f;
+                    placed = hit.position + Vector3.up * lift;   // siempre sobre el punto del NavMesh que se validó
+                    return true;
+                }
+            }
+            // el punto válido más cercano del mapa
+            float best = float.MaxValue; bool found = false;
+            foreach (var pt in _validPoints)
+            {
+                float d = (pt.x - p.x) * (pt.x - p.x) + (pt.z - p.z) * (pt.z - p.z);
+                if (d >= best) continue;
+                if (!NavMesh.SamplePosition(new Vector3(pt.x, 0.35f, pt.z), out var h2, 2.5f, NavMesh.AllAreas) || !Reachable(h2.position)) continue;
+                best = d; placed = h2.position + Vector3.up * lift; found = true;
+            }
+            moved = true;
+            return found;
+        }
+
+        private bool Reachable(Vector3 target)
+        {
+            // caché por celda de 10 cm: con celdas grandes, un drop en una isla del NavMesh (rodeada de obstáculos) heredaba el "sí" de su vecino
+            long key = ((long)Mathf.RoundToInt(target.x * 10f) << 40) ^ ((long)(Mathf.RoundToInt(target.z * 10f) & 0xFFFFF) << 16) ^ (Mathf.RoundToInt(target.y * 2f) & 0xFFFF);
+            if (_reach.TryGetValue(key, out bool ok)) return ok;
+            if (_path == null) _path = new NavMeshPath();
+            ok = NavMesh.SamplePosition(_start, out var s, 4f, NavMesh.AllAreas) && NavMesh.CalculatePath(s.position, target, NavMesh.AllAreas, _path) && _path.status == NavMeshPathStatus.PathComplete;
+            _reach[key] = ok;
+            return ok;
+        }
+
+        /// <summary>Recoloca un pickup que no valga (o lo quita si no hay sitio). true si sigue en el suelo.</summary>
+        private bool Revalidate(LootPickup p)
+        {
+            if (p == null || !p.gameObject.activeSelf) return false;
+            var at = p.transform.position + Vector3.up * 0.35f;
+            if (!TryPlace(at, out var placed, out bool moved))
+            {
+                Discarded++;
+                Debug.LogWarning("[7Days] Botín descartado (sin sitio alcanzable): " + p.Item.kind + " " + p.Item.id + " en " + at.ToString("0.0"));
+                _active.Remove(p); _glints.Remove(p); _pool.Release(p);
+                return false;
+            }
+            if (moved)
+            {
+                Relocated++;
+                Debug.Log("[7Days] Botín recolocado: " + p.Item.kind + " " + p.Item.id + " de " + at.ToString("0.0") + " a " + placed.ToString("0.0"));
+            }
+            p.transform.position = new Vector3(placed.x, placed.y - 0.35f, placed.z);
+            p.Reachable = _navReady;
+            return true;
+        }
+
+        /// <summary>Auditoría: "Loot: N válidos, M fuera de rango" (pickups en el suelo y puntos del mapa).</summary>
+        public int Audit(string when)
+        {
+            int ok = 0, bad = 0;
+            foreach (var p in _active)
+            {
+                if (p == null || !p.gameObject.activeSelf) continue;
+                var pos = p.transform.position;
+                bool inside = _perimeter == null || LootPlacement.Inside(_perimeter, pos.x, pos.z);
+                bool nav = !_navReady || (NavMesh.SamplePosition(pos, out var h, 1.5f, NavMesh.AllAreas) && Reachable(h.position));
+                if (inside && nav && pos.y > -1f) ok++; else bad++;
+            }
+            int pointsOut = Layout.points.Length - _validPoints.Count;
+            Debug.Log("[7Days] Loot: " + (ok + _validPoints.Count) + " válidos, " + (bad + pointsOut) + " fuera de rango (" + when + "; " + ok + " pickups en el suelo, " + _validPoints.Count + " puntos; " + Relocated + " recolocados, " + Discarded + " descartados).");
+            return bad + pointsOut;
         }
 
         public void SetPlayer(GameObject player)
@@ -82,8 +208,17 @@ namespace SevenDays.World.Loot
         private LootPickup Spawn(LootItem item, Vector3 position, string pointId, bool force)
         {
             if (item == null || (!force && !State.CanSpawn(_active.Count))) return null;
+            // regla dura: nada fuera del perímetro, del NavMesh ni sin camino desde el inicio
+            if (!TryPlace(position, out var placed, out bool moved))
+            {
+                Discarded++;
+                Debug.LogWarning("[7Days] Botín descartado (sin sitio alcanzable): " + item.kind + " " + item.id + " en " + position.ToString("0.0"));
+                return null;
+            }
+            if (moved) { Relocated++; Debug.Log("[7Days] Botín recolocado: " + item.kind + " " + item.id + " de " + position.ToString("0.0") + " a " + placed.ToString("0.0")); }
             var p = _pool.Get();
-            p.Setup(item, position, pointId, this);
+            p.Setup(item, placed, pointId, this);
+            p.Reachable = _navReady || _perimeter == null;
             _active.Add(p);
             _glints.Add(p);
             return p;
@@ -220,6 +355,7 @@ namespace SevenDays.World.Loot
                 else if (_containers.TryGetValue(point.id, out var c)) c.Refill();
             }
             RearmGuaranteedWeapons();
+            Audit("reposición del día " + day);
             HudMessages.Add("Día " + day + ": reaparece algo de botín", new Color(1f, 0.92f, 0.65f));
             return AmmoEconomy.RefillRounds(Layout, refilled);
         }
@@ -236,6 +372,18 @@ namespace SevenDays.World.Loot
             if (_pickTimer <= 0f) { _pickTimer = 0.1f; AutoPickup(); }
             _glintTimer -= Time.deltaTime;
             if (_glintTimer <= 0f) { _glintTimer = 0.5f; AssignGlints(); }
+            // red de seguridad: un pickup que acabe fuera del perímetro o bajo el suelo (empujes, explosiones) se recoloca o se quita
+            _boundsTimer -= Time.deltaTime;
+            if (_boundsTimer <= 0f && _perimeter != null)
+            {
+                _boundsTimer = 2f;
+                for (int i = _active.Count - 1; i >= 0; i--)
+                {
+                    var p = _active[i]; if (p == null) continue;
+                    var pos = p.transform.position;
+                    if (pos.y < -1f || !LootPlacement.Inside(_perimeter, pos.x, pos.z)) Revalidate(p);
+                }
+            }
         }
 
         /// <summary>Munición y botiquines se recogen al acercarse. Si no caben: aviso y el pickup queda (no se consume).</summary>

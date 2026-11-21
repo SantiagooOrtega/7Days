@@ -21,6 +21,7 @@ namespace SevenDays.World.Loot
 
             foreach (var p in layout.points)
             {
+                if (manager.HalfSize > 0f && !LootPlacement.Inside(manager.HalfSize, p.x, p.z)) { manager.SkippedPoints++; continue; }   // fuera del perímetro: no se crea
                 Vector3 pos = new Vector3(p.x, 0f, p.z);
                 switch (p.container)
                 {

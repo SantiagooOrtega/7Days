@@ -28,5 +28,6 @@ describe('esquema de mapas', () => {
     expect(bad((m) => { m.houses = []; })).toBe(false);
     expect(bad((m) => { m.ambience.fogDensity = 1; })).toBe(false);
     expect(bad((m) => { m.props[5].pos[0] = 500; })).toBe(false);
+    expect(bad((m) => { m.loot.points[0].x = m.halfSize - 0.5; })).toBe(false); // botín fuera del perímetro (margen 1 m)
   });
 });
