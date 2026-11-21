@@ -22,6 +22,30 @@ namespace SevenDays.Tests
         }
 
         [Test]
+        public void Emblem_RoundBadge_BoneSkull_EmberEyes_Transparent()
+        {
+            int n = 128; var e = MenuArt.Emblem(n, 11);
+            CollectionAssert.AreEqual(e, MenuArt.Emblem(n, 11));
+            Assert.AreEqual(0, e[3], "esquina transparente (insignia redonda)");
+            int c = ((n / 2 + 16) * n + n / 2) * 4; Assert.Greater(e[c], 110, "hueso claro en la frente"); Assert.AreEqual(255, e[c + 3]);
+            int ember = 0; for (int i = 0; i < n * n; i++) if (e[i * 4] > 180 && e[i * 4 + 1] > 40 && e[i * 4 + 1] < 140 && e[i * 4 + 2] < 60) ember++;
+            Assert.Greater(ember, 5, "brasas en las cuencas");
+        }
+
+        [Test]
+        public void FlameAtlas_LoopsSeamlessly_HotBottom_ClearTop()
+        {
+            MenuArt.Flame(0.3f, 0.2f, 0f, 3, out var r0, out var g0, out _, out var a0);
+            MenuArt.Flame(0.3f, 0.2f, 1f, 3, out var r1, out var g1, out _, out var a1);
+            Assert.AreEqual(a0, a1, 1e-4f, "la fase 1 es igual a la 0: bucle sin salto"); Assert.AreEqual(g0, g1, 1e-4f);
+            MenuArt.Flame(0f, 0.3f, 0.4f, 3, out _, out _, out _, out var l); MenuArt.Flame(1f, 0.3f, 0.4f, 3, out _, out _, out _, out var rr);
+            Assert.AreEqual(l, rr, 1e-4f, "se repite en horizontal sin costura");
+            float bottom = 0, top = 0; for (int i = 0; i < 64; i++) { MenuArt.Flame(i / 64f, 0.02f, 0.5f, 3, out _, out _, out _, out var a); bottom += a; MenuArt.Flame(i / 64f, 0.98f, 0.5f, 3, out _, out _, out _, out a); top += a; }
+            Assert.Greater(bottom, 50f, "base llena de fuego"); Assert.Less(top, 6f, "arriba casi transparente");
+            Assert.AreEqual(MenuArt.FlameW * MenuArt.FlameH * MenuArt.FlameFrames * 4, MenuArt.FlameAtlas(3).Length);
+        }
+
+        [Test]
         public void Frame_CornersBroken_LineAndDarkFill()
         {
             var f = MenuArt.Frame(64, 12, 2);

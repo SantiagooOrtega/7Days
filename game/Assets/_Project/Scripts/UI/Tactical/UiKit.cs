@@ -27,6 +27,9 @@ namespace SevenDays.UI.Tactical
         private static Sprite _frameSprite, _highlightSprite;
         public static Texture2D Backdrop => _backdrop != null ? _backdrop : (_backdrop = Make(1024, 576, MenuArt.Backdrop(1024, 576, 7), "Fondo menú", TextureWrapMode.Clamp));
         public static Texture2D GrainTex => _grain != null ? _grain : (_grain = Make(128, 128, MenuArt.Grain(128, 3), "Grano", TextureWrapMode.Repeat));
+        private static Texture2D _flames;
+        public static Texture2D FlameTex => _flames != null ? _flames : (_flames = Make(SevenDays.Procedural.MenuArt.FlameW * SevenDays.Procedural.MenuArt.FlameCols,
+            SevenDays.Procedural.MenuArt.FlameH * (SevenDays.Procedural.MenuArt.FlameFrames / SevenDays.Procedural.MenuArt.FlameCols), SevenDays.Procedural.MenuArt.FlameAtlas(3), "Llamas", TextureWrapMode.Clamp));
         public static Texture2D SmokeTex => _smoke != null ? _smoke : (_smoke = Make(256, 128, MenuArt.Smoke(256, 128, 5), "Humo", TextureWrapMode.Repeat));
         public static Sprite FrameSprite { get { if (_frameSprite == null) { _frame = Make(64, 64, MenuArt.Frame(64, 12, 2), "Marco", TextureWrapMode.Clamp); _frameSprite = Sprite.Create(_frame, new Rect(0, 0, 64, 64), Vector2.one * 0.5f, 100, 0, SpriteMeshType.FullRect, new Vector4(14, 14, 14, 14)); } return _frameSprite; } }
         public static Sprite HighlightSprite { get { if (_highlightSprite == null) { _highlight = Make(128, 16, MenuArt.Highlight(128, 16, 4), "Resaltado", TextureWrapMode.Clamp); _highlightSprite = Sprite.Create(_highlight, new Rect(0, 0, 128, 16), Vector2.one * 0.5f); } return _highlightSprite; } }

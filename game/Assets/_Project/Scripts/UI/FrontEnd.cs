@@ -204,9 +204,9 @@ namespace SevenDays.UI
 
         private void BuildTitle()
         {
-            _emblem ??= UiKit.Make(256, 256, MenuArt.Emblem(256, 11), "Emblema", TextureWrapMode.Clamp);
+            _emblem ??= UiKit.Make(512, 512, MenuArt.Emblem(512, 11), "Emblema", TextureWrapMode.Clamp);
             var e = new GameObject("Emblema", typeof(RectTransform)).AddComponent<RawImage>(); e.transform.SetParent(_screen, false);
-            e.rectTransform.anchoredPosition = new Vector2(-470f, 90f); e.rectTransform.sizeDelta = new Vector2(300f, 300f); e.texture = _emblem; e.raycastTarget = false;
+            e.rectTransform.anchoredPosition = new Vector2(-500f, 80f); e.rectTransform.sizeDelta = new Vector2(360f, 360f); e.texture = _emblem; e.raycastTarget = false;
             var t = UiKit.Text(_screen, "7DAYS", 200, UiKit.White, TextAnchor.MiddleLeft, new Vector2(-300f + 760f * UiKit.Condensed / 2f, 70f), new Vector2(760f, 230f), true);
             t.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.95f);
             t.GetComponent<Outline>().effectDistance = new Vector2(4f, -4f);
