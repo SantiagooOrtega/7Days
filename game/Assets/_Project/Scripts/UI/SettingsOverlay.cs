@@ -5,7 +5,7 @@ namespace SevenDays.UI
 {
     /// <summary>
     /// Ajustes rápidos que aparecen al soltar el ratón (Esc): "Movimiento de cámara" (accesibilidad, 0-100 %: balanceo al correr, jadeo y sacudidas), sensibilidad,
-    /// calidad y volumen (general y por grupo: zombis, armas, ambiente, interfaz).
+    /// calidad y volumen (general y por grupo: zombis, armas, ambiente, interfaz, VIGÍA y música, que se puede apagar).
     /// Se guardan por jugador en PlayerPrefs. El menú de opciones completo llega en la Fase 6.
     /// </summary>
     public class SettingsOverlay : MonoBehaviour
@@ -21,7 +21,7 @@ namespace SevenDays.UI
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 18, normal = { textColor = Color.white } };
             _title ??= new GUIStyle(_label) { fontSize = 22, fontStyle = FontStyle.Bold };
             var s = _camera.Settings;
-            var r = new Rect(Screen.width - 430, Mathf.Max(10f, Screen.height * 0.5f - 400), 400, 800);
+            var r = new Rect(Screen.width - 430, Mathf.Max(10f, Screen.height * 0.5f - 440), 400, 880);
             if (r.Contains(Event.current.mousePosition)) PlayerCamera.UiHoverUntil = Time.unscaledTime + 0.15f;
             GUI.Box(r, GUIContent.none);
             GUI.Label(new Rect(r.x + 16, r.y + 10, 380, 30), "Ajustes (clic en el juego para volver)", _title);
@@ -60,6 +60,9 @@ namespace SevenDays.UI
                 var g = (SevenDays.Core.AudioGroup)i;
                 AudioRow(r.x, ref y, SevenDays.Core.AudioMix.Names[i], SevenDays.Core.AudioMix.GroupVolume(g), v => SevenDays.Core.AudioMix.SetGroupVolume(g, v));
             }
+            bool music = GUI.Toggle(new Rect(r.x + 16, y, 368, 26), SevenDays.Core.AudioMix.MusicOn, " Música encendida");
+            if (music != SevenDays.Core.AudioMix.MusicOn) SevenDays.Core.AudioMix.MusicOn = music;
+            y += 32f;
 
             // VIGÍA: modo, subtítulos y tamaño
             GUI.Label(new Rect(r.x + 16, y, 380, 26), "VIGÍA", _title);

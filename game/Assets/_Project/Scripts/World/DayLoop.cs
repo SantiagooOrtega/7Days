@@ -22,6 +22,9 @@ namespace SevenDays.World
         public static DayLoop Instance { get; private set; }
         public DayCycle Cycle { get; private set; }
         public WaveState Wave { get; private set; }
+        /// <summary>Jefe vivo o muchos zombis a la vez en la oleada (la música sube un poco).</summary>
+        public bool Intense => Cycle != null && Cycle.Phase == DayPhase.Wave && Wave != null
+            && ((Wave.HasBoss && Wave.BossSpawned && !Wave.BossDead) || (_zombies != null && _zombies.ActiveCount >= 10));
         /// <summary>Distancia mínima del jugador a un punto de aparición.</summary>
         public const float MinSpawnDistance = 15f;
         /// <summary>Vida que se recupera al empezar cada día (fracción de la máxima).</summary>
