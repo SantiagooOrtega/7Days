@@ -165,3 +165,25 @@ multiplicadores por zona, habilidades y tiempos **no cambian** (`ZombieCatalog.D
 cuentan como torso, sus hombreras como brazo; el depósito y las bolsas del Lanzador como torso): 89-92 % de la malla a menos de 6-7 cm (la misma proporción que 5 cm en un zombi de 1.8 m). El **punto débil** del
 Devorador (x4) es una esfera en el núcleo del pecho del mismo tamaño que antes (0.16 m x 2.4 = 0.38 m) y solo existe mientras está expuesto; un disparo de frente al núcleo le da antes que al torso
 (`ZombieBodyTests.Devourer_WeakPoint_OnlyWhileExposed_RibsOpen_AndItIsHitFromTheFront`).
+
+## Economía de munición por día (bucle de 7 días)
+Código: `Procedural/AmmoEconomy.cs` (puro) y `World/Loot/AmmoSupply.cs`. Prueba: `AmmoEconomyTests` (simula los 7 días en los 2 mapas y falla si las balas por zombi salen de rango, ±0.08).
+
+- **Zombis por oleada**: 14 + 7 por día (14 … 56), +40 % respecto a la primera versión (10 + 5 por día).
+- **Presupuesto**: balas por zombi = 1.5 el día 1 y baja en línea recta a 1.2 el día 7 (un cartucho de escopeta cuenta como una bala). No incluye el botín inicial del mapa ni la munición de salida.
+- **Fuentes**: relleno entre días de contenedores y puntos (x1.5 y +3 reapariciones por punto), drops normales de las tablas (con el tope diario) y lo que falta lo completa la economía: 40 % en 4 tandas durante la oleada (a los 20 s y cada 25 s, en puntos no usados en los últimos 60 s y a más de 8 m del jugador) y 60 % como crédito por baja (cuando llega a un paquete, el zombi lo suelta). Todo respeta el tope de pickups activos; lo que no cabe queda como crédito.
+- **Pity timer**: 90 s sin munición en ninguna arma → paquete doble cerca del jugador.
+
+Simulación (Calle en ruinas; el Bosque da lo mismo ±1), relleno en el peor caso (el jugador vacía todo cada día):
+
+| Día | Zombis | Relleno | Drops tablas | Tandas | Por bajas | Total | Balas/zombi | Antes |
+|----:|-------:|--------:|-------------:|-------:|----------:|------:|------------:|------:|
+| 1 | 14 | 0 | 3 | 7 | 11 | 21 | 1.50 | 2 |
+| 2 | 21 | 18 | 5 | 3 | 4 | 30 | 1.43 | 16 |
+| 3 | 28 | 17 | 7 | 6 | 9 | 39 | 1.39 | 18 |
+| 4 | 35 | 17 | 10 | 8 | 12 | 47 | 1.34 | 7 |
+| 5 | 42 | 18 | 14 | 9 | 14 | 55 | 1.31 | 10 |
+| 6 | 49 | 15 | 18 | 11 | 17 | 61 | 1.24 | 13 |
+| 7 | 56 | 13 | 19 | 14 | 21 | 67 | 1.20 | 15 |
+
+Total 7 días: 320 balas frente a 81 antes; contando el botín inicial (~64), 384 frente a 145. **Ojo:** la proporción pedida (1.5 → 1.2 balas/zombi) da bastante más que +40 %, porque antes la reposición era de ~0.25 balas/zombi. Si se prefiere +40 % exacto, basta bajar `RatioDay1/RatioDay7` en `AmmoEconomy` (la prueba sigue a esas constantes).

@@ -79,10 +79,91 @@ namespace SevenDays.Tests.PlayMode
 
             skip.Invoke(loop, null);
             Assert.AreEqual(DayPhase.Summary, cycle.Phase);
+            var match = (MatchStats)loopType.GetProperty("Match").GetValue(loop);
+            Assert.AreEqual(1, match.days.Count, "el día queda en las estadísticas de la partida");
+            Assert.AreEqual(id, match.mapId);
+            StringAssert.Contains("Rendimiento", (string)loopType.GetProperty("Summary").GetValue(loop));
+            StringAssert.Contains("Director (día 2)", (string)loopType.GetProperty("Summary").GetValue(loop));
             yield return null;
             skip.Invoke(loop, null);
             Assert.AreEqual(2, cycle.Day); Assert.AreEqual(DayPhase.Preparation, cycle.Phase);
             yield return null;
+        }
+    
+        /// <summary>
+        /// Horda: durante la oleada ningún zombi se queda quieto más de 3 s (salvo atacando o aturdido). El jugador no se mueve y se cura cada frame para que siga vivo.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Horde_NoZombieIdleMoreThan3s()
+        {
+            T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, "calle_en_ruinas");
+            _arena = new GameObject("Arena"); _arena.AddComponent(T("SevenDays.World.TestArena"));
+            var loopType = T("SevenDays.World.DayLoop");
+            var inst = loopType.GetProperty("Instance");
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && inst.GetValue(null) == null) yield return null;
+            var loop = inst.GetValue(null);
+            loopType.GetMethod("DebugSkip").Invoke(loop, null);
+            var playerGo = GameObject.FindWithTag("Player");
+            var health = playerGo.GetComponent(T("SevenDays.Core.Health"));
+            var heal = health.GetType().GetMethod("Heal");
+            var mgr = T("SevenDays.Combat.ZombieManager").GetProperty("Instance").GetValue(null);
+            var all = (IEnumerable)mgr.GetType().GetProperty("All").GetValue(mgr);
+            var anchor = new System.Collections.Generic.Dictionary<Component, (Vector3 pos, float time)>();
+            float worst = 0f; string worstInfo = "";
+            int seen = 0;
+            float start = Time.time;
+            while (Time.time - start < 25f)
+            {
+                heal.Invoke(health, new object[] { 1000f });
+                foreach (Component z in all)
+                {
+                    bool inUse = (bool)z.GetType().GetProperty("InUse").GetValue(z);
+                    var zh = z.GetType().GetProperty("Health").GetValue(z);
+                    bool dead = (bool)zh.GetType().GetProperty("IsDead").GetValue(zh);
+                    if (!inUse || dead) { anchor.Remove(z); continue; }
+                    var state = (ZombieState)z.GetType().GetProperty("State").GetValue(z);
+                    Vector3 p = z.transform.position;
+                    if (!anchor.TryGetValue(z, out var a)) { anchor[z] = (p, Time.time); seen++; continue; }
+                    if (state == ZombieState.Attack || state == ZombieState.Stunned || (p - a.pos).sqrMagnitude > 0.3f * 0.3f) { anchor[z] = (p, Time.time); continue; }
+                    float idle = Time.time - a.time;
+                    if (idle > worst) { worst = idle;  var rig = z.GetType().GetProperty("Rig").GetValue(z); worstInfo = z.name + " " + state + " horda=" + z.GetType().GetProperty("InHorde").GetValue(z) + " agente=" + z.GetType().GetProperty("UsesAgent").GetValue(z) + " emerge=" + rig.GetType().GetProperty("Emerging").GetValue(rig) + " en " + p + " a " + Vector3.Distance(p, playerGo.transform.position).ToString("0.0") + " m"; }
+                }
+                yield return null;
+            }
+            Debug.Log("[Horda] zombis vistos " + seen + ", máximo quieto " + worst.ToString("0.0") + " s " + worstInfo);
+            Assert.Greater(seen, 3);
+            Assert.LessOrEqual(worst, 3f, "zombi quieto: " + worstInfo);
+        }
+    
+        /// <summary>VIGÍA en la arena real: da la bienvenida con voz (clip procesado con radio y bips) y subtítulo; en Solo texto no hay audio.</summary>
+        [UnityTest]
+        public IEnumerator Vigia_SpeaksWelcome_WithProcessedClip()
+        {
+            _arena = new GameObject("Arena"); _arena.AddComponent(T("SevenDays.World.TestArena"));
+            var vt = T("SevenDays.Vigia.VigiaVoice");
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && T("SevenDays.World.DayLoop").GetProperty("Instance").GetValue(null) == null) yield return null;
+            yield return null; yield return null;
+            var v = vt.GetProperty("Instance").GetValue(null);
+            Assert.IsNotNull(v);
+            var cur = (VigiaItem)vt.GetProperty("Current").GetValue(v);
+            Assert.IsNotNull(cur, "habla nada más empezar");
+            Assert.AreEqual("bienvenida", cur.Line.Id);
+            var clip = (AudioClip)vt.GetMethod("ClipFor").Invoke(v, new object[] { cur });
+            var raw = Resources.Load<AudioClip>(VigiaCatalog.ClipName(cur.Line.Id, cur.Variant));
+            Assert.IsNotNull(clip); Assert.IsNotNull(raw);
+            Assert.AreEqual(RadioFx.ProcessedSeconds(raw.length), clip.length, 0.01, "lleva radio, eco y bips");
+            var src = ((Component)v).GetComponent<AudioSource>();
+            Assert.IsTrue(src.isPlaying);
+            Assert.AreEqual(0, src.priority);
+            // su cuerpo flota junto al jugador, sin colliders (no tapa disparos)
+            for (int i = 0; i < 40; i++) yield return null;
+            var drone = (Component)UnityEngine.Object.FindFirstObjectByType(T("SevenDays.Vigia.VigiaDrone"));
+            Assert.IsNotNull(drone);
+            Assert.IsEmpty(drone.GetComponentsInChildren<Collider>());
+            var pl = GameObject.FindWithTag("Player").transform;
+            Assert.Less(Vector3.Distance(drone.transform.position, pl.position + Vector3.up * 2f), 2f);
         }
     }
 }

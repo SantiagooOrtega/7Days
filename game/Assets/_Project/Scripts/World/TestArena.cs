@@ -58,6 +58,8 @@ namespace SevenDays.World
             // Primero el look (niebla, post-procesado) y luego las texturas procedurales, que se generan
             // en hilos de fondo mientras se muestra "Generando texturas...".
             // el mapa es un JSON (Resources/Maps o el backend): su ambientación se aplica antes de todo lo visual
+            // intro en cómic la primera vez (tapa la carga del mapa); el día 1 no empieza hasta que termina
+            if (SevenDays.Intro.IntroPlayer.ShouldPlay) SevenDays.Intro.IntroPlayer.Play(transform);
             _look = new LookSettings();
             _map = MapIO.Load(MapIO.SelectedId, _look);
             MapIO.ApplyAmbience(_map.ambience, _look);
@@ -113,13 +115,21 @@ namespace SevenDays.World
             hud.gameObject.AddComponent<RenderDebugPanel>();   // F6: panel Render (resolución, ms de CPU/GPU, draw calls, luces, calidad)   // F7: ciclo automático de piernas con cámara lateral
             hud.gameObject.AddComponent<ScopeOverlay>().Initialize(player.GetComponent<PlayerCamera>());
 
+            while (SevenDays.Intro.IntroPlayer.Active) yield return null;
+
+            // VIGÍA: voz y subtítulos (antes que el bucle de días, que le pide la bienvenida)
+            SevenDays.Vigia.VigiaVoice.Create(transform);
+            SevenDays.Vigia.VigiaEvents.Create(transform, player, _zombies);
+            SevenDays.Vigia.VigiaDrone.Create(transform, player);
+            hud.gameObject.AddComponent<SevenDays.Vigia.VigiaDebugPanel>();   // F8: probar frases y rachas   // su cuerpo: cámara flotante junto al hombro
+
             // bucle de los 7 días: preparación, oleada por los bordes del mapa, resumen; jefes en 3, 5 y 7
             DayLoop.Create(transform, _map, player, _zombies, _lootManager, _houses);
         }
 
         private void OnGUI()
         {
-            if (!_loading) return;
+            if (!_loading || SevenDays.Intro.IntroPlayer.Active) return;
             var style = new GUIStyle(GUI.skin.label) { fontSize = 32, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
             GUI.Label(new Rect(0, Screen.height / 2f - 30, Screen.width, 60), "Generando texturas...", style);
         }

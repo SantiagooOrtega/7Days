@@ -55,3 +55,34 @@ const stats = z.object({
 }).catchall(z.number()).refine(s => s.shotsHit <= s.shotsFired);
 ```
 `directorTuning` gana `coverPressure: z.number().min(0).max(1)`.
+
+
+## Horda (oleadas)
+Durante la oleada cada zombi nace en modo horda: conoce la posición del jugador y lo persigue por el NavMesh desde que sale del suelo (ruta cada 0.5-1 s si está a más de 12 m, cada 0.2 s cerca). En la preparación y para los zombis ya presentes rige el radio de detección normal.
+
+| Parámetro (`DirectorTuning`) | Rango | Defecto | Efecto |
+|---|---|---|---|
+| `hordeDelayMax` | 0..5 s | 1.5 | retardo aleatorio por zombi antes de lanzarse |
+| `hordeSpeedJitter` | 0..0.3 | 0.12 | variación de velocidad (±) por zombi, para que no lleguen todos a la vez |
+
+
+## Estadísticas por día y partida, puntuación y director adaptativo (Paso 2)
+Código: `Procedural/Performance.cs` (puro, `PerformanceTests`) y `World/DayLoop.cs`.
+
+- **Recolector**: al terminar cada día (`DayLoop.RecordDay`) se guarda un `DayStats` en `DayLoop.Match` (`MatchStats`): día, segundos de oleada, zombis de la oleada, bajas (total, a la cabeza y por tipo), disparos y aciertos, daño recibido, tiempo en cobertura, tiempo jugado, si hubo jefe y si murió. La partida sabe su mapa, si terminó y si ganó; `RankingPoints()` da los puntos del ranking. Al ganar o morir se lanza `DayLoop.MatchFinished` (lo usará el Paso 3 para guardar y subir).
+- **Puntuación 0-100** (`PerformanceScore.Raw`): precisión (25, llena al 60 %), muertes a la cabeza (15, llena al 40 %), poco daño por zombi (30, 0 a partir de 8 de vida por baja), rapidez (20, llena a 6 s por zombi) y cobertura equilibrada (10, ideal entre el 10 % y el 60 % del tiempo). Morir deja el día en 20 como mucho. **Suavizada**: 60 % lo anterior + 40 % lo de hoy, empezando en 50.
+- **Reglas** (`DirectorAdapt.Apply`, en este orden dentro de `DayLoop.TuningFor`): dificultad base del día → reglas por estadísticas guardadas (cobertura, fatiga) → ajuste por la puntuación suavizada → tipos aún bloqueados fuera. Entre 45 y 55 no cambia nada. Fuera de esa franja, `delta` va de -1 a 1 y cada parámetro se multiplica por `1 + k·delta` con tope ±25 %: vida k=0.25, velocidad k=0.10, daño k=0.20, especiales k=0.30 (tope 25 %), retardo de la horda k=-0.30. El resultado siempre pasa `DirectorTuning.Validate`.
+- **Explicación en texto**: cada paso añade un motivo (p. ej. «rendimiento 78/100 (alto: más difícil): vida +14 %, velocidad +6 %, daño +11 %, especiales +17 %, retardo de la horda -17 %»). Se ve en **F4** (puntuación suavizada, historial por día y motivos) y en el **panel de resumen** del día (desglose de la puntuación y lo que hará el director mañana).
+
+### Tabla por día (base y rango posible con el ajuste por rendimiento)
+| Día | Zombis | Vivos a la vez | Jefe | Nuevos | Vida x | Velocidad x | Daño x | Especiales x | Balas/zombi |
+|----:|-------:|---------------:|------|--------|--------|-------------|--------|--------------|------------:|
+| 1 | 14 | 8 | — | común | 1.00 (0.75–1.25) | 1.00 (0.90–1.10) | 1.00 (0.80–1.20) | 0.60 (0.45–0.75) | 1.50 |
+| 2 | 21 | 10 | — | corredor | 1.10 (0.83–1.38) | 1.03 (0.93–1.14) | 1.07 (0.85–1.28) | 0.80 (0.60–1.00) | 1.45 |
+| 3 | 28 | 12 | Bruto | lanzador | 1.20 (0.90–1.50) | 1.07 (0.96–1.17) | 1.13 (0.91–1.36) | 1.00 (0.75–1.25) | 1.40 |
+| 4 | 35 | 14 | — | explosivo, blindado | 1.30 (0.98–1.62) | 1.10 (0.99–1.21) | 1.20 (0.96–1.44) | 1.20 (0.90–1.50) | 1.35 |
+| 5 | 42 | 16 | Lanzador | tanque | 1.40 (1.05–1.75) | 1.13 (1.02–1.25) | 1.27 (1.01–1.52) | 1.40 (1.05–1.75) | 1.30 |
+| 6 | 49 | 18 | — | — | 1.50 (1.12–1.88) | 1.17 (1.05–1.28) | 1.33 (1.07–1.60) | 1.60 (1.20–2.00) | 1.25 |
+| 7 | 56 | 20 | Final | — | 1.60 (1.20–2.00) | 1.20 (1.08–1.32) | 1.40 (1.12–1.68) | 1.80 (1.35–2.25) | 1.20 |
+
+Entre paréntesis: con puntuación 0 (más fácil) y 100 (más difícil). Las reglas de cobertura y fatiga se aplican antes y pueden subir los especiales o los corredores por encima de esto (especiales hasta 4).

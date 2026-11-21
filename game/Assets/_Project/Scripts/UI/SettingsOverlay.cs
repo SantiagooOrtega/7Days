@@ -21,7 +21,7 @@ namespace SevenDays.UI
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 18, normal = { textColor = Color.white } };
             _title ??= new GUIStyle(_label) { fontSize = 22, fontStyle = FontStyle.Bold };
             var s = _camera.Settings;
-            var r = new Rect(Screen.width - 430, Screen.height * 0.5f - 250, 400, 520);
+            var r = new Rect(Screen.width - 430, Mathf.Max(10f, Screen.height * 0.5f - 400), 400, 800);
             if (r.Contains(Event.current.mousePosition)) PlayerCamera.UiHoverUntil = Time.unscaledTime + 0.15f;
             GUI.Box(r, GUIContent.none);
             GUI.Label(new Rect(r.x + 16, r.y + 10, 380, 30), "Ajustes (clic en el juego para volver)", _title);
@@ -60,6 +60,23 @@ namespace SevenDays.UI
                 var g = (SevenDays.Core.AudioGroup)i;
                 AudioRow(r.x, ref y, SevenDays.Core.AudioMix.Names[i], SevenDays.Core.AudioMix.GroupVolume(g), v => SevenDays.Core.AudioMix.SetGroupVolume(g, v));
             }
+
+            // VIGÍA: modo, subtítulos y tamaño
+            GUI.Label(new Rect(r.x + 16, y, 380, 26), "VIGÍA", _title);
+            y += 30f;
+            var modes = SevenDays.Vigia.VigiaSettings.ModeNames;
+            for (int i = 0; i < modes.Length; i++)
+            {
+                bool sel = (int)SevenDays.Vigia.VigiaSettings.Mode == i;
+                if (GUI.Toggle(new Rect(r.x + 16 + i * 94, y, 90, 28), sel, modes[i], GUI.skin.button) && !sel) SevenDays.Vigia.VigiaSettings.Mode = (SevenDays.Procedural.VigiaMode)i;
+            }
+            y += 36f;
+            bool subs = GUI.Toggle(new Rect(r.x + 16, y, 368, 26), SevenDays.Vigia.VigiaSettings.Subtitles, " Subtítulos");
+            if (subs != SevenDays.Vigia.VigiaSettings.Subtitles) SevenDays.Vigia.VigiaSettings.Subtitles = subs;
+            y += 30f;
+            if (GUI.Button(new Rect(r.x + 16, y, 368, 28), "Ver la intro otra vez")) { SevenDays.Intro.IntroPlayer.Seen = false; SevenDays.Intro.IntroPlayer.Play(); }
+            y += 36f;
+            AudioRow(r.x, ref y, "Tamaño texto", (SevenDays.Vigia.VigiaSettings.SubtitleScale - 0.8f) / 0.8f, v => SevenDays.Vigia.VigiaSettings.SubtitleScale = 0.8f + v * 0.8f);
         }
 
         private void AudioRow(float x, ref float y, string name, float value, System.Action<float> set)

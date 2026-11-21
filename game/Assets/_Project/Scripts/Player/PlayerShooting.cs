@@ -36,6 +36,9 @@ namespace SevenDays.Player
     {
         public IReadOnlyList<WeaponState> Weapons => _inventory.Weapons;
         public WeaponState Current => _inventory.Weapons[_current];
+        public int CurrentIndex => _current;
+        /// <summary>El jugador soltó un arma (G o al cambiarla por otra): el botín la deja en el suelo con su cargador.</summary>
+        public event System.Action<WeaponState, Vector3> WeaponDropped;
         public int CurrentReserve => _inventory.Reserve(Current);
         /// <summary>Recarga por eventos (cargador, cartuchos, tambor, cerrojo): la animación, el sonido y la munición se sincronizan con ella.</summary>
         public ReloadState Reload { get; } = new ReloadState();
@@ -135,6 +138,7 @@ namespace SevenDays.Player
             if (Cursor.lockState != CursorLockMode.Locked) return;
 
             HandleSwitch();
+            if (GameInput.DropWeaponPressed) DropCurrent();
             data = Current.Data;
 
             // cobertura: el clic izquierdo asoma al personaje (por encima o por el lado) y dispara desde ahí; Ctrl + clic, o sin hueco, dispara a ciegas
@@ -183,6 +187,33 @@ namespace SevenDays.Player
             }
             SelectSlot(slot);
         }
+
+        /// <summary>G: suelta el arma en la mano (si no es la única); aparece en el suelo delante con su cargador y se pasa a la anterior.</summary>
+        public bool DropCurrent()
+        {
+            int idx = _current;
+            var w = _inventory.RemoveWeapon(idx);
+            if (w == null) { SevenDays.Core.HudMessages.Add("No puedes soltar tu única arma", new Color(1f, 0.7f, 0.4f)); return false; }
+            WeaponDropped?.Invoke(w, transform.position + transform.forward * 1.2f);
+            SevenDays.Core.HudMessages.Add("Soltaste: " + w.Data.displayName, new Color(1f, 0.92f, 0.65f));
+            Reequip(Loadout.IndexAfterRemove(idx, idx, _inventory.Weapons.Count));
+            return true;
+        }
+
+        /// <summary>Equipa la casilla aunque sea la misma (tras soltar o intercambiar, el arma de esa casilla cambió).</summary>
+        public void Reequip(int slot)
+        {
+            Reload.Cancel(); _reloadQueued = false;
+            MeleeCharging = false; _meleeImpactAt = -1f;
+            Draw.Holster();
+            _current = Mathf.Clamp(slot, 0, _inventory.Weapons.Count - 1);
+            OnWeaponEquipped();
+            FireControl.Cancel(Time.time, 0.25f);
+            WeaponChanged?.Invoke(Current);
+        }
+
+        /// <summary>Notifica que el arma soltada al intercambiar sale al suelo.</summary>
+        public void NotifyDropped(WeaponState w, Vector3 at) => WeaponDropped?.Invoke(w, at);
 
         /// <summary>Cambia al arma de esa ranura (teclas 1-5, rueda del ratón o rueda radial). Devuelve false si no existe o ya está en la mano.</summary>
         public bool SelectSlot(int slot)

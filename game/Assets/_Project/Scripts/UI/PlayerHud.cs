@@ -129,7 +129,7 @@ namespace SevenDays.UI
                     "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
                     "C cobertura · A/D deslizarse · en cobertura: clic der. = asomarse y disparar, clic izq. sin apuntar = a ciegas, Q cambia el lado · Esc soltar ratón\n" +
                     "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
-                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: saltar fase del día · Enter: empezar oleada · F3 ambiente · F4 métricas · F5 ajustes en vivo · Esc ajustes · F1 ayuda", _label);
+                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: saltar fase del día · Enter: empezar oleada · F3 ambiente · F4 métricas · F8 VIGÍA · F5 ajustes en vivo · Esc ajustes · F1 ayuda", _label);
             }
 
             if (SevenDays.World.FireManager.PlayerBurning)

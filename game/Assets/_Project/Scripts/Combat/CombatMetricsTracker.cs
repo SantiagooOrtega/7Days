@@ -129,6 +129,15 @@ namespace SevenDays.Combat
             sb.AppendLine("corriendo " + s.sprintSeconds.ToString("0") + " s  fatiga " + (s.fatigue * 100f).ToString("0") + "% (máx. " + (s.maxFatigue * 100f).ToString("0") + "%)");
             sb.AppendLine("cobertura: cubierto " + s.coverSeconds.ToString("0") + " s  asomado " + s.poppedOutSeconds.ToString("0") + " s  a ciegas " + s.blindFireSeconds.ToString("0") + " s" + (s.coverAbuse ? "  [ABUSO]" : ""));
             if (DirectorReasons.Count > 0) foreach (var r in DirectorReasons) sb.AppendLine("director: " + r);
+            var loop = SevenDays.World.DayLoop.Instance;
+            if (loop != null)
+            {
+                sb.AppendLine("rendimiento suavizado " + loop.Score.ToString("0") + "/100 (50 = lo esperado; 45-55 sin cambios)");
+                foreach (var h in loop.History) sb.AppendLine(h);
+            }
+            var ammo = SevenDays.World.Loot.AmmoSupply.Instance;
+            if (ammo != null) sb.AppendLine("munición hoy: presupuesto " + ammo.Today.Budget + " (" + ammo.Today.Ratio.ToString("0.00") + " por zombi)  dada " + ammo.RoundsGiven + "  crédito " + ammo.Credit.ToString("0.0") + "  sin balas " + ammo.Pity.Seconds.ToString("0") + "/90 s");
+            int extra = (loop != null ? loop.History.Count + 1 : 0) + (ammo != null ? 1 : 0);
             sb.AppendLine("daño recibido " + s.damageTaken.ToString("0"));
             for (int i = 0; i < s.damageSources.Length; i++) sb.AppendLine("   " + s.damageSources[i] + ": " + s.damageAmounts[i].ToString("0"));
             var mgr = ZombieManager.Instance;
@@ -139,8 +148,8 @@ namespace SevenDays.Combat
                     + "  jefe x" + t.bossAggressiveness.ToString("0.00") + "  especiales x" + t.specialFrequency.ToString("0.00"));
                 sb.AppendLine("zombis activos " + mgr.ActiveCount + "/" + mgr.MaxZombies);
             }
-            GUI.Box(new Rect(10, 120, 470, 22f * (7 + s.damageSources.Length + 3 + DirectorReasons.Count)), GUIContent.none);
-            GUI.Label(new Rect(18, 124, 460, 22f * (7 + s.damageSources.Length + 3 + DirectorReasons.Count)), sb.ToString(), _style);
+            GUI.Box(new Rect(10, 120, 470, 22f * (7 + s.damageSources.Length + 3 + DirectorReasons.Count + extra)), GUIContent.none);
+            GUI.Label(new Rect(18, 124, 460, 22f * (7 + s.damageSources.Length + 3 + DirectorReasons.Count + extra)), sb.ToString(), _style);
         }
     }
 }
