@@ -255,27 +255,30 @@ namespace SevenDays.UI
         }
 
         // ---------------------------------------------------------------- menú principal
-        // Como la referencia acordada: lista a la izquierda sobre una banda negra, separador antes del bloque secundario y "Últimas noticias" debajo,
-        // con el muro rojo y la calavera a la derecha a la vista. Pie con las teclas.
-        public const float MenuBandX = -560f, MenuBandW = 640f;
+        // Panel de 640 px a la izquierda (x = 120 px desde el borde), bajo el título; filas de 88 px con texto de 46 px; separador entre Jugar..Perfil y
+        // Opciones..Salir. Panel de información abajo a la derecha (560 px, texto de 26 px). La calavera queda detrás, a la derecha.
+        public const float MenuBandW = 640f, MenuBandX = -960f + 120f + MenuBandW / 2f, MenuRowH = 88f, MenuPad = 10f;
+        public const int MenuTextSize = 46, InfoSize = 26;
+        public const float InfoW = 560f, InfoH = 300f, InfoX = 960f - 60f - InfoW / 2f, InfoY = -480f + 14f + InfoH / 2f;
 
         private void BuildMenu()
         {
             Brand("SOBREVIVE SIETE DÍAS", "VALLE HONDO");
-            var band = UiKit.Panel(_screen, "Panel menú", new Vector2(0.5f, 0.5f), new Vector2(MenuBandX, 70f), new Vector2(MenuBandW, 7 * 50f + 40f));
-            _list = MenuList.Create(band, new Vector2(0f, 0f), MenuBandW - 40f, MenuItems, null, 50f, 28, 26);
+            float bandH = MenuItems.Length * MenuRowH + 2f * MenuPad, bandTop = BrandBottom - 8f;
+            var band = UiKit.Panel(_screen, "Panel menú", new Vector2(0.5f, 0.5f), new Vector2(MenuBandX, bandTop - bandH / 2f), new Vector2(MenuBandW, bandH));
+            _list = MenuList.Create(band, Vector2.zero, MenuBandW - 40f, MenuItems, null, MenuRowH, MenuTextSize, 26);
             _list.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;   // centrada en su banda
-            _list.AddSeparator(4);   // Créditos y Salir aparte
-            var news = UiKit.Panel(_screen, "Panel noticias", new Vector2(0.5f, 0.5f), new Vector2(MenuBandX, -250f), new Vector2(MenuBandW, 230f));
-            UiKit.Text(news, "Últimas noticias:", 26, UiKit.White, TextAnchor.UpperLeft, new Vector2(0f, 80f), new Vector2(MenuBandW - 50f, 40f), true, false);
-            _info = UiKit.Text(news, "", 22, UiKit.White, TextAnchor.UpperLeft, new Vector2(0f, -28f), new Vector2(MenuBandW - 50f, 160f), false, false);
-            _info.horizontalOverflow = HorizontalWrapMode.Wrap; _info.verticalOverflow = VerticalWrapMode.Truncate;
+            _list.AddSeparator(3);   // Jugar, Continuar, Ranking, Perfil | Opciones, Créditos, Salir
+            var news = UiKit.Panel(_screen, "Panel información", new Vector2(0.5f, 0.5f), new Vector2(InfoX, InfoY), new Vector2(InfoW, InfoH));
+            UiKit.Text(news, SelectContent.Tracked("INFORMACIÓN"), InfoSize, UiKit.Orange, TextAnchor.MiddleLeft, new Vector2(0f, InfoH / 2f - 40f), new Vector2(InfoW - 60f, 36f), true, false);
+            _info = UiKit.Text(news, "", InfoSize, UiKit.Cream, TextAnchor.UpperLeft, new Vector2(0f, -22f), new Vector2(InfoW - 60f, InfoH - 100f), false, false);
+            _info.horizontalOverflow = HorizontalWrapMode.Wrap; _info.verticalOverflow = VerticalWrapMode.Truncate; _info.lineSpacing = 1.05f;
             var prof = FrontEndData.Profile;
             void Refresh(int i)
             {
                 var last = prof.Last;
                 _info.text = Describe(i, prof) + "\n" + (Session.IsLoggedIn ? "Sesión: " + FrontEndData.PlayerName : "Modo prueba (sin sesión)") +
-                    " · Última partida: " + (last == null ? "ninguna" : MapName(last.mapId) + ", día " + last.dayReached + (last.victory ? ", victoria" : ""));
+                    "\nÚltima partida: " + (last == null ? "ninguna" : MapName(last.mapId) + ", día " + last.dayReached + (last.victory ? ", victoria" : ""));
             }
             _list.Selected += Refresh; Refresh(0);
             _list.Confirmed += i =>

@@ -53,7 +53,9 @@ namespace SevenDays.UI.Tactical
         /// <summary>Material aditivo para las llamas (shader en Resources/Look); si no se encuentra, null = mezcla normal.</summary>
         public static Material Additive { get { if (_additive == null) { var sh = Resources.Load<Shader>("Look/UIAdditive"); if (sh != null) _additive = new Material(sh) { name = "UI aditivo", hideFlags = HideFlags.DontSave }; } return _additive; } }
         public static Texture2D SmokeTex => _smoke != null ? _smoke : (_smoke = Make(256, 128, MenuArt.Smoke(256, 128, 5), "Humo", TextureWrapMode.Repeat));
-        public static Sprite FrameSprite { get { if (_frameSprite == null) { _frame = Make(64, 64, MenuArt.Frame(64, 12, 2), "Marco", TextureWrapMode.Clamp); _frameSprite = Sprite.Create(_frame, new Rect(0, 0, 64, 64), Vector2.one * 0.5f, 100, 0, SpriteMeshType.FullRect, new Vector4(14, 14, 14, 14)); } return _frameSprite; } }
+        public static Sprite FrameSprite { get { if (_frameSprite == null) { _frame = Make(96, 96, MenuArt.MetalFrame(96, 16, 2), "Marco metal", TextureWrapMode.Clamp); _frameSprite = Sprite.Create(_frame, new Rect(0, 0, 96, 96), Vector2.one * 0.5f, 100, 0, SpriteMeshType.FullRect, new Vector4(30, 30, 30, 30)); } return _frameSprite; } }
+        private static Sprite _rowSprite;
+        public static Sprite RowSprite { get { if (_rowSprite == null) { var t = Make(256, 8, MenuArt.RowGradient(256, 8), "Fila activa", TextureWrapMode.Clamp); _rowSprite = Sprite.Create(t, new Rect(0, 0, 256, 8), Vector2.one * 0.5f); } return _rowSprite; } }
         public static Sprite HighlightSprite { get { if (_highlightSprite == null) { _highlight = Make(128, 16, MenuArt.Highlight(128, 16, 4), "Resaltado", TextureWrapMode.Clamp); _highlightSprite = Sprite.Create(_highlight, new Rect(0, 0, 128, 16), Vector2.one * 0.5f); } return _highlightSprite; } }
 
         public static Texture2D Make(int w, int h, byte[] rgba, string name, TextureWrapMode wrap)

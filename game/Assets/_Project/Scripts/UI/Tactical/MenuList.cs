@@ -7,7 +7,8 @@ using UnityEngine.UI;
 namespace SevenDays.UI.Tactical
 {
     /// <summary>
-    /// Lista de opciones con la fila activa resaltada en rojo/naranja. Teclado: flechas arriba/abajo (W/S), Enter confirma, izquierda/derecha ajustan (opciones),
+    /// Lista de opciones: etiquetas en mayúsculas crema, fila activa con degradado #B3261A→#FF7A1F, texto blanco, triángulo ► que late y una barra de luz que
+    /// recorre la fila al cambiar (0.15 s); las filas entran escalonadas (0.08 s). Sonido seco al mover. Teclado: flechas arriba/abajo (W/S), Enter confirma, izquierda/derecha ajustan (opciones),
     /// Esc vuelve. Ratón: encima selecciona, clic confirma. Sin memoria por frame (solo cambia colores al mover).
     /// </summary>
     public class MenuList : MonoBehaviour
@@ -24,8 +25,12 @@ namespace SevenDays.UI.Tactical
         private readonly List<Text> _values = new List<Text>();
         private RectTransform _highlight;
         private float _width, _rowH = RowHeight;
-        private RectTransform _arrowL, _arrowR, _marker;
-        private Image _highlightImg, _markerImg;
+        private RectTransform _arrowL, _arrowR, _marker, _sweep;
+        private Image _highlightImg, _sweepImg;
+        private Text _markerTxt;
+        private readonly List<CanvasGroup> _rows = new List<CanvasGroup>();
+        private float _born = -1f, _sweepAt = -10f;
+        public const float SweepTime = 0.15f, StaggerTime = 0.08f, EnterTime = 0.22f;
         private readonly List<bool> _adjustable = new List<bool>();
         private Vector2 _arrowLBase, _arrowRBase;
 
@@ -37,33 +42,37 @@ namespace SevenDays.UI.Tactical
             float RowHeight = rowHeight;
             var r = UiKit.Rect(parent, "Lista", new Vector2(0.5f, 0.5f), pos, new Vector2(width, items.Count * RowHeight));
             var l = r.gameObject.AddComponent<MenuList>(); l._width = width; l._rowH = rowHeight;
-            l._highlightImg = UiKit.Image(r, "Resaltado", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(width, RowHeight - 6f), Color.white, UiKit.HighlightSprite);
+            l._highlightImg = UiKit.Image(r, "Resaltado", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(width, RowHeight - 6f), Color.white, UiKit.RowSprite);
             l._highlight = l._highlightImg.rectTransform;
-            // marcador de la fila activa: cuadrado rojo a la izquierda que late
-            l._markerImg = UiKit.Image(r, "Marcador", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(12f, 12f), UiKit.Red);
-            l._marker = l._markerImg.rectTransform; l._marker.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            // barra de luz que recorre la fila activa al cambiar
+            l._sweepImg = UiKit.Image(l._highlight, "Barra de luz", new Vector2(0f, 0.5f), Vector2.zero, new Vector2(60f, RowHeight - 6f), new Color(1f, 0.85f, 0.6f, 0f));
+            l._sweep = l._sweepImg.rectTransform;
+            // triángulo ► de la fila activa (late hacia la derecha)
+            l._markerTxt = UiKit.Text(r, "►", Mathf.Max(UiKit.MinFont, labelSize * 2 / 3), Color.white, TextAnchor.MiddleCenter, Vector2.zero, new Vector2(36f, RowHeight - 6f), true, false);
+            l._marker = l._markerTxt.rectTransform; l._marker.anchorMin = l._marker.anchorMax = new Vector2(0.5f, 1f); l._marker.name = "Marcador";
             for (int i = 0; i < items.Count; i++)
             {
                 var row = UiKit.Image(r, "Fila " + items[i], new Vector2(0.5f, 1f), new Vector2(0f, -RowHeight * (i + 0.5f)), new Vector2(width, RowHeight - 6f), new Color(0, 0, 0, 0.001f));
                 row.raycastTarget = true;
+                l._rows.Add(row.gameObject.AddComponent<CanvasGroup>());
                 var mr = row.gameObject.AddComponent<MenuRow>(); mr.List = l; mr.Index = i;
                 // etiqueta en la mitad izquierda y valor en la derecha, sin solaparse (el texto condensado se escala desde su centro)
                 float c = UiKit.Condensed;
-                l._labels.Add(UiKit.Text(row.transform, SevenDays.Procedural.SelectContent.Tracked(items[i].ToUpperInvariant()), labelSize, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 24f + width * 0.21f, 0f), new Vector2(width * 0.42f / c, Mathf.Max(44f, labelSize * 1.4f)), true));
+                l._labels.Add(UiKit.Text(row.transform, SevenDays.Procedural.SelectContent.Tracked(items[i].ToUpperInvariant()), labelSize, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 56f + width * 0.18f, 0f), new Vector2(width * 0.36f / c, Mathf.Max(44f, labelSize * 1.4f)), true));
                 var lb = l._labels[l._labels.Count - 1];   // etiquetas espaciadas: se encogen si no caben en su caja
                 lb.horizontalOverflow = HorizontalWrapMode.Wrap; lb.verticalOverflow = VerticalWrapMode.Truncate;
-                lb.resizeTextForBestFit = true; lb.resizeTextMinSize = 16; lb.resizeTextMaxSize = labelSize;
-                if (values == null) lb.rectTransform.sizeDelta = new Vector2((width - 60f) / c, lb.rectTransform.sizeDelta.y);
-                if (values == null) lb.rectTransform.anchoredPosition = new Vector2(-width / 2f + 40f + (width - 60f) / 2f, 0f);
+                lb.resizeTextForBestFit = true; lb.resizeTextMinSize = UiKit.MinFont; lb.resizeTextMaxSize = labelSize;
+                if (values == null) lb.rectTransform.sizeDelta = new Vector2((width - 80f) / c, lb.rectTransform.sizeDelta.y);
+                if (values == null) lb.rectTransform.anchoredPosition = new Vector2(-width / 2f + 56f + (width - 80f) / 2f, 0f);   // hueco para el ►
                 Text v = null;
                 if (values != null && i < values.Count)
                 {
                     v = UiKit.Text(row.transform, values[i], valueSize, UiKit.Cream, TextAnchor.MiddleRight, new Vector2(width / 2f - 20f - width * 0.24f, 0f), new Vector2(width * 0.48f / c, Mathf.Max(44f, valueSize * 1.4f)));
                     v.horizontalOverflow = HorizontalWrapMode.Wrap; v.verticalOverflow = VerticalWrapMode.Truncate;
-                    v.resizeTextForBestFit = true; v.resizeTextMinSize = 14; v.resizeTextMaxSize = valueSize;   // listas largas (armas usadas) se encogen o pasan a dos líneas
+                    v.resizeTextForBestFit = true; v.resizeTextMinSize = UiKit.MinFont; v.resizeTextMaxSize = valueSize;   // listas largas (armas usadas) se encogen o pasan a dos líneas
                     var lab = l._labels[l._labels.Count - 1];   // etiquetas largas: se encogen en su mitad en vez de pisar el valor
                     lab.horizontalOverflow = HorizontalWrapMode.Wrap; lab.verticalOverflow = VerticalWrapMode.Truncate;
-                    lab.resizeTextForBestFit = true; lab.resizeTextMinSize = 16; lab.resizeTextMaxSize = labelSize;
+                    lab.resizeTextForBestFit = true; lab.resizeTextMinSize = UiKit.MinFont; lab.resizeTextMaxSize = labelSize;
                 }
                 l._values.Add(v);
             }
@@ -116,11 +125,12 @@ namespace SevenDays.UI.Tactical
             if (_labels.Count == 0) return;
             i = (i % _labels.Count + _labels.Count) % _labels.Count;
             if (i != Index && sound) UiSounds.Move();
-            _labels[Index].color = UiKit.CreamDim;
+            if (i != Index) _sweepAt = Time.unscaledTime;
+            _labels[Index].color = UiKit.Cream;
             Index = i;
             _labels[i].color = UiKit.White;
             _highlight.anchoredPosition = new Vector2(0f, -_rowH * (i + 0.5f));
-            _marker.anchoredPosition = new Vector2(-_width / 2f + 16f, -_rowH * (i + 0.5f));
+            _marker.anchoredPosition = new Vector2(-_width / 2f + 26f, -_rowH * (i + 0.5f));
             PlaceArrows();
             Selected?.Invoke(i);
         }
@@ -129,10 +139,17 @@ namespace SevenDays.UI.Tactical
 
         private void Update()
         {
-            // la fila activa late suavemente (brillo del resaltado y del marcador)
-            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 4f);
-            _highlightImg.color = new Color(1f, 1f, 1f, 0.8f + 0.2f * pulse);
-            _markerImg.color = new Color(UiKit.Red.r + 0.3f * pulse, UiKit.Red.g + 0.1f * pulse, UiKit.Red.b, 1f);
+            float now = Time.unscaledTime;
+            if (_born < 0f) _born = now;
+            // entrada escalonada de las filas
+            for (int i = 0; i < _rows.Count; i++) { float a = Mathf.Clamp01((now - _born - i * StaggerTime) / EnterTime); if (_rows[i].alpha != a) _rows[i].alpha = a; }
+            // la fila activa late suavemente; el ► se mece; la barra de luz cruza la fila tras cambiar
+            float pulse = 0.5f + 0.5f * Mathf.Sin(now * 4f);
+            _highlightImg.color = new Color(1f, 1f, 1f, 0.85f + 0.15f * pulse);
+            _marker.anchoredPosition = new Vector2(-_width / 2f + 26f + 4f * pulse, -_rowH * (Index + 0.5f));
+            float sw = (now - _sweepAt) / SweepTime;
+            _sweepImg.color = new Color(1f, 0.85f, 0.6f, sw < 1f ? 0.55f * (1f - sw) : 0f);
+            _sweep.anchoredPosition = new Vector2(Mathf.Clamp01(sw) * (_width - 60f), 0f);
             if (_arrowL != null && _arrowL.gameObject.activeSelf)
             {
                 float o = Mathf.Sin(Time.unscaledTime * 5f) * 4f;

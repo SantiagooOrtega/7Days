@@ -531,6 +531,63 @@ namespace SevenDays.Procedural
             return px;
         }
 
+        /// <summary>
+        /// Marco de panel metálico (n x n, para 9-slice con borde "border"): esquinas cortadas en diagonal, banda de acero rayado #3A3D40 con bisel, remaches en las
+        /// cuatro esquinas y fondo negro al 60 %.
+        /// </summary>
+        public static byte[] MetalFrame(int n, int border, int seed)
+        {
+            var px = new byte[n * n * 4]; int cut = border, band = Math.Max(4, border / 2);
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    int dx = Math.Min(x, n - 1 - x), dy = Math.Min(y, n - 1 - y), o = (y * n + x) * 4;
+                    if (dx + dy < cut) continue;                                   // esquina cortada
+                    int d = Math.Min(Math.Min(dx, dy), dx + dy - cut);              // distancia al borde (incluido el corte)
+                    float r, g, b, a;
+                    if (d < band)
+                    {
+                        float steel = 0.227f + (d == 0 ? 0.12f : (d == band - 1 ? -0.08f : 0f));   // bisel: filo claro fuera, sombra dentro
+                        float scratch = Hash(x / 3, y, seed) > 0.9f ? 0.1f : (Hash(x, y / 3, seed + 1) > 0.93f ? -0.06f : 0f);
+                        r = steel + scratch; g = steel * 1.03f + scratch; b = steel * 1.09f + scratch; a = 1f;
+                    }
+                    else { r = g = b = 0f; a = 0.6f; }
+                    // remaches junto a las esquinas
+                    foreach (int cx in new[] { cut + band, n - 1 - cut - band })
+                        foreach (int cy in new[] { band + 2, n - 3 - band })
+                        {
+                            float rx = x - cx, ry = y - cy, rr = rx * rx + ry * ry, rad = band * 0.75f;
+                            if (rr < rad * rad) { float sh = (-rx + ry) / (rad * 2f); float c = 0.42f + 0.3f * sh; r = c; g = c * 1.02f; b = c * 1.06f; a = 1f; }
+                        }
+                    foreach (int cy in new[] { cut + band, n - 1 - cut - band })
+                        foreach (int cx in new[] { band + 2, n - 3 - band })
+                        {
+                            float rx = x - cx, ry = y - cy, rr = rx * rx + ry * ry, rad = band * 0.75f;
+                            if (rr < rad * rad) { float sh = (-rx + ry) / (rad * 2f); float c = 0.42f + 0.3f * sh; r = c; g = c * 1.02f; b = c * 1.06f; a = 1f; }
+                        }
+                    px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a);
+                }
+            return px;
+        }
+
+        /// <summary>Degradado de la fila activa (w x h): #B3261A a la izquierda hasta #FF7A1F a la derecha (curva cuadrática: el texto queda sobre el rojo).</summary>
+        public static byte[] RowGradient(int w, int h)
+        {
+            var px = new byte[w * h * 4];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    RowGradientAt(x / (float)(w - 1), out float r, out float g, out float b);
+                    int o = (y * w + x) * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = 255;
+                }
+            return px;
+        }
+        public static void RowGradientAt(float t, out float r, out float g, out float b)
+        {
+            float q = t * t * t;
+            r = 0xB3 / 255f + (1f - 0xB3 / 255f) * q; g = 0x26 / 255f + (0x7A / 255f - 0x26 / 255f) * q; b = 0x1A / 255f + (0x1F / 255f - 0x1A / 255f) * q;
+        }
+
         /// <summary>Marco de panel (n x n, para 9-slice con borde "border"): banda negra al 75 % con una línea gris fina desgastada y grano leve.</summary>
         public static byte[] Frame(int n, int border, int seed)
         {
