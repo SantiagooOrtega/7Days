@@ -46,7 +46,6 @@ namespace SevenDays.Tests.PlayMode
             Assert.IsFalse((bool)pt.GetProperty("Active").GetValue(null));
             Assert.IsFalse((bool)input.GetValue(null));
             Assert.AreEqual(1f, Time.timeScale);
-            Assert.IsTrue((bool)seenProp.GetValue(null), "queda guardado que se vio");
             seenProp.SetValue(null, seenBefore);
         }
 
@@ -71,7 +70,6 @@ namespace SevenDays.Tests.PlayMode
             yield return new WaitForSecondsRealtime(0.7f);
             Assert.IsTrue(done, "después, la pantalla de victoria");
             Assert.IsFalse((bool)pt.GetProperty("Active").GetValue(null));
-            Assert.IsFalse((bool)seenProp.GetValue(null), "el epílogo no marca la intro como vista");
             seenProp.SetValue(null, seenBefore);
         }
     }

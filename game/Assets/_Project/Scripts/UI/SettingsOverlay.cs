@@ -21,7 +21,7 @@ namespace SevenDays.UI
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 18, normal = { textColor = Color.white } };
             _title ??= new GUIStyle(_label) { fontSize = 22, fontStyle = FontStyle.Bold };
             var s = _camera.Settings;
-            var r = new Rect(Screen.width - 430, Mathf.Max(10f, Screen.height * 0.5f - 440), 400, 880);
+            var r = new Rect(Screen.width - 430, Mathf.Max(10f, Screen.height * 0.5f - 455), 400, 910);
             if (r.Contains(Event.current.mousePosition)) PlayerCamera.UiHoverUntil = Time.unscaledTime + 0.15f;
             GUI.Box(r, GUIContent.none);
             GUI.Label(new Rect(r.x + 16, r.y + 10, 380, 30), "Ajustes (clic en el juego para volver)", _title);
@@ -77,8 +77,11 @@ namespace SevenDays.UI
             bool subs = GUI.Toggle(new Rect(r.x + 16, y, 368, 26), SevenDays.Vigia.VigiaSettings.Subtitles, " Subtítulos");
             if (subs != SevenDays.Vigia.VigiaSettings.Subtitles) SevenDays.Vigia.VigiaSettings.Subtitles = subs;
             y += 30f;
-            if (GUI.Button(new Rect(r.x + 16, y, 368, 28), "Ver la intro otra vez")) { SevenDays.Intro.IntroPlayer.Seen = false; SevenDays.Intro.IntroPlayer.Play(); }
+            if (GUI.Button(new Rect(r.x + 16, y, 368, 28), "Ver la intro otra vez")) SevenDays.Intro.IntroPlayer.Play();
             y += 36f;
+            bool skipIntro = GUI.Toggle(new Rect(r.x + 16, y, 368, 26), SevenDays.Intro.IntroPlayer.SkipAlways, " Saltar intro siempre");
+            if (skipIntro != SevenDays.Intro.IntroPlayer.SkipAlways) SevenDays.Intro.IntroPlayer.SkipAlways = skipIntro;
+            y += 32f;
             AudioRow(r.x, ref y, "Tamaño texto", (SevenDays.Vigia.VigiaSettings.SubtitleScale - 0.8f) / 0.8f, v => SevenDays.Vigia.VigiaSettings.SubtitleScale = 0.8f + v * 0.8f);
             AudioRow(r.x, ref y, "Altura subtítulos", (SevenDays.Vigia.VigiaSettings.SubtitleHeight - 0.04f) / 0.26f, v => SevenDays.Vigia.VigiaSettings.SubtitleHeight = 0.04f + v * 0.26f);
         }

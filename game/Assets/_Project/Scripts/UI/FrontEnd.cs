@@ -264,6 +264,7 @@ namespace SevenDays.UI
                 CharacterVariantLibrary.SetCurrent(all[_variant].id);
                 MapIO.SelectedId = MapIO.PlayableIds[_map];
                 DayLoop.PendingStartDay = 1;
+                SevenDays.Intro.IntroPlayer.NewGameRequested = true;   // partida nueva: intro en cómic antes del Día 1
                 StartGame();
             };
             _list.Back += () => Open(FrontScreen.Menu);

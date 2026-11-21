@@ -21,8 +21,18 @@ namespace SevenDays.Intro
         /// <summary>VIGÍA está hablando en la intro o el epílogo (la música baja).</summary>
         public static bool Speaking { get; private set; }
         public static bool Seen { get => PlayerPrefs.GetInt(SeenKey, 0) == 1; set => PlayerPrefs.SetInt(SeenKey, value ? 1 : 0); }
-        /// <summary>Sale si no se ha visto. En batch (pruebas automáticas) nunca, para no bloquear la partida.</summary>
-        public static bool ShouldPlay => !Seen && !Application.isBatchMode;
+        /// <summary>Opción "Saltar intro siempre" (Opciones; desactivada por defecto).</summary>
+        public const string SkipAlwaysKey = "intro.skipAlways";
+        public static bool SkipAlways { get => PlayerPrefs.GetInt(SkipAlwaysKey, 0) == 1; set => PlayerPrefs.SetInt(SkipAlwaysKey, value ? 1 : 0); }
+        /// <summary>EMPEZAR en una partida nueva la pide (no reintentar ni continuar); se consume al arrancar la arena.</summary>
+        public static bool NewGameRequested;
+        /// <summary>Sale en cada partida nueva salvo que se haya elegido "Saltar intro siempre".</summary>
+        public static bool ShouldPlay => NewGameRequested && !SkipAlways;
+        public static bool ConsumeNewGame() { bool play = ShouldPlay; NewGameRequested = false; return play; }
+
+        /// <summary>La antigua marca "intro ya vista" la ocultaba para siempre tras verla una vez: se borra al arrancar.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void ClearOldSeenFlag() { if (PlayerPrefs.HasKey(SeenKey)) { PlayerPrefs.DeleteKey(SeenKey); PlayerPrefs.Save(); } }
 
         private IntroSequence _seq;
         private bool _markSeen;
@@ -215,7 +225,6 @@ namespace SevenDays.Intro
 
         private void Finish()
         {
-            if (_markSeen) Seen = true;
             Active = false; Speaking = false;
             GameInput.InputCaptured = false;
             if (_paused) { Time.timeScale = 1f; _paused = false; }
@@ -232,6 +241,6 @@ namespace SevenDays.Intro
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { Active = false; Speaking = false; _catalog = null; }
+        private static void ResetStatics() { Active = false; Speaking = false; _catalog = null; NewGameRequested = false; }
     }
 }

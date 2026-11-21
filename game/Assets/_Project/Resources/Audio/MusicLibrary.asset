@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b45c5c52849a64267ab8426e3f209569, type: 3}
+  m_Script: {fileID: 11500000, guid: 53fa7c2c7064e4929a813ed1472279c4, type: 3}
   m_Name: MusicLibrary
   m_EditorClassIdentifier: Assembly-CSharp::SevenDays.Core.MusicLibrary
   main: {fileID: 8300000, guid: f98ea4e707d2c4e71b6066b9a6428645, type: 3}

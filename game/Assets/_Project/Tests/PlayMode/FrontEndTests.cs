@@ -38,6 +38,10 @@ namespace SevenDays.Tests.PlayMode
             list.GetType().GetMethod("Confirm").Invoke(list, null);
             yield return null;
             Assert.IsFalse((bool)fe.GetProperty("Blocking").GetValue(null), "Empezar suelta la arena");
+            var ip = T("SevenDays.Intro.IntroPlayer").GetField("NewGameRequested");
+            bool requested = (bool)ip.GetValue(null);
+            ip.SetValue(null, false);   // aquí no hay arena que la consuma
+            Assert.IsTrue(requested, "Empezar pide la intro de la partida nueva");
             UnityEngine.Object.Destroy((Component)inst);
             yield return null;
         }
@@ -56,6 +60,56 @@ namespace SevenDays.Tests.PlayMode
             Assert.IsNotNull(GameObject.FindWithTag("Player"), "tras Jugar se construye la partida");
             UnityEngine.Object.Destroy(arena); UnityEngine.Object.Destroy(inst.gameObject);
             foreach (var p in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(p);
+            yield return null; yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Empezar_ShowsTheEightPanelsInOrder_ThenDayOne_RetryDoesNot()
+        {
+            var fe = T("SevenDays.UI.FrontEnd"); var scr = T("SevenDays.UI.FrontScreen"); var ip = T("SevenDays.Intro.IntroPlayer");
+            PlayerPrefs.SetInt("intro.seen", 1);   // la marca vieja ya no la oculta
+            bool skipBefore = (bool)ip.GetProperty("SkipAlways").GetValue(null);
+            ip.GetProperty("SkipAlways").SetValue(null, false);
+            var inst = (Component)fe.GetMethod("Show").Invoke(null, new[] { Enum.Parse(scr, "Select") });
+            var arena = new GameObject("Arena"); arena.AddComponent(T("SevenDays.World.TestArena"));
+            try
+            {
+                yield return null;
+                var list = fe.GetProperty("List").GetValue(inst);
+                list.GetType().GetMethod("Select").Invoke(list, new object[] { 2, false });
+                list.GetType().GetMethod("Confirm").Invoke(list, null);   // EMPEZAR
+                float t0 = Time.realtimeSinceStartup;
+                while (Time.realtimeSinceStartup - t0 < 10f && !(bool)ip.GetProperty("Active").GetValue(null)) yield return null;
+                Assert.IsTrue((bool)ip.GetProperty("Active").GetValue(null), "tras EMPEZAR sale la intro");
+                var player = (Component)UnityEngine.Object.FindFirstObjectByType(ip);
+                var seq = ip.GetField("_seq", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(player);
+                var panels = (System.Collections.IList)seq.GetType().GetField("panels").GetValue(seq);
+                Assert.AreEqual(8, panels.Count);
+                for (int i = 0; i < 8; i++)
+                {
+                    Assert.AreEqual(i, (int)ip.GetProperty("Index").GetValue(player), "lámina " + (i + 1) + " en orden");
+                    var img = (Texture2D)panels[i].GetType().GetField("image").GetValue(panels[i]);
+                    Assert.AreEqual("intro_" + (i + 1).ToString("00"), img.name, "carga de Resources");
+                    Assert.IsNull(UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.DayLoop")), "el Día 1 espera a la intro");
+                    ip.GetMethod("Next").Invoke(player, null);   // clic o Espacio
+                    yield return new WaitForSecondsRealtime(0.6f);
+                }
+                Assert.IsFalse((bool)ip.GetProperty("Active").GetValue(null), "termina tras la lámina 8");
+                t0 = Time.realtimeSinceStartup;
+                while (Time.realtimeSinceStartup - t0 < 60f && UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.DayLoop")) == null) yield return null;
+                var loop = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.DayLoop"));
+                Assert.IsNotNull(loop, "arranca el Día 1");
+                var cycle = loop.GetType().GetProperty("Cycle").GetValue(loop);
+                Assert.AreEqual(1, (int)cycle.GetType().GetProperty("Day").GetValue(cycle));
+                Assert.IsFalse((bool)ip.GetField("NewGameRequested").GetValue(null), "reintentar (recarga de escena) no la repite");
+            }
+            finally
+            {
+                ip.GetField("NewGameRequested").SetValue(null, false);
+                ip.GetProperty("SkipAlways").SetValue(null, skipBefore);
+                UnityEngine.Object.Destroy(arena); UnityEngine.Object.Destroy(inst.gameObject);
+                foreach (var p in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(p);
+            }
             yield return null; yield return null;
         }
     }

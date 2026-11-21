@@ -59,8 +59,8 @@ namespace SevenDays.World
             // Primero el look (niebla, post-procesado) y luego las texturas procedurales, que se generan
             // en hilos de fondo mientras se muestra "Generando texturas...".
             // el mapa es un JSON (Resources/Maps o el backend): su ambientación se aplica antes de todo lo visual
-            // intro en cómic la primera vez (tapa la carga del mapa); el día 1 no empieza hasta que termina
-            if (SevenDays.Intro.IntroPlayer.ShouldPlay) SevenDays.Intro.IntroPlayer.Play(transform);
+            // intro en cómic en cada partida nueva (EMPEZAR; tapa la carga del mapa); el día 1 no empieza hasta que termina
+            if (SevenDays.Intro.IntroPlayer.ConsumeNewGame()) SevenDays.Intro.IntroPlayer.Play(transform);
             _look = new LookSettings();
             _map = MapIO.Load(MapIO.SelectedId, _look);
             MapIO.ApplyAmbience(_map.ambience, _look);
