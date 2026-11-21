@@ -376,6 +376,7 @@ namespace SevenDays.World
         private void OnGUI()
         {
             if (Cycle == null) return;
+            if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: tampoco "DÍA X DE 7" (se solapaba con el título)
             if (_top == null)
             {
                 _top = new GUIStyle(GUI.skin.label) { fontSize = 30, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };

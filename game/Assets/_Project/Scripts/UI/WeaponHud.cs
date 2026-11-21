@@ -57,6 +57,9 @@ namespace SevenDays.UI
         private void Update()
         {
             if (View == null || _shooting == null) return;
+            bool hide = SevenDays.UI.StatsScreen.Blocking;
+            if (View.Canvas.enabled == hide) View.Canvas.enabled = !hide;   // sin selector de armas en la pantalla de muerte
+            if (hide) return;
             var list = _inventory.Weapons;
             int active = 0;
             for (int i = 0; i < list.Count; i++) if (ReferenceEquals(list[i], _shooting.Current)) { active = i; break; }

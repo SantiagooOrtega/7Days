@@ -134,5 +134,38 @@ namespace SevenDays.Procedural
             float e = 1f - (1f - t) * (1f - t) * (1f - t);
             return (int)Math.Round(target * e);
         }
+
+        public static readonly string[] StatNames = { "Bajas", "Disparos a la cabeza", "Precisión", "Daño recibido", "Tiempo de oleada", "Armas usadas", "Mejor racha" };
+        private static int Clampi(int v, int a, int b) => v < a ? a : (v > b ? b : v);
+        /// <summary>Valores de la lista de estadísticas (texto final) y su explicación: lo prueban las pruebas EditMode a través de StatsReport.</summary>
+        public static string[] StatValues(IList<DayStats> list, out int kills, out int heads, out int accPct, out int damage)
+        {
+            kills = heads = 0; int fired = 0, hit = 0; float dmg = 0f, wave = 0f;
+            foreach (var d in list) { kills += d.kills; heads += d.headshotKills; fired += d.shotsFired; hit += Math.Min(d.shotsHit, d.shotsFired); dmg += d.damageTaken; wave += d.waveSeconds; }
+            accPct = fired <= 0 ? 0 : (int)Math.Round(hit * 100f / fired); damage = (int)Math.Round(dmg);
+            return new[] { kills.ToString(), heads.ToString(), accPct + " %", damage.ToString(), StatsReport.Time(wave), StatsReport.Weapons(list), StatsReport.BestStreak(list).ToString() };
+        }
+
+        /// <summary>Gráfica: barras de bajas y línea de precisión por día. Con un solo día (o sin bajas) dibuja al menos una barra mínima y un punto: nunca vacía.</summary>
+        public static byte[] Chart(IList<DayStats> days, int w, int h)
+        {
+            var px = new byte[w * h * 4];
+            void Set(int x, int y, byte r, byte g, byte b, byte a) { if (x < 0 || y < 0 || x >= w || y >= h) return; int o = (y * w + x) * 4; px[o] = r; px[o + 1] = g; px[o + 2] = b; px[o + 3] = a; }
+            for (int x = 0; x < w; x++) Set(x, 0, 200, 190, 160, 160);
+            int max = 1; foreach (var d in days) max = Math.Max(max, d.kills);
+            float bw = w / (float)DayPlans.Days;
+            int prevX = -1, prevY = -1;
+            for (int i = 0; i < days.Count && i < DayPlans.Days; i++)
+            {
+                int bh = Math.Max(3, (int)Math.Round((h - 8) * days[i].kills / (float)max));
+                for (int x = (int)Math.Round(i * bw + 3); x < (int)Math.Round((i + 1) * bw - 3); x++) for (int y = 1; y <= bh; y++) Set(x, y, days[i].died ? (byte)200 : (byte)190, days[i].died ? (byte)55 : (byte)120, 40, 230);
+                int cx = (int)Math.Round((i + 0.5f) * bw), cy = Clampi((int)Math.Round(days[i].Accuracy * (h - 6)) + 3, 2, h - 3);
+                for (int dx = -2; dx <= 2; dx++) for (int dy = -2; dy <= 2; dy++) Set(cx + dx, cy + dy, 255, 210, 120, 255);   // punto del día
+                if (prevX >= 0) for (int s = 0; s <= 30; s++) { int lx = (int)Math.Round(prevX + (cx - prevX) * s / 30f), ly = (int)Math.Round(prevY + (cy - prevY) * s / 30f); Set(lx, ly, 255, 210, 120, 255); Set(lx, ly + 1, 255, 210, 120, 255); }
+                prevX = cx; prevY = cy;
+            }
+            return px;
+        }
+
     }
 }

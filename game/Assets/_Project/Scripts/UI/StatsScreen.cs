@@ -1,55 +1,57 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using SevenDays.Core;
 using SevenDays.Procedural;
+using SevenDays.UI.Tactical;
 
 namespace SevenDays.UI
 {
     /// <summary>
-    /// Pantalla de muerte, victoria y resumen del día (uGUI, estilo militar táctico oscuro, diseño propio). Canvas Scale With Screen Size (1920x1080):
-    /// fundido rojo oscuro con viñeta, título "HAS CAÍDO — DÍA N", frase de VIGÍA, rejilla de 6 datos con icono, barras 0-100 del director con su explicación,
-    /// gráfica de bajas y precisión por día, medallas y mejor racha, tabla por día y botones grandes. Entrada escalonada con contadores que suben y un golpe
-    /// de sonido sobrio. Los datos los calcula StatsReport (puro). Sin memoria por frame: los textos de los números salen de una caché y solo cambian al subir.
-    /// Mientras se ve (muerte/victoria) Esc no abre los ajustes.
+    /// Pantalla de muerte, victoria y resumen del día con el estilo táctico común (UI.Tactical): fondo en llamas, cabecera "HAS CAÍDO" con glitch, día y frase de
+    /// VIGÍA a máquina de escribir; lista de estadísticas con la fila activa resaltada (flechas o ratón) y su explicación, barras del director, gráfica por día
+    /// (nunca vacía), insignias, silueta del personaje y pie con teclas (Enter Reintentar día · Esc Menú · Tab Estadísticas). Oculta todo el HUD y bloquea los
+    /// ajustes mientras se ve. Contadores animados y entrada escalonada sin memoria por frame (cadenas en caché).
     /// </summary>
     public class StatsScreen : MonoBehaviour
     {
         public static StatsScreen Instance { get; private set; }
-        public static bool Active => Instance != null && Instance._root != null && Instance._root.activeSelf;
+        public static bool Active => Instance != null && Instance._root != null && Instance._root.gameObject.activeSelf;
         public static bool Blocking => Active && Instance._mode != StatsScreenMode.DaySummary;
 
-        public const float Stagger = 0.12f, FadeIn = 0.35f, CountSeconds = 1.2f, SummarySeconds = 10f;
-        private static readonly Color Red = new Color(0.86f, 0.2f, 0.16f), Amber = new Color(1f, 0.72f, 0.25f), Olive = new Color(0.55f, 0.66f, 0.38f), Ink = new Color(0.05f, 0.055f, 0.06f, 0.92f), Line = new Color(0.82f, 0.78f, 0.66f), Muted = new Color(0.7f, 0.7f, 0.66f);
+        public const float Stagger = 0.12f, FadeIn = 0.35f, CountSeconds = 1.2f, SummarySeconds = 10f, TypeSpeed = 28f;
+        public static string[] StatNames => StatsReport.StatNames;
 
         private StatsScreenMode _mode;
-        private GameObject _root, _tablePanel;
-        private Font _font;
+        private RectTransform _root, _table;
         private readonly List<CanvasGroup> _sections = new List<CanvasGroup>();
-        private readonly List<(Text text, int target, int shown, string suffix)> _counters = new List<(Text, int, int, string)>();
+        private readonly List<(Text text, int target, int shown, bool pct)> _counters = new List<(Text, int, int, bool)>();
         private float _shownAt, _hideAt;
+        private Text _title, _ghostA, _ghostB, _typed, _explain;
+        private string _typeText = ""; private int _typedChars = -1;
+        private MenuList _stats;
+        private string[] _statExplain = new string[0];
         private AudioSource _audio;
-        private static readonly string[] Ints = BuildInts(5000);
+        private static readonly string[] Ints = BuildInts(5000), Percents = BuildPercents();
         private readonly List<Object> _owned = new List<Object>();
 
         public StatsScreenMode Mode => _mode;
         public int MedalCount { get; private set; }
         public int Rows { get; private set; }
+        public int StatRows => _stats != null ? _stats.Count : 0;
 
         private static string[] BuildInts(int n) { var a = new string[n + 1]; for (int i = 0; i <= n; i++) a[i] = i.ToString(); return a; }
-        private static string Int(int v) => v >= 0 && v < Ints.Length ? Ints[v] : v.ToString();
+        private static string[] BuildPercents() { var a = new string[101]; for (int i = 0; i <= 100; i++) a[i] = i + " %"; return a; }
 
-        /// <summary>Muestra la pantalla. Muerte y victoria bloquean (botones); el resumen del día es un panel compacto que se va solo y no bloquea.</summary>
         public static StatsScreen Show(StatsScreenMode mode, int day, IList<DayStats> days, IList<string> reasons)
         {
-            if (Instance == null) { var go = new GameObject("StatsScreen"); Instance = go.AddComponent<StatsScreen>(); }
+            if (Instance == null) Instance = new GameObject("StatsScreen").AddComponent<StatsScreen>();
             Instance.Build(mode, day, days, reasons);
             return Instance;
         }
 
-        public static void Hide() { if (Instance != null && Instance._root != null) Instance._root.SetActive(false); GameInput.EscapeBlocked = false; }
+        public static void Hide() { if (Instance != null && Instance._root != null) Instance._root.gameObject.SetActive(false); GameInput.EscapeBlocked = false; }
 
         private void OnDestroy() { if (Instance == this) Instance = null; GameInput.EscapeBlocked = false; foreach (var o in _owned) if (o != null) Destroy(o); }
 
@@ -57,23 +59,13 @@ namespace SevenDays.UI
         private void Build(StatsScreenMode mode, int day, IList<DayStats> days, IList<string> reasons)
         {
             _mode = mode;
-            if (_root != null) Destroy(_root);
-            _sections.Clear(); _counters.Clear();
-            _font = _font != null ? _font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            EnsureEventSystem();
-            _root = new GameObject("Canvas estadísticas", typeof(RectTransform));
-            _root.transform.SetParent(transform, false);
-            var canvas = _root.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 500;
-            var scaler = _root.AddComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = 0.5f;
-            _root.AddComponent<GraphicRaycaster>();
-            var rt = (RectTransform)_root.transform;
-
+            if (_root != null) Destroy(_root.gameObject);
+            _sections.Clear(); _counters.Clear(); _stats = null; _title = _ghostA = _ghostB = _typed = _explain = null; _typedChars = -1;
+            _root = UiKit.Canvas(transform, "Canvas estadísticas", 500);
             var list = new List<DayStats>(days);
             var today = list.Count > 0 ? list[list.Count - 1] : new DayStats { day = day };
             bool compact = mode == StatsScreenMode.DaySummary;
-            if (compact) BuildCompact(rt, day, today);
-            else BuildFull(rt, mode, day, list, today, reasons);
-
+            if (compact) BuildCompact(day, today); else BuildFull(mode, day, list, today, reasons);
             _shownAt = Time.unscaledTime;
             _hideAt = compact ? Time.unscaledTime + SummarySeconds : float.MaxValue;
             GameInput.EscapeBlocked = !compact;
@@ -81,115 +73,136 @@ namespace SevenDays.UI
             PlayThump(mode);
         }
 
-        private void BuildFull(RectTransform rt, StatsScreenMode mode, int day, List<DayStats> list, DayStats today, IList<string> reasons)
+        private RectTransform Section(string name, Vector2 pos, Vector2 size)
         {
-            bool dead = mode == StatsScreenMode.Defeat;
-            // fondo: rojo oscuro desaturado (o verde oliva en la victoria) con viñeta
-            Img(rt, "Fondo", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, dead ? new Color(0.16f, 0.03f, 0.03f, 0.82f) : new Color(0.05f, 0.08f, 0.05f, 0.82f));
-            var vig = Img(rt, "Viñeta", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.85f)); vig.sprite = Sprite.Create(Vignette(128), new Rect(0, 0, 128, 128), Vector2.one * 0.5f);
-            // título condensado con línea decorativa y frase de VIGÍA
-            var head = Section(rt, "Cabecera", new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(1500f, 210f));
-            var title = Label(head, dead ? "HAS CAÍDO — DÍA " + day : "HAS SOBREVIVIDO — " + DayPlans.Days + " DÍAS", 86, FontStyle.Bold, dead ? Red : Amber, TextAnchor.MiddleCenter, new Vector2(0f, 30f), new Vector2(1760f, 110f));
-            title.rectTransform.localScale = new Vector3(0.84f, 1f, 1f);   // tipografía "condensada"
-            Img(head, "Línea", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -32f), new Vector2(980f, 3f), Line);
-            Img(head, "Marca izq", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-500f, -32f), new Vector2(14f, 14f), dead ? Red : Amber).rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
-            Img(head, "Marca der", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(500f, -32f), new Vector2(14f, 14f), dead ? Red : Amber).rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
-            Label(head, dead ? "VIGÍA: «Señal vital perdida.»" : "VIGÍA: «Siete días. Lo has conseguido.»", 30, FontStyle.Italic, Muted, TextAnchor.MiddleCenter, new Vector2(0f, -72f), new Vector2(1400f, 44f));
-
-            // rejilla de 6 datos
-            var grid = Section(rt, "Datos", new Vector2(0.5f, 1f), new Vector2(0f, -360f), new Vector2(1500f, 150f));
-            int kills = 0, heads = 0, fired = 0, hit = 0; float dmg = 0f, wave = 0f;
-            foreach (var d in list) { kills += d.kills; heads += d.headshotKills; fired += d.shotsFired; hit += Mathf.Min(d.shotsHit, d.shotsFired); dmg += d.damageTaken; wave += d.waveSeconds; }
-            string[] names = { "BAJAS", "A LA CABEZA", "PRECISIÓN", "DAÑO RECIBIDO", "TIEMPO DE OLEADA", "ARMAS USADAS" };
-            for (int i = 0; i < 6; i++)
-            {
-                var cell = Box(grid, "Celda " + i, new Vector2(-625f + i * 250f, 0f), new Vector2(236f, 146f));
-                var ic = Img(cell, "Icono", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(40f, 40f), Line); ic.sprite = Icon(i);
-                Label(cell, names[i], 17, FontStyle.Bold, Muted, TextAnchor.MiddleCenter, new Vector2(0f, -14f), new Vector2(230f, 26f));
-                var v = Label(cell, "", i == 5 ? 18 : 38, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter, new Vector2(0f, -50f), new Vector2(226f, 50f));
-                switch (i)
-                {
-                    case 0: Counter(v, kills, ""); break;
-                    case 1: Counter(v, heads, ""); break;
-                    case 2: Counter(v, fired <= 0 ? 0 : Mathf.RoundToInt(hit * 100f / fired), " %"); break;
-                    case 3: Counter(v, Mathf.RoundToInt(dmg), ""); break;
-                    case 4: v.text = StatsReport.Time(wave); break;
-                    default: v.text = StatsReport.Weapons(list); v.horizontalOverflow = HorizontalWrapMode.Wrap; break;
-                }
-            }
-
-            // barras del director (día en curso) + gráfica + medallas
-            var mid = Section(rt, "Rendimiento", new Vector2(0.5f, 1f), new Vector2(0f, -610f), new Vector2(1500f, 330f));
-            var bars = Box(mid, "Barras", new Vector2(-330f, 0f), new Vector2(830f, 320f));
-            Label(bars, "RENDIMIENTO DEL DÍA " + today.day + " · " + Mathf.RoundToInt(today.rawScore) + "/100 (director)", 20, FontStyle.Bold, Amber, TextAnchor.MiddleLeft, new Vector2(0f, 136f), new Vector2(790f, 30f));
-            var cats = StatsReport.Bars(today);
-            for (int i = 0; i < cats.Length; i++)
-            {
-                float y = 92f - i * 54f;
-                Label(bars, cats[i].Name.ToUpperInvariant(), 17, FontStyle.Bold, Muted, TextAnchor.MiddleLeft, new Vector2(-280f, y + 8f), new Vector2(220f, 24f));
-                Img(bars, "Fondo barra", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(80f, y + 8f), new Vector2(500f, 14f), new Color(1f, 1f, 1f, 0.08f));
-                var fill = Img(bars, "Barra", new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), new Vector2(-170f, y + 8f), new Vector2(5f * cats[i].Value, 14f), cats[i].Value >= 60f ? Olive : (cats[i].Value >= 35f ? Amber : Red));
-                fill.rectTransform.pivot = new Vector2(0f, 0.5f);
-                var val = Label(bars, "", 17, FontStyle.Bold, Color.white, TextAnchor.MiddleRight, new Vector2(370f, y + 8f), new Vector2(60f, 24f)); Counter(val, Mathf.RoundToInt(cats[i].Value), "");
-                Label(bars, cats[i].Explain, 15, FontStyle.Normal, Muted, TextAnchor.MiddleLeft, new Vector2(80f, y - 12f), new Vector2(500f, 22f));
-            }
-            var chart = Box(mid, "Gráfica", new Vector2(430f, 70f), new Vector2(600f, 180f));
-            Label(chart, "BAJAS (barras) Y PRECISIÓN (línea) POR DÍA", 15, FontStyle.Bold, Muted, TextAnchor.MiddleLeft, new Vector2(0f, 74f), new Vector2(570f, 22f));
-            var cimg = Img(chart, "Curva", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -12f), new Vector2(560f, 130f), Color.white);
-            var ctex = Chart(list, 280, 64); cimg.sprite = Sprite.Create(ctex, new Rect(0, 0, ctex.width, ctex.height), Vector2.one * 0.5f);
-            var medals = StatsReport.Medals(list); MedalCount = medals.Count;
-            var mbox = Box(mid, "Medallas", new Vector2(430f, -110f), new Vector2(600f, 120f));
-            Label(mbox, "MEJOR RACHA: " + StatsReport.BestStreak(list) + "   ·   INSIGNIAS", 15, FontStyle.Bold, Muted, TextAnchor.MiddleLeft, new Vector2(0f, 44f), new Vector2(570f, 22f));
-            if (medals.Count == 0) Label(mbox, "Ninguna esta vez", 18, FontStyle.Italic, Muted, TextAnchor.MiddleCenter, new Vector2(0f, -8f), new Vector2(560f, 40f));
-            for (int i = 0; i < medals.Count && i < 5; i++)
-            {
-                var m = Img(mbox, "Insignia " + medals[i], new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-230f + i * 115f, -2f), new Vector2(54f, 54f), Color.white); m.sprite = Badge(medals[i]);
-                Label(mbox, StatsReport.MedalName(medals[i]), 13, FontStyle.Bold, Line, TextAnchor.MiddleCenter, new Vector2(-230f + i * 115f, -42f), new Vector2(112f, 20f));
-            }
-
-            // tabla por día (se abre con "Ver estadísticas") y explicación del director para mañana
-            var rows = StatsReport.DayTable(list); Rows = rows.Count - 1;
-            _tablePanel = Box(rt, "Tabla", new Vector2(0f, -40f), new Vector2(1100f, 460f)).gameObject;
-            Label(_tablePanel.transform, "RESUMEN POR DÍA", 22, FontStyle.Bold, Amber, TextAnchor.MiddleLeft, new Vector2(0f, 200f), new Vector2(1040f, 30f));
-            for (int r = 0; r < rows.Count; r++)
-                for (int c = 0; c < rows[r].Length; c++)
-                    Label(_tablePanel.transform, rows[r][c], r == 0 ? 17 : 19, r == 0 ? FontStyle.Bold : FontStyle.Normal, r == 0 ? Muted : Color.white, TextAnchor.MiddleLeft, new Vector2(-470f + c * 150f, 160f - r * 34f), new Vector2(150f, 30f));
-            if (reasons != null && reasons.Count > 0) Label(_tablePanel.transform, "Director: " + string.Join(" · ", reasons), 15, FontStyle.Normal, Muted, TextAnchor.UpperLeft, new Vector2(0f, -190f), new Vector2(1040f, 60f)).horizontalOverflow = HorizontalWrapMode.Wrap;
-            _tablePanel.SetActive(false);
-
-            // botones grandes
-            var btns = Section(rt, "Botones", new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(1500f, 100f));
-            Button(btns, dead ? "REINTENTAR DÍA" : "JUGAR OTRA VEZ", new Vector2(-480f, 0f), dead ? Red : Olive, () => { Hide(); if (dead) SevenDays.World.DayLoop.RetryDay(); else SevenDays.World.DayLoop.Retry(); });
-            Button(btns, "MENÚ", new Vector2(0f, 0f), new Color(0.3f, 0.3f, 0.3f), () => { Hide(); SevenDays.World.DayLoop.ToMenu(); });
-            Button(btns, "VER ESTADÍSTICAS", new Vector2(480f, 0f), new Color(0.32f, 0.3f, 0.22f), () => _tablePanel.SetActive(!_tablePanel.activeSelf));
+            var r = UiKit.Rect(_root, name, new Vector2(0.5f, 0.5f), pos, size);
+            var cg = r.gameObject.AddComponent<CanvasGroup>(); cg.alpha = 0f; _sections.Add(cg);
+            return r;
         }
 
-        private void BuildCompact(RectTransform rt, int day, DayStats d)
+        private void Counter(Text t, int target, bool pct) { t.text = pct ? "0 %" : "0"; _counters.Add((t, target, 0, pct)); }
+
+        private void BuildFull(StatsScreenMode mode, int day, List<DayStats> list, DayStats today, IList<string> reasons)
         {
-            var p = Section(rt, "Resumen del día", new Vector2(1f, 1f), new Vector2(-340f, -320f), new Vector2(620f, 380f));
-            var box = Box(p, "Panel", Vector2.zero, new Vector2(620f, 380f));
-            Label(box, "DÍA " + day + " SUPERADO", 40, FontStyle.Bold, Olive, TextAnchor.MiddleLeft, new Vector2(0f, 150f), new Vector2(580f, 50f)).rectTransform.localScale = new Vector3(0.86f, 1f, 1f);
-            Img(box, "Línea", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 118f), new Vector2(580f, 2f), Line);
+            bool dead = mode == StatsScreenMode.Defeat;
+            FlameBackdrop.Create(_root, dead ? new Color(0.75f, 0.55f, 0.5f) : new Color(0.62f, 0.7f, 0.52f));
+            UiKit.Image(_root, "Velo", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1920f, 1080f), dead ? new Color(0.2f, 0f, 0f, 0.35f) : new Color(0f, 0.05f, 0f, 0.3f));
+
+            // cabecera con glitch, día y VIGÍA a máquina de escribir
+            var head = Section("Cabecera", new Vector2(0f, 410f), new Vector2(1600f, 220f));
+            string title = dead ? "HAS CAÍDO" : "HAS SOBREVIVIDO";
+            _ghostA = UiKit.Text(head, title, 120, new Color(0f, 0.9f, 1f, 0.35f), TextAnchor.MiddleCenter, new Vector2(0f, 40f), new Vector2(1500f, 140f), true);
+            _ghostB = UiKit.Text(head, title, 120, new Color(1f, 0.1f, 0.1f, 0.45f), TextAnchor.MiddleCenter, new Vector2(0f, 40f), new Vector2(1500f, 140f), true);
+            _title = UiKit.Text(head, title, 120, dead ? UiKit.Red : UiKit.Orange, TextAnchor.MiddleCenter, new Vector2(0f, 40f), new Vector2(1500f, 140f), true);
+            UiKit.Image(head, "Línea", new Vector2(0.5f, 0.5f), new Vector2(0f, -38f), new Vector2(900f, 3f), UiKit.Cream);
+            UiKit.Text(head, dead ? "DÍA " + day + " DE " + DayPlans.Days : DayPlans.Days + " DÍAS · VALLE HONDO", 34, UiKit.Cream, TextAnchor.MiddleCenter, new Vector2(0f, -64f), new Vector2(900f, 40f), true);
+            _typeText = dead ? "VIGÍA: «Señal vital perdida.»" : "VIGÍA: «Siete días. Sigues respirando.»";
+            _typed = UiKit.Text(head, "", 26, UiKit.CreamDim, TextAnchor.MiddleCenter, new Vector2(0f, -100f), new Vector2(1200f, 34f), false, false);
+
+            // lista de estadísticas con la fila activa resaltada y su explicación
+            var left = Section("Estadísticas", new Vector2(-520f, -40f), new Vector2(720f, 560f));
+            UiKit.Panel(left, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(720f, 560f));
+            UiKit.Header(left, "Estadísticas", new Vector2(0f, 245f), 680f);
+            var values = StatsReport.StatValues(list, out int kills, out int heads, out int acc, out int dmg);
+            _stats = MenuList.Create(left, new Vector2(0f, 20f), 640f, StatNames, values);
+            _stats.SetValue(0, "0"); _stats.SetValue(1, "0"); _stats.SetValue(2, "0 %"); _stats.SetValue(3, "0");
+            _statExplain = new[] {
+                "Zombis abatidos en toda la partida.", "Bajas rematadas a la cabeza (la puntuación las premia).", "Disparos que acertaron sobre los disparados.",
+                "Vida perdida por golpes, ácido y explosiones.", "Tiempo total de las oleadas jugadas.", "Armas con las que disparaste.", "Bajas seguidas a menos de 4 s entre sí." };
+            _explain = UiKit.Text(left, _statExplain[0], 20, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(0f, -240f), new Vector2(640f, 30f), false, false);
+            _stats.Selected += i => { if (_explain != null) _explain.text = _statExplain[i]; };
+            _stats.Confirmed += _ => { };
+            _countRows = new[] { (0, kills, false), (1, heads, false), (2, acc, true), (3, dmg, false) };
+
+            // derecha: barras del director, gráfica, insignias y silueta
+            var right = Section("Rendimiento", new Vector2(390f, -40f), new Vector2(1000f, 560f));
+            UiKit.Panel(right, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 560f));
+            UiKit.Header(right, "Rendimiento del día " + today.day + " · " + Mathf.RoundToInt(today.rawScore) + "/100", new Vector2(0f, 245f), 960f);
+            var bars = StatsReport.Bars(today);
+            for (int i = 0; i < bars.Length; i++)
+            {
+                float y = 180f - i * 52f;
+                UiKit.Text(right, bars[i].Name.ToUpperInvariant(), 20, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-330f, y), new Vector2(200f, 26f), true);
+                UiKit.Image(right, "Fondo barra", new Vector2(0.5f, 0.5f), new Vector2(-70f, y), new Vector2(300f, 12f), new Color(1f, 1f, 1f, 0.08f));
+                var f = UiKit.Image(right, "Barra", new Vector2(0.5f, 0.5f), new Vector2(-220f, y), new Vector2(3f * bars[i].Value, 12f), Color.white, UiKit.HighlightSprite);
+                f.rectTransform.pivot = new Vector2(0f, 0.5f);
+                Counter(UiKit.Text(right, "", 22, UiKit.Cream, TextAnchor.MiddleRight, new Vector2(110f, y), new Vector2(60f, 26f), true), Mathf.RoundToInt(bars[i].Value), false);
+                UiKit.Text(right, bars[i].Explain, 16, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-200f, y - 20f), new Vector2(560f, 20f), false, false);
+            }
+            UiKit.Text(right, "BAJAS Y PRECISIÓN POR DÍA", 18, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-260f, -110f), new Vector2(400f, 24f), true);
+            var chart = UiKit.Image(right, "Gráfica", new Vector2(0.5f, 0.5f), new Vector2(-220f, -175f), new Vector2(460f, 110f), Color.white);
+            var ctex = UiKit.Make(230, 56, StatsReport.Chart(list, 230, 56), "Gráfica", TextureWrapMode.Clamp); _owned.Add(ctex);
+            chart.sprite = Sprite.Create(ctex, new Rect(0, 0, 230, 56), Vector2.one * 0.5f);
+            var medals = StatsReport.Medals(list); MedalCount = medals.Count;
+            UiKit.Text(right, "INSIGNIAS", 18, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(160f, -110f), new Vector2(200f, 24f), true);
+            if (medals.Count == 0) UiKit.Text(right, "Ninguna esta vez", 18, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(170f, -160f), new Vector2(260f, 30f), false, false);
+            for (int i = 0; i < medals.Count && i < 4; i++)
+            {
+                var m = UiKit.Image(right, "Insignia", new Vector2(0.5f, 0.5f), new Vector2(110f + i * 72f, -165f), new Vector2(56f, 56f), Color.white); m.sprite = Badge(medals[i]);
+                UiKit.Text(right, StatsReport.MedalName(medals[i]), 13, UiKit.Cream, TextAnchor.MiddleCenter, new Vector2(110f + i * 72f, -206f), new Vector2(80f, 18f), true);
+            }
+            var sil = UiKit.Image(right, "Silueta", new Vector2(0.5f, 0.5f), new Vector2(400f, 70f), new Vector2(150f, 250f), dead ? new Color(1f, 0.6f, 0.55f, 0.7f) : new Color(0.9f, 0.9f, 0.8f, 0.85f));
+            var stex = UiKit.Make(60, 100, MenuArt.Soldier(60, 100, new[] { 0.9f, 0.84f, 0.7f }), "Silueta", TextureWrapMode.Clamp); _owned.Add(stex);
+            sil.sprite = Sprite.Create(stex, new Rect(0, 0, 60, 100), Vector2.one * 0.5f);
+
+            // tabla por día (Tab) con la explicación del director
+            var rows = StatsReport.DayTable(list); Rows = rows.Count - 1;
+            _table = UiKit.Panel(_root, "Tabla", new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(1240f, 520f));
+            UiKit.Header(_table, "Resumen por día", new Vector2(0f, 230f), 1200f);
+            for (int r = 0; r < rows.Count; r++)
+            {
+                if (r == rows.Count - 1 && r > 0) UiKit.Image(_table, "Fila activa", new Vector2(0.5f, 0.5f), new Vector2(0f, 170f - r * 40f), new Vector2(1160f, 36f), Color.white, UiKit.HighlightSprite);
+                for (int c = 0; c < rows[r].Length; c++) UiKit.Text(_table, rows[r][c], r == 0 ? 18 : 22, r == 0 ? UiKit.CreamDim : UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(-500f + c * 165f, 170f - r * 40f), new Vector2(160f, 32f), r == 0);
+            }
+            if (reasons != null && reasons.Count > 0) UiKit.Text(_table, "Director: " + string.Join(" · ", reasons), 16, UiKit.CreamDim, TextAnchor.UpperLeft, new Vector2(0f, -200f), new Vector2(1160f, 60f), false, false).horizontalOverflow = HorizontalWrapMode.Wrap;
+            _table.gameObject.SetActive(false);
+
+            // pie con teclas (y botones para el ratón)
+            UiKit.Footer(_root, (dead ? "Enter Reintentar día" : "Enter Jugar otra vez") + "   ·   Esc Menú   ·   Tab Estadísticas   ·   ↑↓ Ver dato");
+            KeyButton(dead ? "REINTENTAR DÍA" : "JUGAR OTRA VEZ", new Vector2(520f, -484f), Retry);
+            KeyButton("MENÚ", new Vector2(720f, -484f), ToMenu);
+            KeyButton("ESTADÍSTICAS", new Vector2(880f, -484f), ToggleTable);
+        }
+
+        private (int row, int target, bool pct)[] _countRows = new (int, int, bool)[0];
+
+        private void KeyButton(string text, Vector2 pos, UnityEngine.Events.UnityAction a)
+        {
+            var img = UiKit.Image(_root, "Botón " + text, new Vector2(0.5f, 0.5f), pos, new Vector2(190f, 44f), Color.white, UiKit.FrameSprite, true);
+            img.raycastTarget = true;
+            var b = img.gameObject.AddComponent<Button>(); b.targetGraphic = img; b.onClick.AddListener(() => { UiSounds.Accept(); a(); });
+            UiKit.Text(img.transform, text, 20, UiKit.Cream, TextAnchor.MiddleCenter, Vector2.zero, new Vector2(200f, 40f), true);
+        }
+
+        private void Retry() { bool dead = _mode == StatsScreenMode.Defeat; Hide(); if (dead) SevenDays.World.DayLoop.RetryDay(); else SevenDays.World.DayLoop.Retry(); }
+        private void ToMenu() { Hide(); SevenDays.World.DayLoop.ToMenu(); }
+        private void ToggleTable() { if (_table != null) _table.gameObject.SetActive(!_table.gameObject.activeSelf); }
+
+        private void BuildCompact(int day, DayStats d)
+        {
+            var p = Section("Resumen del día", new Vector2(640f, 250f), new Vector2(600f, 380f));
+            UiKit.Panel(p, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(600f, 380f));
+            UiKit.Header(p, "Día " + day + " superado", new Vector2(0f, 160f), 560f);
             string[] n = { "BAJAS", "CABEZA", "PRECISIÓN" }; int[] v = { d.kills, d.headshotKills, Mathf.RoundToInt(d.Accuracy * 100f) };
             for (int i = 0; i < 3; i++)
             {
-                Label(box, n[i], 15, FontStyle.Bold, Muted, TextAnchor.MiddleCenter, new Vector2(-190f + i * 190f, 88f), new Vector2(180f, 22f));
-                Counter(Label(box, "", 34, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter, new Vector2(-190f + i * 190f, 54f), new Vector2(180f, 44f)), v[i], i == 2 ? " %" : "");
+                UiKit.Text(p, n[i], 17, UiKit.CreamDim, TextAnchor.MiddleCenter, new Vector2(-180f + i * 180f, 100f), new Vector2(170f, 22f), true);
+                Counter(UiKit.Text(p, "", 38, UiKit.Cream, TextAnchor.MiddleCenter, new Vector2(-180f + i * 180f, 64f), new Vector2(170f, 44f), true), v[i], i == 2);
             }
-            var cats = StatsReport.Bars(d);
-            for (int i = 0; i < cats.Length; i++)
+            var bars = StatsReport.Bars(d);
+            for (int i = 0; i < bars.Length; i++)
             {
-                float y = 4f - i * 34f;
-                Label(box, cats[i].Name, 14, FontStyle.Bold, Muted, TextAnchor.MiddleLeft, new Vector2(-200f, y), new Vector2(180f, 20f));
-                var f = Img(box, "Barra", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-100f, y), new Vector2(3.4f * cats[i].Value, 10f), cats[i].Value >= 60f ? Olive : (cats[i].Value >= 35f ? Amber : Red));
+                float y = 12f - i * 32f;
+                UiKit.Text(p, bars[i].Name.ToUpperInvariant(), 15, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-180f, y), new Vector2(170f, 20f), true);
+                var f = UiKit.Image(p, "Barra", new Vector2(0.5f, 0.5f), new Vector2(-80f, y), new Vector2(3.2f * bars[i].Value, 10f), Color.white, UiKit.HighlightSprite);
                 f.rectTransform.pivot = new Vector2(0f, 0.5f);
             }
         }
 
-        // ---------------------------------------------------------------- animación (sin memoria por frame)
+        // ---------------------------------------------------------------- animación y teclas (sin memoria por frame)
         private void Update()
         {
-            if (_root == null || !_root.activeSelf) return;
+            if (_root == null || !_root.gameObject.activeSelf) return;
             float t = Time.unscaledTime - _shownAt;
             for (int i = 0; i < _sections.Count; i++) { float a = Mathf.Clamp01((t - i * Stagger) / FadeIn); if (_sections[i].alpha != a) _sections[i].alpha = a; }
             float ct = Mathf.Clamp01((t - 0.2f) / CountSeconds);
@@ -197,152 +210,61 @@ namespace SevenDays.UI
             {
                 var c = _counters[i]; int v = StatsReport.CountUp(c.target, ct);
                 if (v == c.shown) continue;
-                c.shown = v; c.text.text = c.suffix.Length == 0 ? Int(v) : PercentText(v); _counters[i] = c;
+                c.shown = v; c.text.text = c.pct ? (v >= 0 && v <= 100 ? Percents[v] : v + " %") : (v >= 0 && v < Ints.Length ? Ints[v] : v.ToString()); _counters[i] = c;
             }
-            if (Time.unscaledTime >= _hideAt) _root.SetActive(false);
-        }
-
-        private static readonly string[] Percents = BuildPercents();
-        private static string[] BuildPercents() { var a = new string[101]; for (int i = 0; i <= 100; i++) a[i] = i + " %"; return a; }
-        private static string PercentText(int v) => v >= 0 && v <= 100 ? Percents[v] : v + " %";
-
-        private void Counter(Text t, int target, string suffix) { t.text = suffix.Length == 0 ? "0" : "0 %"; _counters.Add((t, target, 0, suffix)); }
-
-        // ---------------------------------------------------------------- piezas de interfaz
-        private RectTransform Section(RectTransform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size)
-        {
-            var go = new GameObject(name, typeof(RectTransform)); go.transform.SetParent(parent, false);
-            var r = (RectTransform)go.transform; r.anchorMin = r.anchorMax = anchor; r.anchoredPosition = pos; r.sizeDelta = size;
-            var cg = go.AddComponent<CanvasGroup>(); cg.alpha = 0f; _sections.Add(cg);
-            return r;
-        }
-
-        private RectTransform Box(Transform parent, string name, Vector2 pos, Vector2 size)
-        {
-            var img = Img(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, size, Ink);
-            var r = img.rectTransform;
-            // esquinas marcadas (estilo táctico)
-            foreach (var (ax, ay) in new[] { (0f, 0f), (1f, 0f), (0f, 1f), (1f, 1f) })
+            if (_stats != null && ct <= 1f)
+                foreach (var (row, target, pct) in _countRows) { int v = StatsReport.CountUp(target, ct); _stats.SetValue(row, pct ? (v >= 0 && v <= 100 ? Percents[v] : v + " %") : (v >= 0 && v < Ints.Length ? Ints[v] : v.ToString())); }
+            // glitch: cortes y desplazamientos de color al entrar y de vez en cuando
+            if (_title != null)
             {
-                var c = Img(r, "Esquina", new Vector2(ax, ay), new Vector2(ax, ay), new Vector2(ax == 0 ? 9f : -9f, ay == 0 ? 2f : -2f), new Vector2(18f, 3f), Line);
-                var c2 = Img(r, "Esquina", new Vector2(ax, ay), new Vector2(ax, ay), new Vector2(ax == 0 ? 2f : -2f, ay == 0 ? 9f : -9f), new Vector2(3f, 18f), Line);
+                bool g = t < 1.2f || Mathf.Repeat(t, 4.3f) < 0.12f;
+                float jx = g ? Random.Range(-14f, 14f) : 0f;
+                _ghostA.rectTransform.anchoredPosition = new Vector2(jx - (g ? 6f : 0f), 40f + (g ? Random.Range(-4f, 4f) : 0f));
+                _ghostB.rectTransform.anchoredPosition = new Vector2(-jx + (g ? 6f : 0f), 40f);
+                _ghostA.enabled = _ghostB.enabled = g;
             }
-            return r;
-        }
-
-        private Image Img(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, Color c)
-        {
-            var go = new GameObject(name, typeof(RectTransform)); go.transform.SetParent(parent, false);
-            var r = (RectTransform)go.transform; r.anchorMin = anchorMin; r.anchorMax = anchorMax; r.anchoredPosition = pos; r.sizeDelta = size;
-            var img = go.AddComponent<Image>(); img.color = c; img.raycastTarget = false;
-            return img;
-        }
-
-        private Text Label(Transform parent, string text, int size, FontStyle style, Color color, TextAnchor anchor, Vector2 pos, Vector2 box)
-        {
-            var go = new GameObject("Texto", typeof(RectTransform)); go.transform.SetParent(parent, false);
-            var r = (RectTransform)go.transform; r.anchoredPosition = pos; r.sizeDelta = box;
-            var t = go.AddComponent<Text>(); t.font = _font; t.text = text; t.fontSize = size; t.fontStyle = style; t.color = color; t.alignment = anchor;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Overflow; t.raycastTarget = false;
-            go.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
-            return t;
-        }
-
-        private void Button(Transform parent, string text, Vector2 pos, Color c, UnityEngine.Events.UnityAction onClick)
-        {
-            var img = Img(parent, "Botón " + text, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, new Vector2(440f, 86f), c);
-            img.raycastTarget = true;
-            var b = img.gameObject.AddComponent<Button>(); b.targetGraphic = img; b.onClick.AddListener(onClick);
-            var cols = b.colors; cols.highlightedColor = new Color(1.2f, 1.2f, 1.2f); cols.pressedColor = new Color(0.8f, 0.8f, 0.8f); b.colors = cols;
-            Label(img.transform, text, 30, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter, Vector2.zero, new Vector2(430f, 80f)).rectTransform.localScale = new Vector3(0.88f, 1f, 1f);
-        }
-
-        private static void EnsureEventSystem()
-        {
-            if (EventSystem.current != null) return;
-            var es = new GameObject("EventSystem", typeof(EventSystem));
-            es.AddComponent<InputSystemUIInputModule>();
-        }
-
-        // ---------------------------------------------------------------- texturas por código
-        private Texture2D Tex(int w, int h, string name) { var t = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = name, wrapMode = TextureWrapMode.Clamp }; _owned.Add(t); return t; }
-
-        private Texture2D Vignette(int n)
-        {
-            var t = Tex(n, n, "Viñeta"); var px = new Color32[n * n];
-            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) { float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f; float d = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy) - 0.45f) / 0.9f; px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.SmoothStep(0f, 1f, d) * 255)); }
-            t.SetPixels32(px); t.Apply(false); return t;
-        }
-
-        /// <summary>Iconos sencillos: calavera, mira, diana, gota, reloj, bala.</summary>
-        private Sprite Icon(int kind)
-        {
-            const int n = 48; var t = Tex(n, n, "Icono " + kind); var px = new Color32[n * n];
-            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+            // VIGÍA a máquina de escribir
+            if (_typed != null)
             {
-                float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f, r = Mathf.Sqrt(u * u + v * v); bool on;
-                switch (kind)
+                int n = Mathf.Clamp(Mathf.FloorToInt((t - 0.6f) * TypeSpeed), 0, _typeText.Length);
+                if (n != _typedChars) { _typedChars = n; _typed.text = _typeText.Substring(0, n); }
+            }
+            if (Blocking)
+            {
+                var k = Keyboard.current;
+                if (k != null)
                 {
-                    case 0: on = (r < 0.62f && !(Mathf.Abs(u) > 0.12f && Mathf.Abs(u) < 0.42f && v > -0.05f && v < 0.25f)) || (Mathf.Abs(u) < 0.36f && v < -0.5f && v > -0.85f && (Mathf.RoundToInt((u + 1f) * 6f) % 2 == 0)); break;
-                    case 1: on = Mathf.Abs(r - 0.7f) < 0.09f || (Mathf.Abs(u) < 0.06f && Mathf.Abs(v) > 0.25f) || (Mathf.Abs(v) < 0.06f && Mathf.Abs(u) > 0.25f); break;
-                    case 2: on = Mathf.Abs(r - 0.8f) < 0.08f || Mathf.Abs(r - 0.45f) < 0.08f || r < 0.14f; break;
-                    case 3: on = (r < 0.5f && v < 0.15f) || (v >= 0.15f && Mathf.Abs(u) < 0.5f * (1f - (v - 0.15f) / 0.8f)); break;
-                    case 4: on = Mathf.Abs(r - 0.75f) < 0.09f || (Mathf.Abs(u) < 0.06f && v > 0f && v < 0.55f) || (Mathf.Abs(v) < 0.06f && u > 0f && u < 0.4f); break;
-                    default: on = (Mathf.Abs(u) < 0.2f && v < 0.35f && v > -0.85f) || (v >= 0.35f && Mathf.Abs(u) < 0.2f * (1f - (v - 0.35f) / 0.55f)); break;
+                    if (k.enterKey.wasPressedThisFrame || k.numpadEnterKey.wasPressedThisFrame) { UiSounds.Accept(); Retry(); return; }
+                    if (k.escapeKey.wasPressedThisFrame) { UiSounds.Back(); ToMenu(); return; }
+                    if (k.tabKey.wasPressedThisFrame) { UiSounds.Move(); ToggleTable(); }
                 }
-                px[y * n + x] = new Color32(255, 255, 255, (byte)(on ? 255 : 0));
+                if (_stats != null) _stats.Focused = false;   // Enter/Esc los lleva la pantalla; flechas a mano
+                if (_stats != null && k != null) { if (k.downArrowKey.wasPressedThisFrame) _stats.Select(_stats.Index + 1, true); else if (k.upArrowKey.wasPressedThisFrame) _stats.Select(_stats.Index - 1, true); }
             }
-            t.SetPixels32(px); t.Apply(false);
-            return Sprite.Create(t, new Rect(0, 0, n, n), Vector2.one * 0.5f);
+            if (Time.unscaledTime >= _hideAt) _root.gameObject.SetActive(false);
         }
 
-        /// <summary>Insignia: escudo con borde y un símbolo propio por medalla.</summary>
+        // ---------------------------------------------------------------- texturas
+        /// <summary>Insignia: escudo con borde y símbolo propio.</summary>
         private Sprite Badge(Medal m)
         {
-            const int n = 64; var t = Tex(n, n, "Insignia " + m); var px = new Color32[n * n];
+            const int n = 64; var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "Insignia " + m }; _owned.Add(t); var px = new Color32[n * n];
             Color body = m == Medal.Francotirador ? new Color(0.35f, 0.45f, 0.6f) : m == Medal.SinCobertura ? new Color(0.6f, 0.25f, 0.2f) : m == Medal.Racha ? new Color(0.75f, 0.5f, 0.15f) : m == Medal.Granadero ? new Color(0.4f, 0.48f, 0.25f) : m == Medal.Intocable ? new Color(0.5f, 0.5f, 0.55f) : new Color(0.55f, 0.45f, 0.3f);
             for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
             {
                 float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
-                float shield = Mathf.Max(Mathf.Abs(u) - 0.8f, v > 0f ? v - 0.85f : Mathf.Abs(u) - 0.8f * (1f + v / 0.95f));   // < 0 dentro
+                float shield = Mathf.Max(Mathf.Abs(u) - 0.8f, v > 0f ? v - 0.85f : Mathf.Abs(u) - 0.8f * (1f + v / 0.95f));
                 bool inside = shield < 0f, rim = shield > -0.1f && inside;
                 float r = Mathf.Sqrt(u * u + (v - 0.05f) * (v - 0.05f)), a = Mathf.Atan2(v - 0.05f, u);
-                bool sym;
-                switch (m)
-                {
-                    case Medal.Francotirador: sym = Mathf.Abs(r - 0.35f) < 0.06f || (Mathf.Abs(u) < 0.04f && r < 0.5f) || (Mathf.Abs(v - 0.05f) < 0.04f && r < 0.5f); break;
-                    case Medal.Racha: sym = r < 0.2f + 0.22f * Mathf.Pow(Mathf.Abs(Mathf.Cos(a * 2.5f)), 3f); break;   // estrella
-                    case Medal.SinCobertura: sym = Mathf.Abs(u + v * 0.2f) < 0.07f && Mathf.Abs(v) < 0.5f || (Mathf.Abs(v - 0.3f) < 0.06f && Mathf.Abs(u) < 0.3f); break;
-                    case Medal.Granadero: sym = r < 0.3f || (Mathf.Abs(u) < 0.08f && v > 0.3f && v < 0.55f); break;
-                    case Medal.Intocable: sym = Mathf.Abs(r - 0.32f) < 0.07f; break;
-                    default: sym = Mathf.Abs(u) < 0.06f && Mathf.Abs(v) < 0.45f || Mathf.Abs(v - 0.15f) < 0.06f && Mathf.Abs(u) < 0.3f; break;
-                }
-                Color c = !inside ? new Color(0, 0, 0, 0) : rim ? new Color(0.9f, 0.82f, 0.55f, 1f) : sym ? new Color(0.95f, 0.92f, 0.82f, 1f) : body;
-                px[y * n + x] = c;
+                bool sym = m == Medal.Francotirador ? (Mathf.Abs(r - 0.35f) < 0.06f || (Mathf.Abs(u) < 0.04f && r < 0.5f) || (Mathf.Abs(v - 0.05f) < 0.04f && r < 0.5f))
+                    : m == Medal.Racha ? r < 0.2f + 0.22f * Mathf.Pow(Mathf.Abs(Mathf.Cos(a * 2.5f)), 3f)
+                    : m == Medal.Granadero ? (r < 0.3f || (Mathf.Abs(u) < 0.08f && v > 0.3f && v < 0.55f))
+                    : m == Medal.Intocable ? Mathf.Abs(r - 0.32f) < 0.07f
+                    : (Mathf.Abs(u) < 0.06f && Mathf.Abs(v) < 0.45f) || (Mathf.Abs(v - 0.15f) < 0.06f && Mathf.Abs(u) < 0.3f);
+                px[y * n + x] = !inside ? new Color(0, 0, 0, 0) : rim ? new Color(0.9f, 0.82f, 0.55f, 1f) : sym ? new Color(0.95f, 0.92f, 0.82f, 1f) : body;
             }
             t.SetPixels32(px); t.Apply(false);
             return Sprite.Create(t, new Rect(0, 0, n, n), Vector2.one * 0.5f);
-        }
-
-        /// <summary>Gráfica pequeña: barras de bajas por día y línea de precisión.</summary>
-        private Texture2D Chart(List<DayStats> days, int w, int h)
-        {
-            var t = Tex(w, h, "Gráfica"); var px = new Color32[w * h];
-            for (int i = 0; i < px.Length; i++) px[i] = new Color32(0, 0, 0, 0);
-            for (int x = 0; x < w; x++) px[x] = new Color32(200, 190, 160, 160);
-            int n = Mathf.Max(1, days.Count), max = 1; foreach (var d in days) max = Mathf.Max(max, d.kills);
-            float bw = w / (float)DayPlans.Days;
-            int prevY = -1, prevX = -1;
-            for (int i = 0; i < days.Count; i++)
-            {
-                int bh = Mathf.RoundToInt((h - 6) * days[i].kills / (float)max);
-                for (int x = Mathf.RoundToInt(i * bw + 3); x < Mathf.RoundToInt((i + 1) * bw - 3) && x < w; x++)
-                    for (int y = 1; y <= bh && y < h; y++) px[y * w + x] = days[i].died ? new Color32(200, 60, 45, 230) : new Color32(150, 170, 100, 230);
-                int cx = Mathf.RoundToInt((i + 0.5f) * bw), cy = Mathf.Clamp(Mathf.RoundToInt(days[i].Accuracy * (h - 4)) + 2, 1, h - 2);
-                if (prevX >= 0) for (int s = 0; s <= 40; s++) { int lx = Mathf.RoundToInt(Mathf.Lerp(prevX, cx, s / 40f)), ly = Mathf.RoundToInt(Mathf.Lerp(prevY, cy, s / 40f)); for (int dy = -1; dy <= 1; dy++) if (ly + dy > 0 && ly + dy < h) px[(ly + dy) * w + lx] = new Color32(255, 190, 70, 255); }
-                prevX = cx; prevY = cy;
-            }
-            t.SetPixels32(px); t.Apply(false); return t;
         }
 
         private void PlayThump(StatsScreenMode mode)
@@ -352,7 +274,7 @@ namespace SevenDays.UI
             var clip = AudioClip.Create("Golpe estadísticas", n, 1, rate, false); _owned.Add(clip);
             var data = new float[n]; var rng = new System.Random(3);
             float f0 = mode == StatsScreenMode.Defeat ? 62f : 98f;
-            for (int i = 0; i < n; i++) { float t = i / (float)rate; float env = Mathf.Exp(-t * 4.2f); data[i] = env * (0.55f * Mathf.Sin(2f * Mathf.PI * f0 * t * (1f - 0.25f * t)) + 0.05f * (float)(rng.NextDouble() * 2 - 1) * Mathf.Exp(-t * 18f)); }
+            for (int i = 0; i < n; i++) { float tt = i / (float)rate; float env = Mathf.Exp(-tt * 4.2f); data[i] = env * (0.55f * Mathf.Sin(2f * Mathf.PI * f0 * tt * (1f - 0.25f * tt)) + 0.05f * (float)(rng.NextDouble() * 2 - 1) * Mathf.Exp(-tt * 18f)); }
             clip.SetData(data, 0);
             _audio.PlayOneShot(clip, mode == StatsScreenMode.DaySummary ? 0.35f : 0.7f);
         }

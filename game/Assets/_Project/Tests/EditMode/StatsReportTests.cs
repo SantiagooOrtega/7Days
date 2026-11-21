@@ -75,5 +75,20 @@ namespace SevenDays.Tests
             Assert.Greater(StatsReport.CountUp(120, 0.5f), 60, "ease-out: rápido al principio");
             int prev = -1; for (float t = 0; t <= 1f; t += 0.05f) { int v = StatsReport.CountUp(120, t); Assert.GreaterOrEqual(v, prev); prev = v; }
         }
+
+        [Test]
+        public void StatList_Values_AndChartNeverEmpty()
+        {
+            var d = D(1, kills: 0, fired: 0, hit: 0, streak: 0); d.weapons = new[] { "Pistola" };
+            var vals = StatsReport.StatValues(new[] { d }, out int k, out int h, out int acc, out int dmg);
+            Assert.AreEqual(StatsReport.StatNames.Length, vals.Length);
+            Assert.AreEqual("0", vals[0]); Assert.AreEqual("0 %", vals[2]); Assert.AreEqual("Pistola", vals[5]); Assert.AreEqual("1:30", vals[4]);
+            foreach (var days in new[] { new[] { d }, new[] { D(1), D(2, kills: 30) } })
+            {
+                var px = StatsReport.Chart(days, 100, 40); int solid = 0;
+                for (int y = 1; y < 40; y++) for (int x = 0; x < 100; x++) if (px[(y * 100 + x) * 4 + 3] > 0) solid++;
+                Assert.Greater(solid, 20, "nunca vacía (con un día y sin bajas: barra mínima y punto)");
+            }
+        }
     }
 }

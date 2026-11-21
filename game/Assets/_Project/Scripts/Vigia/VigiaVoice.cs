@@ -81,6 +81,7 @@ namespace SevenDays.Vigia
         // ---------------------------------------------------------------- subtítulos
         private void OnGUI()
         {
+            if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             if (!VigiaSettings.Subtitles || VigiaSettings.Mode == VigiaMode.Apagada) return;
             float t = Time.unscaledTime;
             if (t > _subEnd + 0.4f || string.IsNullOrEmpty(_subText)) return;

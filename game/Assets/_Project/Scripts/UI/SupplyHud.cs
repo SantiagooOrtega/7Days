@@ -56,6 +56,7 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
+            if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             var cam = Camera.main;
             if (cam == null || Event.current.type != EventType.Repaint) return;
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };

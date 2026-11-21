@@ -49,6 +49,7 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
+            if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             if (_health == null) return;
             if (_label == null)
             {

@@ -337,7 +337,9 @@ namespace SevenDays.Tests.PlayMode
             Assert.AreEqual(1, (int)st.GetProperty("Rows").GetValue(inst), "una fila por día jugado");
             var scaler = ((Component)inst).GetComponentInChildren<UnityEngine.UI.CanvasScaler>();
             Assert.AreEqual(UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize, scaler.uiScaleMode);
-            Assert.AreEqual(3, ((Component)inst).GetComponentsInChildren<UnityEngine.UI.Button>().Length, "Reintentar día, Menú, Ver estadísticas");
+            Assert.AreEqual(3, ((Component)inst).GetComponentsInChildren<UnityEngine.UI.Button>().Length, "Reintentar día, Menú, Estadísticas");
+            Assert.AreEqual(7, (int)st.GetProperty("StatRows").GetValue(inst), "Bajas, Cabeza, Precisión, Daño, Tiempo, Armas, Mejor racha");
+            Assert.IsFalse(UnityEngine.Object.FindFirstObjectByType(T("SevenDays.UI.WeaponHud")) is Component wh && wh.GetComponentInChildren<Canvas>() != null && wh.GetComponentInChildren<Canvas>().enabled, "sin HUD de armas");
             T("SevenDays.UI.StatsScreen").GetMethod("Hide").Invoke(null, null);
             UnityEngine.Object.Destroy((Component)inst);
             yield return null;

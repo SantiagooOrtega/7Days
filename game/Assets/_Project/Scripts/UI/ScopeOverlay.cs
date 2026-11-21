@@ -16,6 +16,7 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
+            if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             if (_camera == null || Event.current.type != EventType.Repaint) return;
             float a = Mathf.InverseLerp(0.75f, 1f, _camera.FirstPersonBlend);
             if (!_camera.Weapon?.HasScope ?? true) return;
