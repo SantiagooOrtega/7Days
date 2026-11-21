@@ -37,7 +37,7 @@ namespace SevenDays.Procedural
     {
         public float hour = 17f;                       // informativo: 0-24 (la luz la dan los valores de abajo)
         public float[] fogColor = { 0.5f, 0.55f, 0.6f };
-        public float fogDensity = 0.0162f;
+        public float fogDensity = 0.0195f;
         public float[] ambientSky = { 0.5f, 0.56f, 0.64f }, ambientEquator = { 0.4f, 0.42f, 0.46f }, ambientGround = { 0.22f, 0.22f, 0.23f };
         public float sunPitch = 52f, sunYaw = -35f, sunIntensity = 1f, shadowStrength = 0.78f;
         public float[] sunColor = { 0.96f, 0.95f, 0.93f };

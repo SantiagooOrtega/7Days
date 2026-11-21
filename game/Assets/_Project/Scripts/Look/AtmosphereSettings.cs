@@ -11,10 +11,10 @@ namespace SevenDays.Look
 
         // Niebla baja y bruma
         public int GroundFogLayers = 3;
-        public float GroundFogDensity = 2.04f;     // opacidad/cantidad de la niebla pegada al suelo
+        public float GroundFogDensity = 2.45f;     // opacidad/cantidad de la niebla pegada al suelo
         public float GroundFogAlpha = 0.11f;   // transparencia de cada nube
         public int HazeBanks = 20;              // nubes grandes de bruma entre los edificios lejanos
-        public float HorizonFog = 1.5f;           // pared de bruma fuera del perímetro con degradado al cielo (oculta el borde del mapa)
+        public float HorizonFog = 1.8f;           // pared de bruma fuera del perímetro con degradado al cielo (oculta el borde del mapa)
 
         // Cielo apagado
         public float SkyDim = 0.45f;             // 0 = cielo del color de la niebla, 1 = gris oscuro
