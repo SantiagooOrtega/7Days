@@ -42,6 +42,9 @@ namespace SevenDays.Intro
         /// <summary>La intro en cómic (al empezar una partida nueva o desde Opciones).</summary>
         public static IntroPlayer Play(Transform parent = null) => Run(IntroSequence.Load(), parent, true, null);
 
+        /// <summary>El epílogo (final_01) al ganar; onDone muestra después la pantalla de victoria.</summary>
+        public static IntroPlayer PlayEpilogue(Transform parent, Action onDone) => Run(IntroSequence.Epilogue(), parent, false, onDone);
+
         /// <summary>Cualquier secuencia de láminas; onDone se llama al terminar o al saltarla.</summary>
         public static IntroPlayer Run(IntroSequence seq, Transform parent, bool markSeen, Action onDone)
         {
@@ -103,7 +106,7 @@ namespace SevenDays.Intro
         {
             var n = Cur.narration;
             if (_narrationDone >= 0f || n == null) return;
-            if (_line < 0) { if (Elapsed >= IntroText.FadeSeconds) StartLine(0); return; }
+            if (_line < 0) { if (Elapsed >= (Cur.fade > 0f ? Cur.fade : IntroText.FadeSeconds)) StartLine(0); return; }
             if (Elapsed - _lineStart < _lineSeconds + 0.3f) return;
             if (_line + 1 < n.Length) StartLine(_line + 1);
             else { _narrationDone = Elapsed; Speaking = false; }
@@ -147,7 +150,7 @@ namespace SevenDays.Intro
             GUI.color = Color.black; GUI.DrawTexture(new Rect(0, 0, W, H), Texture2D.whiteTexture);
             var p = Cur;
             float e = Elapsed;
-            float alpha = IntroText.Alpha(e, _leaveStart >= 0f ? Time.unscaledTime - _leaveStart : -1f);
+            float alpha = IntroText.Alpha(e, _leaveStart >= 0f ? Time.unscaledTime - _leaveStart : -1f, p.fade > 0f ? p.fade : IntroText.FadeSeconds);
             if (p.image != null)
             {
                 float t = e / Mathf.Max(Hold, (_narrationDone >= 0f ? _narrationDone + 1.2f : Hold));

@@ -152,7 +152,13 @@ namespace SevenDays.World
                     _nextReasons.Clear();
                     if (p == DayPhase.Summary) TuningFor(Cycle.Day + 1, _nextReasons);   // lo que hará el director mañana, para explicarlo ya
                     _summary = BuildSummary();
-                    if (p == DayPhase.Victory) { Finish(true); VigiaVoice.Say("victoria"); SevenDays.UI.StatsScreen.Show(StatsScreenMode.Victory, Cycle.Day, Match.days, _nextReasons); }
+                    if (p == DayPhase.Victory)
+                    {
+                        Finish(true);
+                        // epílogo en cómic justo antes de la pantalla de victoria (en las pruebas automáticas, directo a la pantalla)
+                        if (SevenDays.Procedural.IntroText.PlaysEpilogue(true) && !Application.isBatchMode) SevenDays.Intro.IntroPlayer.PlayEpilogue(transform, ShowVictory);
+                        else ShowVictory();
+                    }
                     else { VigiaVoice.Say("oleada_superada"); VigiaEvents.DayTips(Match.days[Match.days.Count - 1]); SevenDays.UI.StatsScreen.Show(StatsScreenMode.DaySummary, Cycle.Day, Match.days, _nextReasons); }
                     _summaryUntil = Time.unscaledTime + SummaryPanelSeconds;   // panel pequeño, no bloquea
                     if (p == DayPhase.Summary) HudMessages.Add("OLEADA SUPERADA", new Color(0.6f, 1f, 0.6f), CycleSummarySeconds);
@@ -224,6 +230,12 @@ namespace SevenDays.World
             if (Instance != null && Instance.Cycle != null) PendingStartDay = Instance.Cycle.Day;
             Retry();
         }   // contadores de GrenadeManager al empezar el día
+        private void ShowVictory()
+        {
+            VigiaVoice.Say("victoria");
+            SevenDays.UI.StatsScreen.Show(StatsScreenMode.Victory, Cycle.Day, Match.days, _nextReasons);
+        }
+
         private void Finish(bool victory)
         {
             if (_finished) return;

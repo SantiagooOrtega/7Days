@@ -25,8 +25,16 @@ namespace SevenDays.Procedural
         public static float HoldSeconds(float narrationSeconds, float auto = AutoSeconds) => Math.Max(auto, narrationSeconds + 1.2f);
 
         /// <summary>Opacidad de la lámina: entra con fundido y, al salir (leaving = segundos desde que empezó a salir; negativo = no sale), se funde a negro.</summary>
-        public static float Alpha(float elapsed, float leaving) =>
-            Clamp01(elapsed / FadeSeconds) * (leaving < 0f ? 1f : Clamp01(1f - leaving / LeaveSeconds));
+        public static float Alpha(float elapsed, float leaving, float fadeIn = FadeSeconds) =>
+            Clamp01(elapsed / Math.Max(0.01f, fadeIn)) * (leaving < 0f ? 1f : Clamp01(1f - leaving / LeaveSeconds));
+
+        // ---- epílogo (final_01): solo al ganar el día 7, antes de la pantalla de victoria
+        public const float EpilogueSeconds = 12f, EpilogueFade = 2f;
+        public static readonly string[] EpilogueNarration = { "epilogo" };
+        /// <summary>Las tres viñetas de final_01 (UV con y desde arriba): la planta arriba, la radio abajo a la izquierda y Sam con el helicóptero abajo a la derecha.</summary>
+        public static readonly float[] EpilogueTour = { 0f, 0f, 1f, 0.49f, 0f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f };
+        /// <summary>El epílogo sale solo con la victoria (nunca en la derrota).</summary>
+        public static bool PlaysEpilogue(bool victory) => victory;
 
         /// <summary>Movimiento lento de cámara sobre la lámina (t de 0 a 1 en su tiempo): zoom del 100 al 108 % y paneo suave cuya dirección cambia por lámina.
         /// Devuelve el rectángulo de UV visible (x, y, ancho, alto), siempre dentro de la imagen.</summary>

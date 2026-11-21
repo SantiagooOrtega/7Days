@@ -201,6 +201,19 @@ namespace SevenDays.Tests
         }
 
         [Test]
+        public void Epilogue_OnlyOnVictory_12s_ThreePanelTour_VigiaLine()
+        {
+            Assert.IsTrue(IntroText.PlaysEpilogue(true)); Assert.IsFalse(IntroText.PlaysEpilogue(false), "no se muestra en la derrota");
+            Assert.AreEqual(12f, IntroText.EpilogueSeconds, 0.5f);
+            Assert.Greater(IntroText.EpilogueFade, IntroText.FadeSeconds, "fundido lento");
+            var t = IntroText.EpilogueTour; Assert.AreEqual(12, t.Length, "tres viñetas");
+            for (int i = 0; i < 3; i++) { Assert.GreaterOrEqual(t[i * 4], 0f); Assert.GreaterOrEqual(t[i * 4 + 1], 0f); Assert.LessOrEqual(t[i * 4] + t[i * 4 + 2], 1f); Assert.LessOrEqual(t[i * 4 + 1] + t[i * 4 + 3], 1f); }
+            var c = Catalog();
+            Assert.AreEqual("Transmisión enviada. Todo el mundo sabrá qué hicieron.", c[IntroText.EpilogueNarration[0]].Variants[0]);
+            Assert.IsTrue(File.Exists(Path.Combine(Folder, VigiaCatalog.ClipName(IntroText.EpilogueNarration[0], 0) + ".wav")));
+        }
+
+        [Test]
         public void ComicIntro_TimingFadesMotionAndLetterbox()
         {
             Assert.AreEqual(7f, IntroText.HoldSeconds(0f), "paso automático a los ~7 s");

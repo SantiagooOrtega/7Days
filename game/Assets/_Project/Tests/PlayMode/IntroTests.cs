@@ -49,5 +49,30 @@ namespace SevenDays.Tests.PlayMode
             Assert.IsTrue((bool)seenProp.GetValue(null), "queda guardado que se vio");
             seenProp.SetValue(null, seenBefore);
         }
+
+        [UnityTest]
+        public IEnumerator Epilogue_PlaysFinalPage_VigiaNarrates_ThenVictory()
+        {
+            var pt = T("SevenDays.Intro.IntroPlayer");
+            var seenProp = pt.GetProperty("Seen"); bool seenBefore = (bool)seenProp.GetValue(null);
+            seenProp.SetValue(null, false);
+            bool done = false;
+            var player = (Component)pt.GetMethod("PlayEpilogue").Invoke(null, new object[] { null, (Action)(() => done = true) });
+            Assert.IsNotNull(player);
+            var seq = pt.GetField("_seq", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(player);
+            var panels = (IList)seq.GetType().GetField("panels").GetValue(seq);
+            Assert.AreEqual(1, panels.Count);
+            var img = (Texture2D)panels[0].GetType().GetField("image").GetValue(panels[0]);
+            Assert.AreEqual("final_01", img.name, "la lámina final");
+            yield return new WaitForSecondsRealtime(2.5f);
+            Assert.AreEqual("Transmisión enviada. Todo el mundo sabrá qué hicieron.", (string)pt.GetProperty("Subtitle").GetValue(player));
+            Assert.IsFalse(done, "sigue en el epílogo");
+            pt.GetMethod("Next").Invoke(player, null);   // clic o Espacio: continuar
+            yield return new WaitForSecondsRealtime(0.7f);
+            Assert.IsTrue(done, "después, la pantalla de victoria");
+            Assert.IsFalse((bool)pt.GetProperty("Active").GetValue(null));
+            Assert.IsFalse((bool)seenProp.GetValue(null), "el epílogo no marca la intro como vista");
+            seenProp.SetValue(null, seenBefore);
+        }
     }
 }

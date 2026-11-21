@@ -66,4 +66,5 @@ comic_6b	partida	importante	Soy VIGÍA, la seguridad de la Planta 7.
 comic_6c	partida	importante	Puedo mantenerte con vida siete días... si haces lo que te diga.
 comic_7	partida	importante	Tienes seis balas. Que cuenten.
 comic_8	partida	importante	Sal. Yo te cubro.
+epilogo	partida	importante	Transmisión enviada. Todo el mundo sabrá qué hicieron.
 granada_fuera	recurso	importante	Granada fuera. | ¡Granada!

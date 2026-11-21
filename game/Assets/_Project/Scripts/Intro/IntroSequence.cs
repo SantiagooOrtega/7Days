@@ -19,6 +19,7 @@ namespace SevenDays.Intro
             public string[] narration = new string[0];   // ids del catálogo de VIGÍA, en orden; vacío = sin voz
             public float seconds;                         // 0 = paso automático normal (~7 s)
             public float[] tour = new float[0];           // recorrido por tramos (x, y, ancho, alto de UV por tramo); vacío = zoom y paneo lentos
+            public float fade;                            // fundido de entrada en segundos (0 = el normal)
         }
 
         public List<Panel> panels = new List<Panel>();
@@ -33,6 +34,19 @@ namespace SevenDays.Intro
                 var img = Resources.Load<Texture2D>("intro_" + (i + 1).ToString("00"));
                 s.panels.Add(new Panel { image = img != null ? img : Placeholder(i), narration = IntroText.ComicNarration(i) });
             }
+            return s;
+        }
+
+        /// <summary>Epílogo: final_01 con fundido lento y recorrido por sus tres viñetas (~12 s); VIGÍA cierra la historia. Sin imagen, una viñeta provisional.</summary>
+        public static IntroSequence Epilogue()
+        {
+            var s = CreateInstance<IntroSequence>();
+            var img = Resources.Load<Texture2D>("final_01");
+            s.panels.Add(new Panel
+            {
+                image = img != null ? img : Placeholder(8), narration = IntroText.EpilogueNarration, seconds = IntroText.EpilogueSeconds,
+                tour = img != null ? IntroText.EpilogueTour : new float[0], fade = IntroText.EpilogueFade,
+            });
             return s;
         }
 
