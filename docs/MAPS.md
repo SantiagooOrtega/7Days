@@ -62,3 +62,9 @@ Generadores puros en `Procedural/MapLibrary.cs` (probados en `MapLibraryTests`);
 - **Arreglo de paso**: con agentes de 0.5 m de radio, el horneado cerraba la puerta interior y la trasera (1.1 m), y los zombis nunca llegaban a la habitación este. Ahora esas dos puertas miden 1.5 m en la casa del mapa 1, y todas las puertas de casas y refugios llevan un enlace que el director apaga al tapiarlas (como la ventana grande).
 - **Botín**: una caja más arriba (`house_upper_crate`, tabla `low`, sin arma garantizada: la escasez se mantiene).
 - El refugio del Bosque no lleva piso 2. Es una cabaña pequeña y una escalera no cabe sin rehacerla; se queda como estaba, pero con los enlaces de las puertas.
+
+## Perímetro: trinchera con alambre (Calle) y cerca de troncos (Bosque)
+- `ambience.perimeter` en el JSON: `trench` o `logs` (vacío = muro liso). Lógica pura en `Procedural/PerimeterLayout.cs` (`PerimeterTests`), dibujo en `World/PerimeterBarrier.cs`.
+- Por tramos de 3 m con variación: sacos de arena (dos filas de fondo) con tablón, concreto roto o cerca metálica rota sobre sacos; en el Bosque, tres troncos apilados. Todos llevan un poste inclinado hacia fuera y una espiral de alambre de espino (cintas cruzadas finas, opacas y sin sombras) hasta ~2 m. Además hay caballos de frisa fuera, banderines rotos, focos (6 con luz tenue sin sombras) y algún barril. Las esquinas están cerradas y nada invade la zona jugable.
+- Los muros de siempre siguen como collider invisible (4 m en la Calle, 6 m en el Bosque): bloquean jugador, zombis y balas, y no se saltan.
+- Rendimiento: GPU instancing (`Graphics.RenderMeshInstanced`) con una malla y un material por tipo y las matrices preparadas una vez. LOD: alambre, cercas, banderines y caballos de frisa solo a menos de ~57 m de su tramo. F6 muestra "Perímetro: piezas, instancias, lotes, ms CPU" (en pruebas: Calle 3193 instancias, 41 lotes, 0.03 ms; Bosque 719, 23 lotes, 0.01 ms).

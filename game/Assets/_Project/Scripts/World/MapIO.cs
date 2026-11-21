@@ -84,7 +84,7 @@ namespace SevenDays.World
                 density = at.Density, groundFogLayers = at.GroundFogLayers, groundFogDensity = at.GroundFogDensity, groundFogAlpha = at.GroundFogAlpha, hazeBanks = at.HazeBanks, skyDim = at.SkyDim, horizonFog = at.HorizonFog,
                 ash = at.Ash, smokeColumns = at.SmokeColumns, smoke = at.Smoke, sparks = at.Sparks, godRays = at.GodRays, godRayIntensity = at.GodRayIntensity,
                 redFlickerLamps = at.RedFlickerLamps, cracks = at.Cracks, weedTufts = at.WeedTufts, puddles = at.Puddles, bloodStains = at.BloodStains, skylineBuildings = at.SkylineBuildings,
-                dust = true, skyline = true, roadMarkings = true, fireflies = 0f, soundscape = "none",
+                dust = true, skyline = true, roadMarkings = true, fireflies = 0f, soundscape = "none", perimeter = "trench",
             };
         }
     }

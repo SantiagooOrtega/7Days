@@ -102,6 +102,16 @@ namespace SevenDays.Tests.PlayMode
             for (int i = 0; i < 10; i++) yield return null;
             var sky = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.SkylineLights"));
             var fog = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.FogBeacons"));
+            var per = UnityEngine.Object.FindFirstObjectByType(T("SevenDays.World.PerimeterBarrier"));
+            Assert.IsNotNull(per, "perímetro trinchera/troncos");
+            Assert.Greater((int)per.GetType().GetProperty("Instances").GetValue(per), 500);
+            Debug.Log("[Perímetro] " + id + ": " + T("SevenDays.World.PerimeterBarrier").GetMethod("Describe").Invoke(null, null));
+            foreach (var wn in new[] { "Wall N", "Boundary N" })
+            {
+                var w = GameObject.Find(wn); if (w == null) continue;
+                Assert.IsTrue(w.GetComponent<Collider>().enabled, "el muro sigue bloqueando");
+                Assert.IsFalse(w.GetComponent<Renderer>().enabled, "el muro liso ya no se ve");
+            }
             if (id == "calle_en_ruinas")
             {
                 Assert.IsNotNull(sky, "ventanas en los edificios lejanos");

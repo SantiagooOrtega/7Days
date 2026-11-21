@@ -79,6 +79,7 @@ namespace SevenDays.UI
             _zombies = SevenDays.Combat.ZombieStats.Collect();
             _sb.Append("Zombis: ").Append(SevenDays.Combat.ZombieStats.Describe(_zombies));
             if (SevenDays.World.ForestRenderer.Instance != null) _sb.Append('\n').Append(SevenDays.World.ForestRenderer.Describe());
+            if (SevenDays.World.PerimeterBarrier.Instance != null) _sb.Append('\n').Append(SevenDays.World.PerimeterBarrier.Describe());
             var loot = SevenDays.World.Loot.LootManager.Instance;
             if (loot != null) _sb.Append("\nSuministros: ").Append(loot.ActiveCount).Append(" en el suelo, marcadores ").Append(SevenDays.World.Loot.LootPickup.VisibleMarkers)
                 .Append(", luces ").Append(loot.LightsOn).Append('/').Append(loot.MaxGlintLights).Append(", destellos ").Append(SevenDays.World.Loot.LootPickup.EmittingSparkles);

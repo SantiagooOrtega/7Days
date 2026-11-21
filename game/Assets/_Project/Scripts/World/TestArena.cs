@@ -206,7 +206,8 @@ namespace SevenDays.World
             _levelRoot = root;
             IndustrialRuins.Build(root, _look, _map);   // piezas del kit en el orden del JSON
             if (_map.ambience.skyline) Skyline.Build(root, _look);
-            if (_map.ambience.distantLights) FogBeacons.Build(root, _map.halfSize);   // luces lejanas en la niebla (Bosque)
+            if (_map.ambience.distantLights) FogBeacons.Build(root, _map.halfSize);
+            PerimeterBarrier.Build(root, _map);   // trinchera con alambre (Calle) o cerca de troncos (Bosque); los muros quedan como collider   // luces lejanas en la niebla (Bosque)
             if (_look.House.Enabled) foreach (var h in _map.houses) IndustrialRuins.Anchors.AddRange(HouseIO.PerimeterAnchors(h)); // maleza y sangre también junto a la casa
             GroundDetails.Build(root, _look, IndustrialRuins.Anchors);
             Vegetation.Build(root, _look, _layout);
