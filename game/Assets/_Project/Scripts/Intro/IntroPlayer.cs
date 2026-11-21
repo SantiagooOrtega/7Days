@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SevenDays.Core;
@@ -7,123 +9,226 @@ using SevenDays.Vigia;
 namespace SevenDays.Intro
 {
     /// <summary>
-    /// Reproduce la intro en cómic a pantalla completa (IMGUI): fundido entre viñetas, movimiento lento de cámara sobre la imagen, texto con máquina de escribir y
-    /// narración de VIGÍA (voz con radio). Clic o Espacio: completa el texto o pasa a la siguiente; Esc o "Saltar": la omite. Al terminar se guarda que ya se vio
-    /// (PlayerPrefs) y no vuelve a salir hasta que se pida desde Opciones (Esc > Ver la intro otra vez).
+    /// Reproduce láminas de cómic a pantalla completa (IMGUI): la intro (8 láminas) y el epílogo. Cada lámina entra y sale con fundido, con movimiento lento
+    /// (zoom y paneo, o recorrido por tramos) y encaje con letterbox. Pasa sola a los ~7 s (o cuando VIGÍA termina de hablar); clic, Espacio o flecha derecha
+    /// avanzan al instante, flecha izquierda retrocede y Esc o el botón "SALTAR" (abajo a la derecha) la omiten entera. Puntos de progreso abajo.
+    /// VIGÍA narra con su voz y subtítulos solo las frases de cada lámina. Al terminar la intro se guarda que ya se vio (PlayerPrefs); se repite desde Opciones.
     /// </summary>
     public class IntroPlayer : MonoBehaviour
     {
         public const string SeenKey = "intro.seen";
         public static bool Active { get; private set; }
+        /// <summary>VIGÍA está hablando en la intro o el epílogo (la música baja).</summary>
+        public static bool Speaking { get; private set; }
         public static bool Seen { get => PlayerPrefs.GetInt(SeenKey, 0) == 1; set => PlayerPrefs.SetInt(SeenKey, value ? 1 : 0); }
         /// <summary>Sale si no se ha visto. En batch (pruebas automáticas) nunca, para no bloquear la partida.</summary>
         public static bool ShouldPlay => !Seen && !Application.isBatchMode;
 
         private IntroSequence _seq;
-        private int _index;
-        private float _panelStart, _fade = 1f;
-        private bool _typed;
+        private bool _markSeen;
+        private Action _onDone;
+        private int _index, _target, _line;
+        private float _panelStart, _leaveStart = -1f, _lineStart, _lineSeconds, _narrationDone = -1f;
+        private string _subtitle = "";
         private AudioSource _src;
         private GUIStyle _text, _skip;
+        private bool _overSkip, _paused;
+        private static Dictionary<string, VigiaLine> _catalog;
+        private static Texture2D _dot;
 
-        public static IntroPlayer Play(Transform parent = null)
+        public int Index => _index;
+        public string Subtitle => _subtitle;
+
+        /// <summary>La intro en cómic (al empezar una partida nueva o desde Opciones).</summary>
+        public static IntroPlayer Play(Transform parent = null) => Run(IntroSequence.Load(), parent, true, null);
+
+        /// <summary>Cualquier secuencia de láminas; onDone se llama al terminar o al saltarla.</summary>
+        public static IntroPlayer Run(IntroSequence seq, Transform parent, bool markSeen, Action onDone)
         {
+            if (seq == null || seq.panels.Count == 0) { onDone?.Invoke(); return null; }
             var go = new GameObject("Intro");
             if (parent != null) go.transform.SetParent(parent, false);
             var p = go.AddComponent<IntroPlayer>();
-            p._seq = IntroSequence.Load();
+            p._seq = seq; p._markSeen = markSeen; p._onDone = onDone;
             p._src = go.AddComponent<AudioSource>();
-            p._src.playOnAwake = false; p._src.spatialBlend = 0f; p._src.priority = 0;
+            p._src.playOnAwake = false; p._src.spatialBlend = 0f; p._src.priority = 0; p._src.ignoreListenerPause = true;
             AudioMix.Route(p._src, AudioGroup.Vigia, 1f);
-            Active = p._seq.panels.Count > 0;
-            if (!Active) { Destroy(go); return null; }
+            Active = true;
             GameInput.InputCaptured = true;
-            p._paused = SevenDays.World.DayLoop.Instance != null;   // vista otra vez desde Opciones a mitad de partida: el juego espera
+            p._paused = SevenDays.World.DayLoop.Instance != null;   // a mitad de partida (Opciones o epílogo): el juego espera
             if (p._paused) Time.timeScale = 0f;
             p.Show(0);
             return p;
         }
 
-        private void Show(int i)
+        /// <summary>Texto de una frase del catálogo de VIGÍA (primera variante).</summary>
+        public static string LineText(string id)
         {
-            _index = i; _panelStart = Time.unscaledTime; _typed = false;
-            _src.Stop();
-            var id = _seq.panels[i].narrationId;
-            var clip = !string.IsNullOrEmpty(id) && VigiaSettings.Mode != VigiaMode.SoloTexto && VigiaSettings.Mode != VigiaMode.Apagada ? VigiaClips.Get(VigiaCatalog.ClipName(id, 0)) : null;
-            if (clip != null) { _src.clip = clip; _src.Play(); }
+            if (_catalog == null)
+            {
+                var ta = Resources.Load<TextAsset>("vigia_frases");
+                _catalog = VigiaCatalog.Parse(ta != null ? ta.text : "");
+            }
+            return _catalog.TryGetValue(id, out var l) && l.Variants.Length > 0 ? l.Variants[0] : "";
         }
 
+        private IntroSequence.Panel Cur => _seq.panels[_index];
         private float Elapsed => Time.unscaledTime - _panelStart;
-        private string Line => _seq.panels[_index].text ?? "";
+        private float Hold => Cur.seconds > 0f ? Cur.seconds : IntroText.AutoSeconds;
+
+        private void Show(int i)
+        {
+            _index = Mathf.Clamp(i, 0, _seq.panels.Count - 1); _target = _index;
+            _panelStart = Time.unscaledTime; _leaveStart = -1f;
+            _line = -1; _subtitle = ""; _narrationDone = (Cur.narration == null || Cur.narration.Length == 0) ? 0f : -1f;
+            if (_src != null) _src.Stop();
+            Speaking = false;
+        }
+
+        private void StartLine(int n)
+        {
+            _line = n;
+            string id = Cur.narration[n];
+            _subtitle = LineText(id);
+            bool voice = VigiaSettings.Mode != VigiaMode.SoloTexto && VigiaSettings.Mode != VigiaMode.Apagada;
+            var clip = voice ? VigiaClips.Get(VigiaCatalog.ClipName(id, 0)) : null;
+            _lineStart = Elapsed;
+            if (clip != null) { _src.clip = clip; _src.Play(); _lineSeconds = clip.length; }
+            else _lineSeconds = Mathf.Max(1.8f, _subtitle.Length / 14f);   // solo texto: tiempo de lectura
+            Speaking = clip != null;
+        }
+
+        /// <summary>Narración: las frases de la lámina una tras otra (empiezan cuando la lámina ya entró).</summary>
+        private void TickNarration()
+        {
+            var n = Cur.narration;
+            if (_narrationDone >= 0f || n == null) return;
+            if (_line < 0) { if (Elapsed >= IntroText.FadeSeconds) StartLine(0); return; }
+            if (Elapsed - _lineStart < _lineSeconds + 0.3f) return;
+            if (_line + 1 < n.Length) StartLine(_line + 1);
+            else { _narrationDone = Elapsed; Speaking = false; }
+        }
 
         private void Update()
         {
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
             var k = Keyboard.current; var m = Mouse.current;
             if (k != null && k.escapeKey.wasPressedThisFrame) { Finish(); return; }
-            bool next = (k != null && (k.spaceKey.wasPressedThisFrame || k.enterKey.wasPressedThisFrame)) || (m != null && m.leftButton.wasPressedThisFrame && !_overSkip);
-            bool typingDone = _typed || IntroText.Visible(Line, Elapsed) >= Line.Length;
-            if (next) { if (!typingDone) _typed = true; else Advance(); }
-            else if (typingDone && Elapsed > IntroText.PanelSeconds(Line, _src.clip != null && _src.isPlaying ? _src.clip.length : 0f)) Advance();
+            if (_leaveStart >= 0f)
+            {
+                if (Time.unscaledTime - _leaveStart >= IntroText.LeaveSeconds) { if (_target >= _seq.panels.Count) Finish(); else Show(_target); }
+                return;
+            }
+            TickNarration();
+            bool next = (k != null && (k.spaceKey.wasPressedThisFrame || k.enterKey.wasPressedThisFrame || k.rightArrowKey.wasPressedThisFrame))
+                        || (m != null && m.leftButton.wasPressedThisFrame && !_overSkip);
+            bool back = k != null && k.leftArrowKey.wasPressedThisFrame;
+            if (back && _index > 0) Show(_index - 1);
+            else if (next) Leave(_index + 1);
+            else if (_narrationDone >= 0f && Elapsed >= Mathf.Max(Hold, _narrationDone + 1.2f) - IntroText.LeaveSeconds) Leave(_index + 1);
         }
 
-        private void Advance()
+        private void Leave(int target)
         {
-            if (_index + 1 >= _seq.panels.Count) { Finish(); return; }
-            Show(_index + 1);
+            _target = target; _leaveStart = Time.unscaledTime;
+            if (_src != null) _src.Stop();
+            Speaking = false;
         }
 
-        private bool _overSkip, _paused;
+        /// <summary>Avanza (pruebas y botones): igual que clic o Espacio.</summary>
+        public void Next() => Leave(_index + 1);
+        public void Back() { if (_index > 0) Show(_index - 1); }
+
         private void OnGUI()
         {
             GUI.depth = -100;
-            float W = Screen.width, H = Screen.height;
+            float W = Screen.width, H = Screen.height, s = H / 1080f;
             var prev = GUI.color;
             GUI.color = Color.black; GUI.DrawTexture(new Rect(0, 0, W, H), Texture2D.whiteTexture);
-            var p = _seq.panels[_index];
+            var p = Cur;
             float e = Elapsed;
-            float alpha = Mathf.Clamp01(e / 0.7f);
+            float alpha = IntroText.Alpha(e, _leaveStart >= 0f ? Time.unscaledTime - _leaveStart : -1f);
             if (p.image != null)
             {
-                // movimiento lento: zoom del 100 % al 110 % y desplazamiento suave
-                float z = 1f / (1f + 0.1f * Mathf.Clamp01(e / 12f));
-                float ox = (1f - z) * (0.5f + 0.5f * Mathf.Sin(_index * 1.7f)), oy = (1f - z) * 0.5f;
-                float imgAspect = p.image.width / (float)p.image.height, scr = W / H;
-                Rect dst = imgAspect > scr ? new Rect(0, (H - W / imgAspect) / 2f, W, W / imgAspect) : new Rect((W - H * imgAspect) / 2f, 0, H * imgAspect, H);
+                float t = e / Mathf.Max(Hold, (_narrationDone >= 0f ? _narrationDone + 1.2f : Hold));
+                float[] uv = p.tour != null && p.tour.Length >= 8 ? IntroText.Tour(Rects(p.tour), t) : IntroText.KenBurns(_index, t);
+                // el recorte visible conserva la relación de aspecto de la imagen: letterbox con el ancho/alto del recorte
+                float[] fit = IntroText.Fit(p.image.width * uv[2], p.image.height * uv[3], W, H);
                 GUI.color = new Color(1f, 1f, 1f, alpha);
-                GUI.DrawTextureWithTexCoords(dst, p.image, new Rect(ox, oy, z, z));
+                GUI.DrawTextureWithTexCoords(new Rect(fit[0], fit[1], fit[2], fit[3]), p.image, new Rect(uv[0], 1f - uv[1] - uv[3], uv[2], uv[3]));
             }
-            float s = H / 1080f;
-            _text ??= new GUIStyle(GUI.skin.label) { wordWrap = true, alignment = TextAnchor.MiddleCenter, richText = true };
-            _text.fontSize = Mathf.RoundToInt(34 * s * VigiaSettings.SubtitleScale);
-            string shown = _typed ? Line : Line.Substring(0, IntroText.Visible(Line, e));
-            var box = new Rect(W * 0.12f, H - 230 * s, W * 0.76f, 150 * s);
-            GUI.color = new Color(0f, 0f, 0f, 0.7f * alpha); GUI.DrawTexture(box, Texture2D.whiteTexture);
-            GUI.color = new Color(1f, 1f, 1f, alpha);
-            GUI.Label(new Rect(box.x + 24 * s, box.y, box.width - 48 * s, box.height), "<color=#5fd0ff><b>VIGÍA:</b></color> " + shown, _text);
-            _skip ??= new GUIStyle(GUI.skin.button);
+            // subtítulos de VIGÍA (solo cuando habla)
+            if (!string.IsNullOrEmpty(_subtitle) && _narrationDone < 0f)
+            {
+                _text ??= new GUIStyle(GUI.skin.label) { wordWrap = true, alignment = TextAnchor.MiddleCenter, richText = true };
+                _text.fontSize = Mathf.RoundToInt(32 * s * VigiaSettings.SubtitleScale);
+                var box = new Rect(W * 0.16f, H - 200 * s, W * 0.68f, 110 * s);
+                GUI.color = new Color(0f, 0f, 0f, 0.68f * alpha); GUI.DrawTexture(box, Texture2D.whiteTexture);
+                GUI.color = new Color(1f, 1f, 1f, alpha);
+                GUI.Label(new Rect(box.x + 24 * s, box.y, box.width - 48 * s, box.height), "<color=#5fd0ff><b>VIGÍA:</b></color> " + _subtitle, _text);
+            }
+            // puntos de progreso
+            if (_seq.panels.Count > 1)
+            {
+                _dot ??= Dot();
+                float d = 10f * s, gap = 12f * s, total = _seq.panels.Count * d + (_seq.panels.Count - 1) * gap, x0 = (W - total) / 2f;
+                for (int i = 0; i < _seq.panels.Count; i++)
+                {
+                    GUI.color = new Color(1f, 1f, 1f, i == _index ? 0.9f : 0.3f);
+                    GUI.DrawTexture(new Rect(x0 + i * (d + gap), H - 40 * s, d, d), _dot);
+                }
+            }
+            // SALTAR abajo a la derecha
+            _skip ??= new GUIStyle(GUI.skin.button) { fontStyle = FontStyle.Bold };
             _skip.fontSize = Mathf.RoundToInt(22 * s);
-            GUI.color = Color.white;
-            var sr = new Rect(W - 230 * s, 30 * s, 200 * s, 54 * s);
+            GUI.color = new Color(1f, 1f, 1f, 0.85f);
+            var sr = new Rect(W - 210 * s, H - 80 * s, 180 * s, 50 * s);
             _overSkip = sr.Contains(Event.current.mousePosition);
-            if (GUI.Button(sr, "Saltar (Esc)", _skip)) Finish();
-            GUI.Label(new Rect(30 * s, 30 * s, 400 * s, 40 * s), (_index + 1) + " / " + _seq.panels.Count + "   ·   clic o Espacio: seguir", new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(20 * s) });
+            if (GUI.Button(sr, "SALTAR", _skip)) Finish();
             GUI.color = prev;
+        }
+
+        private static float[][] Rects(float[] f)
+        {
+            var r = new float[f.Length / 4][];
+            for (int i = 0; i < r.Length; i++) r[i] = new[] { f[i * 4], f[i * 4 + 1], f[i * 4 + 2], f[i * 4 + 3] };
+            return r;
+        }
+
+        private static Texture2D Dot()
+        {
+            const int N = 32;
+            var t = new Texture2D(N, N, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "intro_dot" };
+            var px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float d = Mathf.Sqrt((x - 15.5f) * (x - 15.5f) + (y - 15.5f) * (y - 15.5f));
+                    px[y * N + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(15.5f - d));
+                }
+            t.SetPixels(px); t.Apply();
+            return t;
         }
 
         private void Finish()
         {
-            Seen = true;
-            Active = false;
+            if (_markSeen) Seen = true;
+            Active = false; Speaking = false;
             GameInput.InputCaptured = false;
             if (_paused) { Time.timeScale = 1f; _paused = false; }
             if (_src != null) _src.Stop();
+            var done = _onDone; _onDone = null;
             Destroy(gameObject);
+            done?.Invoke();
         }
 
-        private void OnDestroy() { if (_paused) Time.timeScale = 1f; if (Active) { Active = false; GameInput.InputCaptured = false; } }
+        private void OnDestroy()
+        {
+            if (_paused) Time.timeScale = 1f;
+            if (Active) { Active = false; Speaking = false; GameInput.InputCaptured = false; }
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => Active = false;
+        private static void ResetStatics() { Active = false; Speaking = false; _catalog = null; }
     }
 }

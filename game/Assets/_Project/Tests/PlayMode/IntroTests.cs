@@ -7,14 +7,14 @@ using UnityEngine.TestTools;
 
 namespace SevenDays.Tests.PlayMode
 {
-    /// <summary>La intro se monta con las 5 viñetas (provisionales si no hay imágenes), narra con VIGÍA, captura la entrada y al saltarla lo deja todo como estaba.</summary>
+    /// <summary>La intro en cómic: 8 láminas, VIGÍA solo habla desde la 6, avanzar y retroceder, y al saltarla lo deja todo como estaba.</summary>
     public class IntroTests
     {
         private static readonly Assembly Game = Assembly.Load("Assembly-CSharp");
         private static Type T(string n) => Game.GetType(n, true);
 
         [UnityTest]
-        public IEnumerator Intro_Plays_AndSkipRestoresInput()
+        public IEnumerator Intro_EightPanels_NextBack_VigiaOn6_SkipRestoresInput()
         {
             var pt = T("SevenDays.Intro.IntroPlayer");
             var seenProp = pt.GetProperty("Seen");
@@ -26,9 +26,21 @@ namespace SevenDays.Tests.PlayMode
             Assert.IsTrue((bool)input.GetValue(null), "el jugador no se mueve durante la intro");
             var seq = pt.GetField("_seq", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(player);
             var panels = (IList)seq.GetType().GetField("panels").GetValue(seq);
-            Assert.AreEqual(5, panels.Count);
-            yield return null; yield return null;
-            Assert.IsTrue(player.GetComponent<AudioSource>().isPlaying, "narración de VIGÍA");
+            Assert.AreEqual(8, panels.Count);
+            foreach (var p in panels) Assert.IsNotNull(p.GetType().GetField("image").GetValue(p), "imagen (o provisional)");
+            var index = pt.GetProperty("Index"); var sub = pt.GetProperty("Subtitle");
+            yield return new WaitForSecondsRealtime(1.2f);
+            Assert.AreEqual("", (string)sub.GetValue(player), "sin texto superpuesto en la lámina 1");
+            pt.GetMethod("Next").Invoke(player, null);
+            yield return new WaitForSecondsRealtime(0.7f);
+            Assert.AreEqual(1, (int)index.GetValue(player), "clic o Espacio avanza");
+            pt.GetMethod("Back").Invoke(player, null);
+            yield return null;
+            Assert.AreEqual(0, (int)index.GetValue(player), "flecha izquierda retrocede");
+            for (int i = 0; i < 5; i++) { pt.GetMethod("Next").Invoke(player, null); yield return new WaitForSecondsRealtime(0.6f); }
+            Assert.AreEqual(5, (int)index.GetValue(player), "lámina 6");
+            yield return new WaitForSecondsRealtime(1.2f);
+            Assert.AreEqual("Señal vital detectada.", (string)sub.GetValue(player), "VIGÍA se presenta con subtítulos");
             pt.GetMethod("Finish", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(player, null);
             yield return null;
             Assert.IsFalse((bool)pt.GetProperty("Active").GetValue(null));

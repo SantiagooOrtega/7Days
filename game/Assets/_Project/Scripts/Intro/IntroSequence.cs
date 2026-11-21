@@ -5,9 +5,9 @@ using SevenDays.Procedural;
 namespace SevenDays.Intro
 {
     /// <summary>
-    /// Secuencia de la intro en cómic: viñetas con imagen, texto y frase de narración de VIGÍA. Puede ser un asset (Create > 7Days > Intro Sequence, guardado en
-    /// Resources/IntroSequence) o, si no existe, se arma sola: imágenes Resources/intro_01, intro_02... (carpeta Intro/Resources) y texto de intro.txt (una línea
-    /// por viñeta). Si faltan imágenes, se dibujan viñetas provisionales por código.
+    /// Secuencia de láminas en cómic: imagen y frases de VIGÍA (ids del catálogo) por lámina. Puede ser un asset (Create > 7Days > Intro Sequence, en
+    /// Resources/IntroSequence) o, si no existe, se arma sola con las 8 láminas Resources/intro_01 ... intro_08 (carpeta Intro/Resources). Las láminas traen su texto
+    /// dibujado: no se superpone texto, solo los subtítulos de VIGÍA en las láminas 6, 7 y 8. Si falta una imagen, se usa una viñeta provisional sin fallar.
     /// </summary>
     [CreateAssetMenu(menuName = "7Days/Intro Sequence", fileName = "IntroSequence")]
     public class IntroSequence : ScriptableObject
@@ -16,8 +16,9 @@ namespace SevenDays.Intro
         public class Panel
         {
             public Texture2D image;
-            [TextArea] public string text;
-            public string narrationId;   // id del catálogo de VIGÍA (intro_1...); vacío = sin voz
+            public string[] narration = new string[0];   // ids del catálogo de VIGÍA, en orden; vacío = sin voz
+            public float seconds;                         // 0 = paso automático normal (~7 s)
+            public float[] tour = new float[0];           // recorrido por tramos (x, y, ancho, alto de UV por tramo); vacío = zoom y paneo lentos
         }
 
         public List<Panel> panels = new List<Panel>();
@@ -27,13 +28,10 @@ namespace SevenDays.Intro
             var asset = Resources.Load<IntroSequence>("IntroSequence");
             if (asset != null && asset.panels.Count > 0) return asset;
             var s = CreateInstance<IntroSequence>();
-            var ta = Resources.Load<TextAsset>("intro");
-            var lines = IntroText.Parse(ta != null ? ta.text : "");
-            for (int i = 0; ; i++)
+            for (int i = 0; i < IntroText.ComicPanels; i++)
             {
                 var img = Resources.Load<Texture2D>("intro_" + (i + 1).ToString("00"));
-                if (img == null && i >= lines.Count) break;
-                s.panels.Add(new Panel { image = img != null ? img : Placeholder(i), text = i < lines.Count ? lines[i] : "", narrationId = "intro_" + (i + 1) });
+                s.panels.Add(new Panel { image = img != null ? img : Placeholder(i), narration = IntroText.ComicNarration(i) });
             }
             return s;
         }

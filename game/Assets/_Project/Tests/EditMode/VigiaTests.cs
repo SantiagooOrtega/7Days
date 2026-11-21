@@ -29,6 +29,8 @@ namespace SevenDays.Tests
                 Assert.That(l.Variants.Length, Is.InRange(1, 3), l.Id);
                 foreach (var v in l.Variants) Assert.IsFalse(string.IsNullOrWhiteSpace(v), l.Id + " sin subtítulo");
                 for (int i = 0; i < l.Variants.Length; i++) Assert.IsTrue(File.Exists(Path.Combine(Folder, VigiaCatalog.ClipName(l.Id, i) + ".wav")), "falta el clip " + VigiaCatalog.ClipName(l.Id, i));
+                // las narraciones de las láminas (intro y epílogo) no son frases de partida: no van en la tabla del documento (que no se toca)
+                if (l.Id.StartsWith("comic_") || l.Id.StartsWith("epilogo")) continue;
                 StringAssert.Contains("`" + l.Id + "`", doc, "docs/VIGIA_FRASES.md sin " + l.Id);
             }
         }
@@ -173,16 +175,51 @@ namespace SevenDays.Tests
         }
     
         [Test]
-        public void Intro_EveryPanelHasTextAndNarration()
+        public void ComicIntro_EightPanels_ImagesPresent_VigiaOnlyOn6To8WithClips()
         {
             var c = Catalog();
-            var lines = IntroText.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "_Project/Intro/Resources/intro.txt")));
-            Assert.GreaterOrEqual(lines.Count, 3);
-            for (int i = 0; i < lines.Count; i++)
+            Assert.AreEqual(8, IntroText.ComicPanels);
+            for (int i = 1; i <= 8; i++)
+                Assert.IsTrue(File.Exists(Path.Combine(Application.dataPath, "_Project/Intro/Resources/intro_" + i.ToString("00") + ".png")), "lámina " + i);
+            Assert.IsTrue(File.Exists(Path.Combine(Application.dataPath, "_Project/Intro/Resources/final_01.png")), "epílogo");
+            Assert.IsFalse(File.Exists(Path.Combine(Application.dataPath, "_Project/Intro/Resources/intro.txt")), "sin el texto provisional");
+            var expected = new[] { "Señal vital detectada.", "Soy VIGÍA, la seguridad de la Planta 7.", "Puedo mantenerte con vida siete días... si haces lo que te diga.", "Tienes seis balas. Que cuenten.", "Sal. Yo te cubro." };
+            var said = new System.Collections.Generic.List<string>();
+            for (int p = 0; p < 8; p++)
             {
-                Assert.IsTrue(c.ContainsKey("intro_" + (i + 1)), "narración intro_" + (i + 1));
-                Assert.IsTrue(File.Exists(Path.Combine(Folder, VigiaCatalog.ClipName("intro_" + (i + 1), 0) + ".wav")));
+                var ids = IntroText.ComicNarration(p);
+                if (p < 5) Assert.AreEqual(0, ids.Length, "lámina " + (p + 1) + " sin voz (el texto va dibujado)");
+                foreach (var id in ids)
+                {
+                    Assert.IsTrue(c.ContainsKey(id), id);
+                    said.Add(c[id].Variants[0]);
+                    Assert.IsTrue(File.Exists(Path.Combine(Folder, VigiaCatalog.ClipName(id, 0) + ".wav")), "voz de " + id);
+                }
             }
+            CollectionAssert.AreEqual(expected, said, "solo sus frases, en orden (6, 7 y 8)");
+            Assert.AreEqual(3, IntroText.ComicNarration(5).Length); Assert.AreEqual(1, IntroText.ComicNarration(6).Length); Assert.AreEqual(1, IntroText.ComicNarration(7).Length);
+        }
+
+        [Test]
+        public void ComicIntro_TimingFadesMotionAndLetterbox()
+        {
+            Assert.AreEqual(7f, IntroText.HoldSeconds(0f), "paso automático a los ~7 s");
+            Assert.Greater(IntroText.HoldSeconds(9f), 9f, "espera a que VIGÍA termine");
+            Assert.AreEqual(0f, IntroText.Alpha(0f, -1f)); Assert.AreEqual(1f, IntroText.Alpha(2f, -1f), "fundido de entrada");
+            Assert.AreEqual(0f, IntroText.Alpha(5f, IntroText.LeaveSeconds), 1e-5f, "fundido de salida");
+            for (int p = 0; p < 8; p++)
+            {
+                var a = IntroText.KenBurns(p, 0f); var b = IntroText.KenBurns(p, 1f);
+                Assert.AreEqual(1f, a[2], 1e-5f, "empieza sin zoom");
+                Assert.Less(b[2], 0.95f, "zoom lento");
+                foreach (var r in new[] { a, b, IntroText.KenBurns(p, 0.5f) }) { Assert.GreaterOrEqual(r[0], 0f); Assert.GreaterOrEqual(r[1], 0f); Assert.LessOrEqual(r[0] + r[2], 1f + 1e-5f); Assert.LessOrEqual(r[1] + r[3], 1f + 1e-5f); }
+            }
+            // letterbox: 16:9 en 4:3 (bandas arriba y abajo) y en 21:9 (a los lados), sin deformar
+            var f = IntroText.Fit(1280, 720, 1024, 768); Assert.AreEqual(1024f, f[2], 1e-3f); Assert.Greater(f[1], 0f); Assert.AreEqual(1280f / 720f, f[2] / f[3], 1e-3f);
+            f = IntroText.Fit(1280, 720, 2560, 1080); Assert.AreEqual(1080f, f[3], 1e-3f); Assert.Greater(f[0], 0f); Assert.AreEqual(1280f / 720f, f[2] / f[3], 1e-3f);
+            // recorrido por tramos: empieza en el primero y termina en el último
+            var rects = new[] { new[] { 0f, 0f, 0.4f, 0.4f }, new[] { 0.3f, 0.3f, 0.4f, 0.4f }, new[] { 0.6f, 0.6f, 0.4f, 0.4f } };
+            CollectionAssert.AreEqual(rects[0], IntroText.Tour(rects, 0f)); CollectionAssert.AreEqual(rects[2], IntroText.Tour(rects, 1f));
         }
 
         [Test]
