@@ -13,8 +13,10 @@ namespace SevenDays.UI.Tactical
     /// </summary>
     public static class UiKit
     {
-        public static readonly Color Cream = new Color(0.9f, 0.84f, 0.7f), CreamDim = new Color(0.72f, 0.66f, 0.55f), Red = new Color(0.86f, 0.18f, 0.12f),
-            Orange = new Color(1f, 0.55f, 0.15f), Ink = new Color(0.04f, 0.035f, 0.03f, 0.82f), Olive = new Color(0.55f, 0.66f, 0.38f);
+        // paleta: crema grisáceo #D8D2C8 (opciones), blanco roto #F0ECE6 (noticias y teclas), rojo #B0140C, granate #5A0A08, gris #6A6460 (bordes y separadores)
+        public static readonly Color Cream = new Color(0.847f, 0.824f, 0.784f), CreamDim = new Color(0.6f, 0.575f, 0.54f), Red = new Color(0.69f, 0.078f, 0.047f),
+            Orange = new Color(1f, 0.55f, 0.15f), Ink = new Color(0.02f, 0.018f, 0.018f, 0.75f), Olive = new Color(0.55f, 0.66f, 0.38f),
+            White = new Color(0.94f, 0.925f, 0.9f), Grey = new Color(0.416f, 0.392f, 0.376f), Maroon = new Color(0.353f, 0.039f, 0.031f);
         public const float Condensed = 0.84f;
         public static readonly Vector2 Reference = new Vector2(1920, 1080);
 
@@ -97,15 +99,26 @@ namespace SevenDays.UI.Tactical
             var cut = Image(r, "Corte", new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(40f, 60f), new Color(0.02f, 0.02f, 0.02f, 0.85f)); cut.rectTransform.localRotation = Quaternion.Euler(0, 0, 35f);
             Image(r, "Barra", new Vector2(0f, 0.5f), new Vector2(5f, 0f), new Vector2(8f, 44f), Red);
             Text(r, "///", 26, Red, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 48f, 0f), new Vector2(60f, 40f), true);
-            Text(r, title.ToUpperInvariant(), 28, Cream, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 90f + (width - 120f) / 2f * Condensed, 0f), new Vector2(width - 120f, 40f), true);   // borde izquierdo visual en -w/2+90 tras condensar
+            Text(r, SevenDays.Procedural.SelectContent.Tracked(title.ToUpperInvariant()), 28, Cream, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 90f + (width - 120f) / 2f * Condensed, 0f), new Vector2(width - 120f, 40f), true);   // borde izquierdo visual en -w/2+90 tras condensar
             return r;
         }
 
         /// <summary>Pie con ayudas de teclas.</summary>
-        public static Text Footer(Transform parent, string hints)
+        public static Text Footer(Transform parent, string hints) => FooterKeys(parent, KeyHints(hints), 24);
+
+        /// <summary>"↑↓ Elegir · Enter Aceptar" -> la tecla en blanco y entre corchetes, la acción en crema apagado.</summary>
+        public static string KeyHints(string hints)
         {
-            var bar = Image(parent, "Pie", new Vector2(0.5f, 0f), new Vector2(0f, 34f), new Vector2(1920f, 56f), new Color(0f, 0f, 0f, 0.7f));
-            return Text(bar.transform, hints, 22, CreamDim, TextAnchor.MiddleLeft, new Vector2(-200f, 0f), new Vector2(1500f, 40f));
+            var sb = new System.Text.StringBuilder();
+            foreach (var raw in hints.Split('·'))
+            {
+                var seg = raw.Trim(); if (seg.Length == 0) continue;
+                int sp = seg.IndexOf(' ');
+                string key = sp > 0 ? seg.Substring(0, sp) : seg, act = sp > 0 ? seg.Substring(sp + 1) : "";
+                if (sb.Length > 0) sb.Append("        ");
+                sb.Append("<color=#F0ECE6><b>[").Append(key).Append("]</b></color> <color=#9A938A>").Append(act).Append("</color>");
+            }
+            return sb.ToString();
         }
 
         /// <summary>Pie grande y centrado con teclas resaltadas ("[Enter] Empezar"): la tecla en naranja y la acción en crema.</summary>

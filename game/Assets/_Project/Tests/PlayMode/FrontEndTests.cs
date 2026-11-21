@@ -112,5 +112,32 @@ namespace SevenDays.Tests.PlayMode
             }
             yield return null; yield return null;
         }
+
+        [UnityTest]
+        public IEnumerator TitleScreen_PressEnter_GoesToMenuOrLogin()
+        {
+            var fe = T("SevenDays.UI.FrontEnd"); var scr = T("SevenDays.UI.FrontScreen");
+            var testMode = fe.GetField("TestMode"); bool prev = (bool)testMode.GetValue(null);
+            testMode.SetValue(null, true);
+            var inst = (Component)fe.GetMethod("Show").Invoke(null, new[] { Enum.Parse(scr, "Title") });
+            yield return null;
+            Assert.AreEqual("Title", fe.GetProperty("Current").GetValue(inst).ToString(), "pantalla de inicio");
+            var ps = fe.GetProperty("PressStartScreen").GetValue(inst);
+            ps.GetType().GetMethod("Press").Invoke(ps, null);   // como pulsar Enter
+            yield return null;
+            Assert.AreEqual("Menu", fe.GetProperty("Current").GetValue(inst).ToString(), "con sesión o en modo prueba: menú principal");
+            var list = fe.GetProperty("List").GetValue(inst);
+            Assert.AreEqual(7, (int)list.GetType().GetProperty("Count").GetValue(list));
+            testMode.SetValue(null, false);
+            fe.GetMethod("Show").Invoke(null, new[] { Enum.Parse(scr, "Title") });
+            yield return null;
+            ps = fe.GetProperty("PressStartScreen").GetValue(inst);
+            ps.GetType().GetMethod("Press").Invoke(ps, null);
+            yield return null;
+            Assert.AreEqual("Login", fe.GetProperty("Current").GetValue(inst).ToString(), "sin sesión: login");
+            testMode.SetValue(null, prev);
+            UnityEngine.Object.Destroy(inst.gameObject);
+            yield return null;
+        }
     }
 }

@@ -24,7 +24,8 @@ namespace SevenDays.UI.Tactical
         private readonly List<Text> _values = new List<Text>();
         private RectTransform _highlight;
         private float _width, _rowH = RowHeight;
-        private RectTransform _arrowL, _arrowR;
+        private RectTransform _arrowL, _arrowR, _marker;
+        private Image _highlightImg, _markerImg;
         private readonly List<bool> _adjustable = new List<bool>();
         private Vector2 _arrowLBase, _arrowRBase;
 
@@ -36,7 +37,11 @@ namespace SevenDays.UI.Tactical
             float RowHeight = rowHeight;
             var r = UiKit.Rect(parent, "Lista", new Vector2(0.5f, 0.5f), pos, new Vector2(width, items.Count * RowHeight));
             var l = r.gameObject.AddComponent<MenuList>(); l._width = width; l._rowH = rowHeight;
-            l._highlight = UiKit.Image(r, "Resaltado", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(width, RowHeight - 6f), Color.white, UiKit.HighlightSprite).rectTransform;
+            l._highlightImg = UiKit.Image(r, "Resaltado", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(width, RowHeight - 6f), Color.white, UiKit.HighlightSprite);
+            l._highlight = l._highlightImg.rectTransform;
+            // marcador de la fila activa: cuadrado rojo a la izquierda que late
+            l._markerImg = UiKit.Image(r, "Marcador", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(12f, 12f), UiKit.Red);
+            l._marker = l._markerImg.rectTransform; l._marker.localRotation = Quaternion.Euler(0f, 0f, 45f);
             for (int i = 0; i < items.Count; i++)
             {
                 var row = UiKit.Image(r, "Fila " + items[i], new Vector2(0.5f, 1f), new Vector2(0f, -RowHeight * (i + 0.5f)), new Vector2(width, RowHeight - 6f), new Color(0, 0, 0, 0.001f));
@@ -44,7 +49,12 @@ namespace SevenDays.UI.Tactical
                 var mr = row.gameObject.AddComponent<MenuRow>(); mr.List = l; mr.Index = i;
                 // etiqueta en la mitad izquierda y valor en la derecha, sin solaparse (el texto condensado se escala desde su centro)
                 float c = UiKit.Condensed;
-                l._labels.Add(UiKit.Text(row.transform, items[i].ToUpperInvariant(), labelSize, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 24f + width * 0.21f, 0f), new Vector2(width * 0.42f / c, Mathf.Max(44f, labelSize * 1.4f)), true));
+                l._labels.Add(UiKit.Text(row.transform, SevenDays.Procedural.SelectContent.Tracked(items[i].ToUpperInvariant()), labelSize, UiKit.CreamDim, TextAnchor.MiddleLeft, new Vector2(-width / 2f + 24f + width * 0.21f, 0f), new Vector2(width * 0.42f / c, Mathf.Max(44f, labelSize * 1.4f)), true));
+                var lb = l._labels[l._labels.Count - 1];   // etiquetas espaciadas: se encogen si no caben en su caja
+                lb.horizontalOverflow = HorizontalWrapMode.Wrap; lb.verticalOverflow = VerticalWrapMode.Truncate;
+                lb.resizeTextForBestFit = true; lb.resizeTextMinSize = 16; lb.resizeTextMaxSize = labelSize;
+                if (values == null) lb.rectTransform.sizeDelta = new Vector2((width - 60f) / c, lb.rectTransform.sizeDelta.y);
+                if (values == null) lb.rectTransform.anchoredPosition = new Vector2(-width / 2f + 40f + (width - 60f) / 2f, 0f);
                 Text v = null;
                 if (values != null && i < values.Count)
                 {
@@ -92,7 +102,14 @@ namespace SevenDays.UI.Tactical
         }
 
         public void SetValue(int i, string v) { if (i >= 0 && i < _values.Count && _values[i] != null) { _values[i].text = v; if (i == Index) PlaceArrows(); } }
-        public void SetLabel(int i, string v) { if (i >= 0 && i < _labels.Count) _labels[i].text = v.ToUpperInvariant(); }
+        public void SetLabel(int i, string v) { if (i >= 0 && i < _labels.Count) _labels[i].text = SevenDays.Procedural.SelectContent.Tracked(v.ToUpperInvariant()); }
+
+        /// <summary>Línea fina gris bajo la fila "after" (separa bloques de opciones).</summary>
+        public void AddSeparator(int after)
+        {
+            var r = (RectTransform)transform;
+            UiKit.Image(r, "Separador", new Vector2(0.5f, 1f), new Vector2(-_width * 0.15f, -_rowH * (after + 1)), new Vector2(_width * 0.7f, 2f), UiKit.Grey);
+        }
 
         public void Select(int i, bool sound)
         {
@@ -101,8 +118,9 @@ namespace SevenDays.UI.Tactical
             if (i != Index && sound) UiSounds.Move();
             _labels[Index].color = UiKit.CreamDim;
             Index = i;
-            _labels[i].color = UiKit.Cream;
+            _labels[i].color = UiKit.White;
             _highlight.anchoredPosition = new Vector2(0f, -_rowH * (i + 0.5f));
+            _marker.anchoredPosition = new Vector2(-_width / 2f + 16f, -_rowH * (i + 0.5f));
             PlaceArrows();
             Selected?.Invoke(i);
         }
@@ -111,6 +129,10 @@ namespace SevenDays.UI.Tactical
 
         private void Update()
         {
+            // la fila activa late suavemente (brillo del resaltado y del marcador)
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 4f);
+            _highlightImg.color = new Color(1f, 1f, 1f, 0.8f + 0.2f * pulse);
+            _markerImg.color = new Color(UiKit.Red.r + 0.3f * pulse, UiKit.Red.g + 0.1f * pulse, UiKit.Red.b, 1f);
             if (_arrowL != null && _arrowL.gameObject.activeSelf)
             {
                 float o = Mathf.Sin(Time.unscaledTime * 5f) * 4f;

@@ -11,7 +11,7 @@ using SevenDays.World;
 
 namespace SevenDays.UI
 {
-    public enum FrontScreen { Login, Menu, Select, Ranking, Profile, Options, Credits }
+    public enum FrontScreen { Login, Menu, Select, Ranking, Profile, Options, Credits, Title }
 
     /// <summary>
     /// Menú y pantallas previas a la partida, dentro de la escena Game (no hay escenas a mano): Login/Registro -> Menú -> Selección de personaje y mapa -> Intro ->
@@ -54,7 +54,7 @@ namespace SevenDays.UI
             if (SkipNext) { SkipNext = false; return; }
             var go = new GameObject("FrontEnd");
             Instance = go.AddComponent<FrontEnd>();
-            Instance.Open(Session.IsLoggedIn || TestMode ? FrontScreen.Menu : FrontScreen.Login);
+            Instance.Open(FrontScreen.Title);   // pantalla de inicio: 7DAYS y "PULSA ENTER"
         }
 
         /// <summary>Abre el front-end (también lo usan las pruebas).</summary>
@@ -89,6 +89,7 @@ namespace SevenDays.UI
                 case FrontScreen.Ranking: BuildRanking(); break;
                 case FrontScreen.Profile: BuildProfile(); break;
                 case FrontScreen.Options: BuildOptions(); break;
+                case FrontScreen.Title: BuildTitle(); break;
                 default: BuildCredits(); break;
             }
         }
@@ -108,7 +109,7 @@ namespace SevenDays.UI
             var t = UiKit.Text(_screen, "7DAYS", 150, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(-560f, 410f), new Vector2(900f, 170f), true);
             // marcas de stencil: cortes horizontales a través del título
             foreach (float y in new[] { 395f, 440f }) UiKit.Image(_screen, "Stencil", new Vector2(0.5f, 0.5f), new Vector2(-640f, y), new Vector2(640f, 6f), new Color(0.35f, 0.04f, 0.03f, 0.9f));
-            UiKit.Text(_screen, sub, 34, UiKit.Orange, TextAnchor.MiddleLeft, new Vector2(-560f, 320f), new Vector2(900f, 44f), true);
+            UiKit.Text(_screen, sub, 34, UiKit.Orange, TextAnchor.MiddleLeft, new Vector2(-560f, 292f), new Vector2(900f, 44f), true);   // bajo el título, sin rozarlo
         }
 
         private void Notice(string text) { _notice = UiKit.Text(_screen, text, 22, UiKit.Orange, TextAnchor.MiddleRight, new Vector2(560f, 470f), new Vector2(700f, 34f), true); _noticeAt = Time.unscaledTime; }
@@ -196,17 +197,55 @@ namespace SevenDays.UI
 
         public static string MapName(string id) => id == MapLibrary.ForestId ? "Bosque oscuro" : "Calle en ruinas";
 
+        // ---------------------------------------------------------------- pantalla de inicio
+        // Emblema propio (calavera con el "7") a la izquierda del título "7DAYS" en el centro, "PULSA ENTER" parpadeando debajo, aviso de estado abajo a la derecha.
+        private static Texture2D _emblem;
+        public PressStart PressStartScreen { get; private set; }
+
+        private void BuildTitle()
+        {
+            _emblem ??= UiKit.Make(256, 256, MenuArt.Emblem(256, 11), "Emblema", TextureWrapMode.Clamp);
+            var e = new GameObject("Emblema", typeof(RectTransform)).AddComponent<RawImage>(); e.transform.SetParent(_screen, false);
+            e.rectTransform.anchoredPosition = new Vector2(-470f, 90f); e.rectTransform.sizeDelta = new Vector2(300f, 300f); e.texture = _emblem; e.raycastTarget = false;
+            var t = UiKit.Text(_screen, "7DAYS", 200, UiKit.White, TextAnchor.MiddleLeft, new Vector2(-300f + 760f * UiKit.Condensed / 2f, 70f), new Vector2(760f, 230f), true);
+            t.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.95f);
+            t.GetComponent<Outline>().effectDistance = new Vector2(4f, -4f);
+            UiKit.Text(_screen, SelectContent.Tracked("SOBREVIVE SIETE DÍAS"), 34, UiKit.Cream, TextAnchor.MiddleLeft, new Vector2(-300f + 760f * UiKit.Condensed / 2f, -105f), new Vector2(760f, 50f), true);
+            var press = UiKit.Text(_screen, SelectContent.Tracked("PULSA ENTER"), 30, UiKit.Cream, TextAnchor.MiddleCenter, new Vector2(0f, -330f), new Vector2(600f, 50f), true);
+            // estado abajo a la derecha, como un aviso del sistema
+            var box = UiKit.Panel(_screen, "Panel estado", new Vector2(0.5f, 0.5f), new Vector2(620f, -400f), new Vector2(600f, 86f));
+            UiKit.Image(box, "Barra", new Vector2(0f, 0.5f), new Vector2(5f, 0f), new Vector2(6f, 80f), UiKit.Red);
+            UiKit.Text(box, SelectContent.Tracked("VIGÍA"), 24, UiKit.White, TextAnchor.MiddleLeft, new Vector2(-280f + 520f * UiKit.Condensed / 2f + 30f, 18f), new Vector2(520f, 32f), true);
+            UiKit.Text(box, Session.IsLoggedIn ? "Sesión iniciada: " + FrontEndData.PlayerName : "Señal vital detectada. Planta 7 en línea.", 22, UiKit.Cream, TextAnchor.MiddleLeft,
+                new Vector2(-280f + 540f * UiKit.Condensed / 2f + 30f, -16f), new Vector2(540f, 30f), false);
+            UiKit.Text(_screen, "Proyecto universitario · 2026", 18, UiKit.CreamDim, TextAnchor.MiddleCenter, new Vector2(0f, -500f), new Vector2(700f, 30f), false);
+            PressStartScreen = _screen.gameObject.AddComponent<PressStart>(); PressStartScreen.Label = press;
+            PressStartScreen.Pressed += () => Open(Session.IsLoggedIn || TestMode ? FrontScreen.Menu : FrontScreen.Login);
+        }
+
+        // ---------------------------------------------------------------- menú principal
+        // Como la referencia acordada: lista a la izquierda sobre una banda negra, separador antes del bloque secundario y "Últimas noticias" debajo,
+        // con el muro rojo y la calavera a la derecha a la vista. Pie con las teclas.
+        public const float MenuBandX = -560f, MenuBandW = 640f;
+
         private void BuildMenu()
         {
-            Title("VALLE HONDO");
-            _list = LeftList("Menú principal", MenuItems);
-            InfoPanel("Información", out _info);
+            UiKit.Text(_screen, "7DAYS", 72, UiKit.White, TextAnchor.MiddleLeft, new Vector2(MenuBandX - MenuBandW / 2f + 10f + 400f * UiKit.Condensed / 2f, 420f), new Vector2(400f, 90f), true)
+                .gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+            var band = UiKit.Panel(_screen, "Panel menú", new Vector2(0.5f, 0.5f), new Vector2(MenuBandX, 70f), new Vector2(MenuBandW, 7 * 50f + 40f));
+            _list = MenuList.Create(band, new Vector2(0f, 0f), MenuBandW - 40f, MenuItems, null, 50f, 28, 26);
+            _list.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;   // centrada en su banda
+            _list.AddSeparator(4);   // Créditos y Salir aparte
+            var news = UiKit.Panel(_screen, "Panel noticias", new Vector2(0.5f, 0.5f), new Vector2(MenuBandX, -250f), new Vector2(MenuBandW, 230f));
+            UiKit.Text(news, "Últimas noticias:", 26, UiKit.White, TextAnchor.UpperLeft, new Vector2(0f, 80f), new Vector2(MenuBandW - 50f, 40f), true, false);
+            _info = UiKit.Text(news, "", 22, UiKit.White, TextAnchor.UpperLeft, new Vector2(0f, -28f), new Vector2(MenuBandW - 50f, 160f), false, false);
+            _info.horizontalOverflow = HorizontalWrapMode.Wrap; _info.verticalOverflow = VerticalWrapMode.Truncate;
             var prof = FrontEndData.Profile;
             void Refresh(int i)
             {
                 var last = prof.Last;
-                _info.text = Describe(i, prof) + "\n\n" + (Session.IsLoggedIn ? "SESIÓN: " + FrontEndData.PlayerName : "MODO PRUEBA (sin sesión)") +
-                    "\nÚLTIMA PARTIDA: " + (last == null ? "ninguna" : MapName(last.mapId) + " · día " + last.dayReached + " · " + last.kills + " bajas · " + (last.victory ? "victoria" : "caído"));
+                _info.text = Describe(i, prof) + "\n" + (Session.IsLoggedIn ? "Sesión: " + FrontEndData.PlayerName : "Modo prueba (sin sesión)") +
+                    " · Última partida: " + (last == null ? "ninguna" : MapName(last.mapId) + ", día " + last.dayReached + (last.victory ? ", victoria" : ""));
             }
             _list.Selected += Refresh; Refresh(0);
             _list.Confirmed += i =>
@@ -222,9 +261,8 @@ namespace SevenDays.UI
                     default: Application.Quit(); break;
                 }
             };
-            _list.Back += () => { if (!Session.IsLoggedIn) { TestMode = false; Open(FrontScreen.Login); } };
-            Notice("VIGÍA: señal vital detectada");
-            UiKit.Footer(_screen, "↑↓ Elegir   ·   Enter Aceptar   ·   Esc Volver");
+            _list.Back += () => Open(FrontScreen.Title);
+            UiKit.Footer(_screen, "↑↓ Elegir · Enter Aceptar · Esc Volver");
         }
 
         // ---------------------------------------------------------------- selección de personaje y mapa

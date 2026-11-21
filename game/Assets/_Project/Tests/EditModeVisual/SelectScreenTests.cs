@@ -20,7 +20,7 @@ namespace SevenDays.Tests.Visual
         private static object G(Component c, string p) => TextT.GetProperty(p).GetValue(c);
 
         /// <summary>Caja del texto realmente dibujado, en el espacio del panel (x0, y0, x1, y1).</summary>
-        private static Rect Ink(Component text, RectTransform panel, out string problem)
+        internal static Rect Ink(Component text, RectTransform panel, out string problem)
         {
             problem = null;
             var rt = (RectTransform)text.transform; var r = rt.rect;
@@ -39,14 +39,14 @@ namespace SevenDays.Tests.Visual
             return Rect.MinMaxRect(Mathf.Min(p0.x, p1.x), Mathf.Min(p0.y, p1.y), Mathf.Max(p0.x, p1.x), Mathf.Max(p0.y, p1.y));
         }
 
-        private static Rect Box(RectTransform rt, RectTransform panel)
+        internal static Rect Box(RectTransform rt, RectTransform panel)
         {
             var c = new Vector3[4]; rt.GetWorldCorners(c);
             Vector3 a = panel.InverseTransformPoint(c[0]), b = panel.InverseTransformPoint(c[2]);
             return Rect.MinMaxRect(a.x, a.y, b.x, b.y);
         }
 
-        private static List<string> Check(RectTransform panel, RectTransform image)
+        internal static List<string> Check(RectTransform panel, RectTransform image)
         {
             var bad = new List<string>();
             var inner = panel.rect; inner.xMin += 6f; inner.xMax -= 6f; inner.yMin += 6f; inner.yMax -= 6f;

@@ -23,7 +23,7 @@ namespace SevenDays.Tests
         public void Panels_InsideTheScreen_NotOverlappingEachOtherNorTitleNorFooter()
         {
             var screen = new[] { 0f, 0f, 1920f, 1080f };
-            var title = new[] { -560f, 396f, 900f, 196f };      // "7DAYS" (y 325-495) y el subtítulo (y 298-342), arriba a la izquierda
+            var title = new[] { -560f, 383f, 900f, 230f };      // "7DAYS" (y 325-495) y el subtítulo (y 270-314), arriba a la izquierda
             var footer = new[] { 0f, -504f, 1920f, 72f };
             foreach (var p in new[] { SelectContent.ListPanel, SelectContent.PreviewPanel })
             {

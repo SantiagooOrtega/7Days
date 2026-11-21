@@ -36,61 +36,125 @@ namespace SevenDays.Procedural
             return Math.Max(head, -Math.Min(Math.Min(eyes, nose), teeth < 0 ? -0.01f : 1f));
         }
 
-        /// <summary>Fondo del menú (w x h): pintura roja/naranja con grunge, calavera grande, ciudad ardiendo abajo y viñeta.</summary>
+        // paleta del menú (valores de la descripción acordada)
+        public static readonly float[] WallDark = { 0.54f, 0.055f, 0.03f }, WallBright = { 0.88f, 0.12f, 0.063f }, Maroon = { 0.353f, 0.039f, 0.031f };
+
+        private static float Smooth(float a, float b, float x) { float t = C01((x - a) / (b - a)); return t * t * (3 - 2 * t); }
+
+        /// <summary>Máscara de la cabeza de la calavera (sin los huecos) en sus coordenadas -1..1.</summary>
+        public static float SkullHeadSd(float u, float v)
+        {
+            float cranium = (float)Math.Sqrt(u * u / 0.64f + (v - 0.18f) * (v - 0.18f) / 0.56f) - 1f;
+            float jaw = Math.Max(Math.Abs(u) - 0.46f + (v + 0.55f) * 0.25f, Math.Abs(v + 0.52f) - 0.28f);
+            return Math.Min(cranium * 0.6f, jaw);
+        }
+
+        /// <summary>El "7" estarcido en la frente de la calavera (coordenadas de la calavera): barra arriba y trazo en diagonal.</summary>
+        public static bool Seven(float u, float v)
+        {
+            if (v > 0.5f && v < 0.6f && u > -0.17f && u < 0.17f) return true;
+            float t = (0.55f - v) / 0.38f; if (t < 0f || t > 1f) return false;
+            float cx = 0.15f - t * 0.2f;
+            return Math.Abs(u - cx) < 0.055f;
+        }
+
+        /// <summary>
+        /// Fondo del menú (w x h): muro carmesí con juntas de paneles, grano negro y manchas; la calavera propia grande a la derecha (sombra negra con las
+        /// cuencas más negras y el "7" en la frente), ciudad en ruinas en silueta a la izquierda, escombros con fuego abajo y viñeta casi negra en los bordes.
+        /// </summary>
         public static byte[] Backdrop(int w, int h, int seed)
         {
             var px = new byte[w * h * 4];
-            // horizonte de la ciudad: alturas por columnas (edificios rotos y dos grúas)
-            var sky = new float[w];
             var rng = new Random(seed);
+            // ciudad a la izquierda: torres que suben hacia el borde
+            var city = new float[w];
             int x0 = 0;
-            while (x0 < w)
+            while (x0 < w * 0.34f)
             {
-                int bw = 6 + rng.Next(w / 18 + 1); float bh = 0.08f + (float)rng.NextDouble() * 0.2f; bool broken = rng.NextDouble() < 0.5;
-                for (int x = x0; x < Math.Min(w, x0 + bw); x++) sky[x] = bh - (broken ? (float)Math.Abs(Math.Sin((x - x0) * 0.9f)) * 0.05f * (float)rng.NextDouble() : 0f);
-                x0 += bw + rng.Next(3);
+                int bw = 8 + rng.Next(w / 22 + 1);
+                float u = x0 / (float)w, top = 0.42f + 0.38f * (1f - u / 0.34f) * (0.55f + 0.45f * (float)rng.NextDouble());
+                bool spire = rng.NextDouble() < 0.3;
+                for (int x = x0; x < Math.Min(w, x0 + bw); x++) city[x] = top + (spire && Math.Abs(x - x0 - bw / 2) < 2 ? 0.06f : 0f) - (rng.NextDouble() < 0.08 ? 0.02f : 0f);
+                x0 += bw + rng.Next(4);
             }
-            foreach (float cx in new[] { 0.72f, 0.88f })
-            {
-                int mast = (int)(cx * w); float top = 0.46f;
-                for (int x = mast - 1; x <= mast + 1 && x < w; x++) if (x >= 0) sky[x] = Math.Max(sky[x], top);
-                for (int x = mast - w / 10; x < mast + w / 6 && x < w; x++) if (x >= 0 && ((x * 7) % 9 != 0)) sky[x] = Math.Max(sky[x], 0f); // el brazo se dibuja aparte
-            }
+            // escombros: línea irregular abajo
+            var rubble = new float[w];
+            for (int x = 0; x < w; x++) { float u = x / (float)w; rubble[x] = 0.1f + 0.09f * Fbm(u * 9f, 0.5f, seed + 7, 4) + (Hash(x / 7, 3, seed) < 0.07f ? 0.06f : 0f); }
             for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
                 {
                     float u = x / (float)w, v = y / (float)h;
-                    // pintura: rojo sangre arriba, naranja fuego abajo, manchas y desgaste
-                    float paint = Fbm(u * 7f, v * 5f, seed, 5), streak = Fbm(u * 2f, v * 26f, seed + 9, 3);
-                    float r = 0.42f + 0.35f * (1f - v) + 0.2f * paint, g = 0.05f + 0.22f * (1f - v) * (1f - v) + 0.08f * paint, b = 0.02f + 0.04f * paint;
-                    float wear = C01((Fbm(u * 18f, v * 14f, seed + 3, 3) - 0.58f) * 4f);
-                    r *= 1f - 0.55f * wear; g *= 1f - 0.55f * wear; b *= 1f - 0.4f * wear;
-                    r *= 0.85f + 0.15f * streak; g *= 0.85f + 0.15f * streak;
-                    // calavera grande a baja opacidad (agrietada)
-                    float su = (u - 0.6f) / 0.24f, sv = (v - 0.52f) / 0.36f;
-                    float sd = SkullSd(su, sv);
-                    float crack = Math.Abs(Fbm(su * 3f + 5f, sv * 3f, seed + 21, 3) - 0.5f) < 0.018f ? 1f : 0f;
-                    if (sd < 0f) { float k = SkullOpacity * (1f - 0.6f * crack); r = r * (1f - k) + 0.12f * k; g = g * (1f - k) + 0.02f * k; b *= 1f - k; }
-                    // ciudad en ruinas ardiendo: silueta negra con ventanas de fuego y resplandor
-                    float glow = (float)Math.Exp(-v * 9f) * (0.6f + 0.4f * Fbm(u * 12f, 0f, seed + 5, 2));
-                    r += glow * 0.9f; g += glow * 0.45f; b += glow * 0.05f;
-                    bool crane = false;
-                    foreach (float cx in new[] { 0.72f, 0.88f }) { if (Math.Abs(v - 0.44f) < 0.006f && u > cx - 0.08f && u < cx + 0.14f) crane = true; if (Math.Abs(u - cx - 0.12f) < 0.0015f && v < 0.44f && v > 0.32f) crane = true; }
-                    if (v < sky[x] || crane)
+                    // muro rojo: más claro detrás de la calavera
+                    float lit = (float)Math.Exp(-((u - 0.63f) * (u - 0.63f) * 3.2f + (v - 0.56f) * (v - 0.56f) * 4f));
+                    float paint = Fbm(u * 6f, v * 4f, seed, 5);
+                    float r = WallDark[0] + (WallBright[0] - WallDark[0]) * (0.35f + 0.65f * lit), g = WallDark[1] + (WallBright[1] - WallDark[1]) * lit, b = WallDark[2] + (WallBright[2] - WallDark[2]) * lit;
+                    r *= 0.85f + 0.3f * paint; g *= 0.85f + 0.3f * paint;
+                    // juntas de paneles del muro (líneas oscuras finas con algo de desorden)
+                    float gu = u * 16f + 0.3f * Fbm(u * 3f, v * 3f, seed + 2, 2), gv = v * 9f;
+                    float joint = Math.Min(Math.Abs(gu - (float)Math.Round(gu)), Math.Abs(gv - (float)Math.Round(gv)) * 1.6f);
+                    float jk = (1f - Smooth(0.01f, 0.05f, joint)) * 0.45f;
+                    r *= 1f - jk; g *= 1f - jk; b *= 1f - jk;
+                    // grano negro fuerte (pintura en spray) y manchas
+                    float speck = Hash(x, y, seed + 11), blot = Fbm(u * 22f, v * 18f, seed + 13, 3);
+                    float dark = (speck > 0.82f ? 0.65f : 0f) + C01((blot - 0.6f) * 2.5f) * 0.5f;
+                    r *= 1f - dark; g *= 1f - dark; b *= 1f - dark;
+                    // calavera grande: sombra negra con borde difuso, cuencas y nariz casi negras, "7" en la frente
+                    float su = (u - 0.65f) / 0.2f * ((float)w / h) * 0.5625f, sv = (v - 0.55f) / 0.36f;
+                    float head = SkullHeadSd(su, sv), sd = SkullSd(su, sv);
+                    float inHead = 1f - Smooth(-0.04f, 0.06f, head);
+                    float hole = inHead * Smooth(-0.02f, 0.04f, sd);
+                    float k = inHead * 0.42f + hole * 0.5f + (Seven(su, sv) && head < 0f ? 0.45f : 0f);
+                    k = Math.Min(0.95f, k);
+                    r *= 1f - k; g *= 1f - k; b *= 1f - k;
+                    // ciudad en silueta negra a la izquierda
+                    if (v < city[x]) { r = 0.02f; g = 0.01f; b = 0.01f; if (v < city[x] - 0.03f && Hash(x / 4, y / 5, seed + 3) < 0.03f) { r = 0.9f; g = 0.35f; b = 0.05f; } }
+                    // fuego sobre los escombros y escombros negros
+                    float fireTop = rubble[x] + 0.2f * Fbm(u * 14f, v * 3f, seed + 17, 3);
+                    if (v < fireTop)
                     {
-                        float fire = (v < sky[x] * 0.6f && Hash(x / 3, y / 3, seed) < 0.06f) ? 1f : 0f;
-                        r = 0.03f + fire * 1f; g = 0.015f + fire * 0.5f; b = 0.01f + fire * 0.08f;
+                        float f = Smooth(fireTop, rubble[x], v) * (0.6f + 0.4f * Fbm(u * 30f, v * 12f, seed + 19, 3));
+                        r = r * (1f - f) + 1f * f; g = g * (1f - f) + (0.42f + 0.35f * f) * f; b = b * (1f - f) + 0.06f * f;
                     }
-                    // viñeta fuerte
-                    float dx = u - 0.5f, dy = v - 0.5f, vig = C01(1f - (dx * dx * 2.2f + dy * dy * 2.6f));
-                    vig = 0.25f + 0.75f * vig;
+                    if (v < rubble[x]) { r = 0.025f; g = 0.012f; b = 0.01f; }
+                    // viñeta casi negra en los bordes (más abajo y a la izquierda)
+                    float dx = u - 0.55f, dy = v - 0.55f, vig = C01(1f - (dx * dx * 2.4f + dy * dy * 3.2f));
+                    vig = 0.08f + 0.92f * vig * vig;
                     int o = (y * w + x) * 4;
                     px[o] = B(r * vig); px[o + 1] = B(g * vig); px[o + 2] = B(b * vig); px[o + 3] = 255;
                 }
             return px;
         }
 
-        /// <summary>Marco de panel (n x n, para 9-slice con borde "border"): fondo oscuro semitransparente, línea crema fina, esquinas rotas, rayones y óxido.</summary>
+        /// <summary>Emblema de la pantalla de inicio (n x n): mancha de spray roja con bordes salpicados y la calavera propia en crema desgastado con el "7" en rojo.</summary>
+        public static byte[] Emblem(int n, int seed)
+        {
+            var px = new byte[n * n * 4];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = x / (float)(n - 1) * 2f - 1f, v = y / (float)(n - 1) * 2f - 1f;
+                    float rad = (float)Math.Sqrt(u * u + v * v), ang = (float)Math.Atan2(v, u);
+                    float edge = 0.86f + 0.08f * Fbm(ang * 3f + 10f, 0.5f, seed, 3) + (Hash((int)((ang + 4f) * 40f), 1, seed) < 0.12f ? 0.08f : 0f);
+                    float a = 1f - Smooth(edge - 0.02f, edge + 0.02f, rad);
+                    float grain = Hash(x, y, seed + 5) > 0.8f ? 0.6f : 1f;
+                    float r = 0.7f * grain, g = 0.07f * grain, b = 0.04f * grain;
+                    float su = u / 0.62f, sv = v / 0.66f;
+                    float head = SkullHeadSd(su, sv), sd = SkullSd(su, sv);
+                    if (head < 0f && sd < 0f)
+                    {
+                        float wear = Fbm(u * 9f, v * 9f, seed + 9, 3);
+                        float c = (0.82f + 0.12f * wear) * (Hash(x, y, seed + 7) > 0.9f ? 0.55f : 1f);
+                        r = c; g = c * 0.95f; b = c * 0.86f;
+                        if (Seven(su, sv)) { r = 0.62f; g = 0.06f; b = 0.04f; }
+                    }
+                    else if (head < 0f) { r = 0.04f; g = 0.02f; b = 0.02f; }   // cuencas y nariz
+                    int o = (y * n + x) * 4;
+                    px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a);
+                }
+            return px;
+        }
+
+        /// <summary>Marco de panel (n x n, para 9-slice con borde "border"): banda negra al 75 % con una línea gris fina desgastada y grano leve.</summary>
         public static byte[] Frame(int n, int border, int seed)
         {
             var px = new byte[n * n * 4];
@@ -98,21 +162,17 @@ namespace SevenDays.Procedural
                 for (int x = 0; x < n; x++)
                 {
                     int ex = Math.Min(x, n - 1 - x), ey = Math.Min(y, n - 1 - y), e = Math.Min(ex, ey);
-                    float a = 0.78f, r = 0.05f, g = 0.045f, b = 0.04f;
-                    bool line = e == 2 || e == 3;
-                    bool chipped = ex + ey < 5;                                   // esquina rota
-                    float rust = Fbm(x * 0.3f, y * 0.3f, seed, 3);
-                    if (line && !chipped) { float worn = Hash(x, y, seed) < 0.18f ? 0.4f : 1f; r = 0.8f * worn; g = 0.74f * worn; b = 0.6f * worn; a = 0.95f; }
-                    else if (e < 2 || chipped) a = 0f;
-                    if (!line && e >= 2 && !chipped && e < border && rust > 0.62f) { r += 0.18f; g += 0.06f; a = Math.Max(a, 0.85f); }
-                    if (!line && Hash(x * 3, y, seed + 4) < 0.012f) { r += 0.15f; g += 0.14f; b += 0.12f; }   // rayones
+                    float a = 0.75f, r = 0.02f, g = 0.018f, b = 0.018f;
+                    if (e == 1) { float worn = Hash(x, y, seed) < 0.2f ? 0.45f : 1f; r = 0.416f * worn; g = 0.392f * worn; b = 0.376f * worn; a = 0.9f; }   // #6A6460
+                    else if (e < 1) a = 0f;
+                    if (e > 1 && Hash(x * 3, y, seed + 4) < 0.02f) { r += 0.04f; g += 0.035f; b += 0.03f; }
                     int o = (y * n + x) * 4;
                     px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a);
                 }
             return px;
         }
 
-        /// <summary>Resaltado de la fila activa: rojo a naranja de izquierda a derecha, con borde gastado.</summary>
+        /// <summary>Resaltado de la fila activa: granate (#5A0A08) a transparente de izquierda a derecha, con un filo rojo arriba y abajo.</summary>
         public static byte[] Highlight(int w, int h, int seed)
         {
             var px = new byte[w * h * 4];
@@ -120,9 +180,12 @@ namespace SevenDays.Procedural
                 for (int x = 0; x < w; x++)
                 {
                     float u = x / (float)(w - 1), n = Fbm(x * 0.2f, y * 0.4f, seed, 2);
-                    float a = C01(0.95f - u * 0.55f) * (0.75f + 0.25f * n);
+                    float a = C01(1f - u * 1.05f) * (0.85f + 0.15f * n);
+                    bool rim = y == 0 || y == h - 1;
+                    float r = rim ? 0.69f : Maroon[0] + 0.08f * (1f - u), g = rim ? 0.08f : Maroon[1], b = rim ? 0.05f : Maroon[2];
+                    if (rim) a *= 0.8f;
                     int o = (y * w + x) * 4;
-                    px[o] = B(0.78f + 0.2f * u); px[o + 1] = B(0.12f + 0.3f * u); px[o + 2] = B(0.06f); px[o + 3] = B(a);
+                    px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a);
                 }
             return px;
         }
