@@ -77,6 +77,7 @@ namespace SevenDays.UI
             if (GUI.Button(new Rect(r.x + 16, y, 368, 28), "Ver la intro otra vez")) { SevenDays.Intro.IntroPlayer.Seen = false; SevenDays.Intro.IntroPlayer.Play(); }
             y += 36f;
             AudioRow(r.x, ref y, "Tamaño texto", (SevenDays.Vigia.VigiaSettings.SubtitleScale - 0.8f) / 0.8f, v => SevenDays.Vigia.VigiaSettings.SubtitleScale = 0.8f + v * 0.8f);
+            AudioRow(r.x, ref y, "Altura subtítulos", (SevenDays.Vigia.VigiaSettings.SubtitleHeight - 0.04f) / 0.26f, v => SevenDays.Vigia.VigiaSettings.SubtitleHeight = 0.04f + v * 0.26f);
         }
 
         private void AudioRow(float x, ref float y, string name, float value, System.Action<float> set)

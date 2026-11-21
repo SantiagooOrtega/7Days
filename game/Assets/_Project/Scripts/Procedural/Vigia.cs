@@ -14,6 +14,20 @@ namespace SevenDays.Procedural
         public string[] Variants;
     }
 
+    /// <summary>Colocación de los subtítulos de VIGÍA (pura, en el lienzo de 1080 de alto): centrados, abajo, con el borde inferior a "heightFrac" de la pantalla.</summary>
+    public static class SubtitleLayout
+    {
+        public const float MaxWidth = 860f, Padding = 12f;
+
+        /// <summary>x, y, ancho, alto del recuadro (y desde arriba, como IMGUI).</summary>
+        public static float[] Rect(float canvasWidth, float textHeight, float heightFrac)
+        {
+            float w = Math.Min(MaxWidth, canvasWidth - 80f), h = textHeight + Padding;
+            float bottom = 1080f * (1f - Math.Max(0.04f, Math.Min(0.3f, heightFrac)));
+            return new[] { (canvasWidth - w) / 2f, bottom - h, w, h };
+        }
+    }
+
     /// <summary>Catálogo cerrado de frases (vigia_frases.txt: id TAB categoría TAB prioridad TAB variantes separadas por " | ").</summary>
     public static class VigiaCatalog
     {

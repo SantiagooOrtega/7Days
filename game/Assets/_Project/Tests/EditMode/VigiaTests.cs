@@ -194,5 +194,16 @@ namespace SevenDays.Tests
             Assert.GreaterOrEqual(IntroText.PanelSeconds("abc", 6f), 6.8f, "espera a que acabe la narración");
             Assert.AreEqual(2, IntroText.Parse("uno\n\n# nota\ndos\n").Count);
         }
+
+        [Test]
+        public void Subtitles_AtTheBottom_Compact_AwayFromTheCrosshair()
+        {
+            var r = SubtitleLayout.Rect(1920f, 70f, 0.09f);
+            Assert.AreEqual(1080f * 0.91f, r[1] + r[3], 0.5f, "borde inferior al 9 % desde abajo");
+            Assert.Greater(r[1], 540f + 120f, "lejos de la mira (centro)");
+            Assert.LessOrEqual(r[2], SubtitleLayout.MaxWidth); Assert.AreEqual(1920f / 2f, r[0] + r[2] / 2f, 0.5f, "centrados");
+            var low = SubtitleLayout.Rect(1920f, 70f, 0.01f); Assert.AreEqual(1080f * 0.96f, low[1] + low[3], 0.5f, "límite inferior 4 %");
+            var narrow = SubtitleLayout.Rect(800f, 40f, 0.09f); Assert.LessOrEqual(narrow[2], 720f);
+        }
     }
 }

@@ -89,19 +89,20 @@ namespace SevenDays.Vigia
             float s = Screen.height / 1080f;
             GUI.matrix = Matrix4x4.Scale(new Vector3(s, s, 1f));
             float w = Screen.width / s;
-            int size = Mathf.RoundToInt(30 * VigiaSettings.SubtitleScale);
+            int size = Mathf.RoundToInt(26 * VigiaSettings.SubtitleScale);   // más compacto
             _style ??= new GUIStyle(GUI.skin.label) { wordWrap = true, alignment = TextAnchor.MiddleCenter, richText = true };
             _style.fontSize = size;
             string text = "<color=#5fd0ff><b>VIGÍA:</b></color> " + _subText;
-            float bw = Mathf.Min(1150f, w - 80f);
+            float bw = Mathf.Min(SubtitleLayout.MaxWidth, w - 80f);
             float lineH = size * 1.3f;
-            float h = Mathf.Min(_style.CalcHeight(new GUIContent(text), bw - 40f), lineH * 2f) + 22f;   // máx. 2 líneas
-            var r = new Rect((w - bw) / 2f, 1080f - 300f - h, bw, h);   // encima de la vida y la munición
+            float th = Mathf.Min(_style.CalcHeight(new GUIContent(text), bw - 32f), lineH * 2f);   // máx. 2 líneas
+            var lr = SubtitleLayout.Rect(w, th, VigiaSettings.SubtitleHeight);   // abajo, justo sobre la vida y la munición (ajustable en Esc)
+            var r = new Rect(lr[0], lr[1], lr[2], lr[3]);
             var prev = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.62f * alpha);
+            GUI.color = new Color(0f, 0f, 0f, 0.5f * alpha);
             GUI.DrawTexture(r, Texture2D.whiteTexture);
             GUI.color = new Color(1f, 1f, 1f, alpha);
-            GUI.Label(new Rect(r.x + 20, r.y + 11, r.width - 40, r.height - 22), text, _style);
+            GUI.Label(new Rect(r.x + 16, r.y + 6, r.width - 32, r.height - 12), text, _style);
             GUI.color = prev;
         }
     }

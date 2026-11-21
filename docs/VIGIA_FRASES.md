@@ -73,3 +73,6 @@ Prioridades: **critica** interrumpe lo que suene; **importante** pasa delante de
 | `intro_3` | partida | importante | Me encontraste a mí. Una cámara de seguridad con opiniones. Desde entonces te sigo. |
 | `intro_4` | partida | importante | Dicen que el rescate llega en siete días. Dicen muchas cosas. |
 | `intro_5` | partida | importante | Siete días. Sobrevive a cada oleada. Yo llevo la cuenta. |
+
+## Subtítulos
+Abajo y centrados, con el borde inferior al 9 % de la altura (justo sobre la vida y la munición), un recuadro más compacto (como mucho 860 px de ancho y 2 líneas, fondo al 50 %), lejos de la mira y del personaje. La altura se ajusta en Esc ("Altura subtítulos", del 4 al 30 %) y en Opciones del menú (`SubtitleLayout`, `VigiaSettings.SubtitleHeight`).
