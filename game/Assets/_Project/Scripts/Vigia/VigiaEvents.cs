@@ -77,7 +77,10 @@ namespace SevenDays.Vigia
         /// <summary>Zombis restantes de la oleada (lo llama DayLoop tras cada baja).</summary>
         public void OnRemaining(int remaining, int total) => VigiaVoice.Say(Progress.OnRemaining(remaining, total));
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Vigia); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_player == null || _health == null || _health.IsDead) return;
             Resources_();
@@ -130,8 +133,10 @@ namespace SevenDays.Vigia
             var cam = Camera.main;
             Vector3 fwd = cam != null ? Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized : _player.transform.forward;
             int close = 0, intense = 0, behind = 0;
-            foreach (var z in _zombies.All)
+            var all = _zombies.All;
+            for (int zi = 0; zi < all.Count; zi++)
             {
+                var z = all[zi];
                 if (!z.InUse || z.Health.IsDead || z.Type == null) continue;
                 Vector3 d = z.transform.position - p; d.y = 0f;
                 float dist = d.magnitude;

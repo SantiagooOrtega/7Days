@@ -56,7 +56,10 @@ namespace SevenDays.Player
 
         private static Vector3 V(V3 v) => new Vector3(v.X, v.Y, v.Z);
 
-        private void LateUpdate()
+        private void LateUpdate() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); LateUpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void LateUpdateMedido()
         {
             if (_pose == null || _shooting == null) return;
             float dt = Time.deltaTime;

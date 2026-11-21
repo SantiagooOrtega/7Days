@@ -14,6 +14,8 @@ namespace SevenDays.UI
     /// </summary>
     public class RenderDebugPanel : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private bool _open;
         private ProfilerRecorder _draw, _setPass, _tris, _casters;
         private readonly FrameTiming[] _timing = new FrameTiming[1];
@@ -37,7 +39,10 @@ namespace SevenDays.UI
 
         private void OnDisable() { _draw.Dispose(); _setPass.Dispose(); _tris.Dispose(); _casters.Dispose(); }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             var k = Keyboard.current;
             if (k != null && k.f6Key.wasPressedThisFrame) _open = !_open;
@@ -59,7 +64,10 @@ namespace SevenDays.UI
             }
         }
 
-        private void OnGUI()
+        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void OnGUIMedido()
         {
             if (!_open || Event.current.type != EventType.Repaint && Event.current.type != EventType.Layout) return;
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 13, normal = { textColor = Color.white } };

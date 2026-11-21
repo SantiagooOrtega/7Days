@@ -59,7 +59,10 @@ namespace SevenDays.Combat
             return go.AddComponent<GroundMarker>();
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             float now = Time.time;
             if (now >= _end || SevenDays.UI.StatsScreen.Blocking) { if (_line) _linePool.Release(this); else _pool.Release(this); _line = false; return; }

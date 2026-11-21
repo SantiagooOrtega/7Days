@@ -70,6 +70,20 @@ namespace SevenDays.Procedural
             return idx.ToArray();
         }
 
+        /// <summary>Igual que NearestLights, sin memoria: escribe los índices elegidos en "result" (selección de los "max" mejores).</summary>
+        public static void NearestLights(IList<V3> positions, IList<int> priorities, V3 viewer, int max, List<int> result, List<float> scratch)
+        {
+            result.Clear(); scratch.Clear();
+            for (int i = 0; i < positions.Count; i++) scratch.Add(Dist2(positions[i], viewer) - 4f * (priorities != null ? priorities[i] : 0));
+            for (int n = 0; n < max && n < positions.Count; n++)
+            {
+                int best = -1;
+                for (int i = 0; i < scratch.Count; i++) if (scratch[i] < float.MaxValue && (best < 0 || scratch[i] < scratch[best])) best = i;
+                if (best < 0) break;
+                result.Add(best); scratch[best] = float.MaxValue;
+            }
+        }
+
         /// <summary>Factor de humo y chispas según el nivel de recorte.</summary>
         public static float SmokeFactor(int level) => level <= 0 ? 1f : (level == 1 ? 0.6f : (level == 2 ? 0.3f : 0f));
         public static float SparkFactor(int level) => level <= 1 ? 1f : 0f;

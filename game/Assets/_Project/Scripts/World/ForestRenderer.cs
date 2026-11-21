@@ -31,6 +31,7 @@ namespace SevenDays.World
             public readonly List<Vector3> Pos = new List<Vector3>();
             public Matrix4x4[][] Bins = new Matrix4x4[4][];   // LOD 0 con sombra, LOD 0, LOD 1, LOD 2
             public int[] Counts = new int[4];
+            public bool? Pine;
         }
 
         private readonly List<Kind> _kinds = new List<Kind>();
@@ -117,7 +118,8 @@ namespace SevenDays.World
         {
             int n = k.Counts[bin];
             if (n == 0) return;
-            var crownMat = k.Trunk[0].name.StartsWith(PropTypes.Pine) ? _needles : _dry;
+            k.Pine ??= k.Trunk[0].name.StartsWith(PropTypes.Pine);   // una vez por tipo: Object.name crea un string en cada llamada
+            var crownMat = k.Pine.Value ? _needles : _dry;
             var shadow = shadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
             var rpT = new RenderParams(_bark) { shadowCastingMode = shadow, receiveShadows = true, layer = gameObject.layer };
             var rpC = new RenderParams(crownMat) { shadowCastingMode = shadow, receiveShadows = true, layer = gameObject.layer };

@@ -11,6 +11,8 @@ namespace SevenDays.Vigia
     /// </summary>
     public class VigiaDebugPanel : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private bool _show;
         private Vector2 _scroll;
         private int _cat;

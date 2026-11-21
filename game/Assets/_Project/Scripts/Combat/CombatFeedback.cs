@@ -13,6 +13,8 @@ namespace SevenDays.Combat
     /// </summary>
     public class CombatFeedback : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         public static CombatFeedback Instance { get; private set; }
         public float HitUntil { get; private set; }
         public float KillUntil { get; private set; }
@@ -76,7 +78,10 @@ namespace SevenDays.Combat
             _pending.Add(new Pending { Target = s.Target, Pos = s.Point, Damage = s.Report.FinalDamage, Report = s.Report, Killed = s.Report.Killed });
         }
 
-        private void LateUpdate()
+        private void LateUpdate() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); LateUpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void LateUpdateMedido()
         {
             for (int i = 0; i < _pending.Count; i++)
             {
@@ -101,7 +106,10 @@ namespace SevenDays.Combat
             _nextPopup = (_nextPopup + 1) % MaxPopups;
         }
 
-        private void OnGUI()
+        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void OnGUIMedido()
         {
             if (Event.current.type != EventType.Repaint) return;
             if (SevenDays.UI.StatsScreen.Blocking) { for (int i = 0; i < MaxPopups; i++) _popups[i].Alive = false; return; }   // al morir: sin números de daño

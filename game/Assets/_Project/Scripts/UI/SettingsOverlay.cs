@@ -10,6 +10,8 @@ namespace SevenDays.UI
     /// </summary>
     public class SettingsOverlay : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private PlayerCamera _camera;
         private GUIStyle _label, _title;
 

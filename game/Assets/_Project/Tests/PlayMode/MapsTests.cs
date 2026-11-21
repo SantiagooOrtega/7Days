@@ -279,7 +279,7 @@ namespace SevenDays.Tests.PlayMode
             Assert.AreEqual(0, (int)gmT.GetProperty("Airborne").GetValue(gm), "vuelve al pool");
         }
 
-        [UnityTest]
+        [UnityTest, Timeout(300000)]
         public IEnumerator Zombie_WalksUpTheStairs_NoTeleport()
         {
             T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, "calle_en_ruinas");
@@ -301,7 +301,7 @@ namespace SevenDays.Tests.PlayMode
             var z = (Component)spawn.Invoke(mgr, new object[] { "common", W(2.8f, 0.2f, -1.6f), 1f, 1f, 1f, true });
             Assert.IsNotNull(z);
             Vector3 prev = z.transform.position; float maxStep = 0f, t1 = Time.time; bool up = false; int frames = 0; bool prevLink = false;
-            while (Time.time - t1 < 60f)   // tarda 9-25 s según cuándo termina de emerger
+            while (Time.time - t1 < 120f)   // tarda 9-55 s según cuándo termina de emerger y la carga de la máquina: margen holgado (antes 60 s, fallaba a veces)
             {
                 yield return null; frames++;
                 var p = z.transform.position;

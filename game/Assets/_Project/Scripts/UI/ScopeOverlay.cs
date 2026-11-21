@@ -6,6 +6,8 @@ namespace SevenDays.UI
     /// <summary>Overlay de mira telescópica: todo negro salvo un círculo con borde suave, cruz fina y el nivel de zoom. Solo con el francotirador apuntando.</summary>
     public class ScopeOverlay : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private PlayerCamera _camera;
         private Texture2D _mask;
         private GUIStyle _label;

@@ -124,6 +124,8 @@ namespace SevenDays.Procedural
         public bool Grain;
         public float MinScale, MaxScale;   // rango de la resolución dinámica
         public int Atmosphere;             // nivel de recorte de AtmosphereBudget (0 todo .. 3 lo esencial)
+        public int MaxZombies;             // zombis simultáneos (el resto de la oleada entra por tandas)
+        public float AnimDistance;         // escala de las distancias de LOD de la animación (menos = se anima a menor frecuencia antes)
 
         public static readonly string[] Names = { "Alta", "Media", "Baja", "Mínima" };
 
@@ -131,10 +133,10 @@ namespace SevenDays.Procedural
         {
             switch (level <= 0 ? 0 : (level >= 3 ? 3 : level))
             {
-                case 0: return new QualityProfile { Name = Names[0], ShadowDistance = 50f, Cascades = 2, Softness = ShadowSoftness.Medium, Ssao = true, SsaoHalf = true, Bloom = true, BloomQuarter = false, Grain = true, MinScale = 0.75f, MaxScale = 1f, Atmosphere = 0 };
-                case 1: return new QualityProfile { Name = Names[1], ShadowDistance = 42f, Cascades = 2, Softness = ShadowSoftness.Low, Ssao = true, SsaoHalf = true, Bloom = true, BloomQuarter = true, Grain = true, MinScale = 0.67f, MaxScale = 1f, Atmosphere = 1 };
-                case 2: return new QualityProfile { Name = Names[2], ShadowDistance = 35f, Cascades = 1, Softness = ShadowSoftness.Hard, Ssao = false, SsaoHalf = true, Bloom = true, BloomQuarter = true, Grain = false, MinScale = 0.6f, MaxScale = 0.9f, Atmosphere = 2 };
-                default: return new QualityProfile { Name = Names[3], ShadowDistance = 30f, Cascades = 1, Softness = ShadowSoftness.Hard, Ssao = false, SsaoHalf = true, Bloom = false, BloomQuarter = true, Grain = false, MinScale = 0.6f, MaxScale = 0.8f, Atmosphere = 3 };
+                case 0: return new QualityProfile { Name = Names[0], ShadowDistance = 50f, Cascades = 2, Softness = ShadowSoftness.Medium, Ssao = true, SsaoHalf = true, Bloom = true, BloomQuarter = false, Grain = true, MinScale = 0.75f, MaxScale = 1f, Atmosphere = 0, MaxZombies = 40, AnimDistance = 1f };
+                case 1: return new QualityProfile { Name = Names[1], ShadowDistance = 42f, Cascades = 2, Softness = ShadowSoftness.Low, Ssao = true, SsaoHalf = true, Bloom = true, BloomQuarter = true, Grain = true, MinScale = 0.67f, MaxScale = 1f, Atmosphere = 1, MaxZombies = 34, AnimDistance = 0.85f };
+                case 2: return new QualityProfile { Name = Names[2], ShadowDistance = 35f, Cascades = 1, Softness = ShadowSoftness.Hard, Ssao = false, SsaoHalf = true, Bloom = true, BloomQuarter = true, Grain = false, MinScale = 0.6f, MaxScale = 0.9f, Atmosphere = 2, MaxZombies = 28, AnimDistance = 0.7f };
+                default: return new QualityProfile { Name = Names[3], ShadowDistance = 30f, Cascades = 1, Softness = ShadowSoftness.Hard, Ssao = false, SsaoHalf = true, Bloom = false, BloomQuarter = true, Grain = false, MinScale = 0.6f, MaxScale = 0.8f, Atmosphere = 3, MaxZombies = 24, AnimDistance = 0.55f };
             }
         }
     }

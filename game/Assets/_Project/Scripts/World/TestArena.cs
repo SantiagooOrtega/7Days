@@ -17,6 +17,8 @@ namespace SevenDays.World
     /// </summary>
     public class TestArena : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private Health _playerHealth;
         private GameObject _player;
         private HouseController _house;
@@ -61,6 +63,7 @@ namespace SevenDays.World
             // el mapa es un JSON (Resources/Maps o el backend): su ambientación se aplica antes de todo lo visual
             // intro en cómic en cada partida nueva (EMPEZAR; tapa la carga del mapa); el día 1 no empieza hasta que termina
             if (SevenDays.Intro.IntroPlayer.ConsumeNewGame()) SevenDays.Intro.IntroPlayer.Play(transform);
+            SevenDays.Vigia.VigiaClips.StartPrewarm();   // voces de VIGÍA listas antes de que hable (sin tirones al decir cada frase por primera vez)
             _look = new LookSettings();
             _map = MapIO.Load(MapIO.SelectedId, _look);
             MapIO.ApplyAmbience(_map.ambience, _look);
@@ -95,6 +98,8 @@ namespace SevenDays.World
             _zombies.BakeNavMesh(); // después de construir el nivel y de la auditoría: usa los colliders ya definitivos
             _lootManager.OnNavMeshReady();   // valida el botín con el NavMesh (alcanzable desde el inicio) y escribe "Loot: N válidos, 0 fuera de rango"
             _zombies.SetPlayer(player.transform);
+            _zombies.MaxZombies = SevenDays.Procedural.QualityProfile.For(SevenDays.Look.QualityDirector.Instance != null ? SevenDays.Look.QualityDirector.Instance.Level : 0).MaxZombies;
+            yield return _zombies.Prewarm();   // cuerpos creados ahora (tras la intro y "Generando texturas"), no a mitad de la oleada
             BloodFx.Create(transform);
             BossHud.Create(transform);
             BlastFx.Create(transform);
@@ -117,10 +122,16 @@ namespace SevenDays.World
             hud.gameObject.AddComponent<WeaponHud>().Initialize(player);   // selector de armas con iconos y rueda radial (Tab)
             hud.gameObject.AddComponent<SupplyHud>();   // flechas en el borde, ping y texto al mirar los suministros
             hud.gameObject.AddComponent<ZombieSoundPanel>();   // F6: probar cada sonido de zombi
+            SevenDays.Core.PerfMonitor.Ensure();   // F6: panel CPU (ms por sistema, p95/p99, GC)
             hud.gameObject.AddComponent<RenderDebugPanel>();   // F6: panel Render (resolución, ms de CPU/GPU, draw calls, luces, calidad)   // F7: ciclo automático de piernas con cámara lateral
             hud.gameObject.AddComponent<ScopeOverlay>().Initialize(player.GetComponent<PlayerCamera>());
 
             while (SevenDays.Intro.IntroPlayer.Active) yield return null;
+            // voces de VIGÍA preparadas (como mucho 8 s más, detrás de "Generando texturas") y una recolección completa de la basura de la carga:
+            // la partida empieza con el heap limpio y el GC incremental no tiene que trabajar durante el Día 1
+            float vw = Time.realtimeSinceStartup;
+            while (SevenDays.Vigia.VigiaClips.Prewarming && Time.realtimeSinceStartup - vw < 8f) yield return null;
+            System.GC.Collect();
 
             // VIGÍA: voz y subtítulos (antes que el bucle de días, que le pide la bienvenida)
             SevenDays.Vigia.VigiaVoice.Create(transform);

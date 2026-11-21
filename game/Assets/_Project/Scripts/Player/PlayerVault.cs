@@ -140,7 +140,10 @@ namespace SevenDays.Player
             return true;
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (!IsVaulting) return;
             _t += Time.deltaTime / _plan.Duration;

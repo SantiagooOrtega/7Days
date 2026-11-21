@@ -161,17 +161,7 @@ namespace SevenDays.Combat
                 int pick = _rng.Next(free);
                 foreach (var c in _all) if (!c.InUse && c.BodyKey == key && pick-- == 0) { z = c; break; }
             }
-            if (z == null && _all.Count < MaxZombies + 4)
-            {
-                var go = new GameObject("Zombie");
-                go.transform.SetParent(transform, false);
-                go.AddComponent<Health>();
-                z = go.AddComponent<ZombieController>();
-                z.Build(type);
-                z.Killed += OnKilled;
-                z.SetPlayer(_player, _playerHealth);
-                _all.Add(z);
-            }
+            if (z == null && _all.Count < MaxZombies + 4) z = CreatePooled(type);
             if (z == null)
             {
                 // pool lleno de otros tipos: un zombi libre cambia de cuerpo
@@ -188,7 +178,47 @@ namespace SevenDays.Combat
 
         private void OnKilled(ZombieController z) => ZombieKilled?.Invoke(z);
 
-        private void Update()
+        private ZombieController CreatePooled(ZombieTypeData type)
+        {
+            var go = new GameObject("Zombie");
+            go.transform.SetParent(transform, false);
+            go.AddComponent<Health>();
+            var z = go.AddComponent<ZombieController>();
+            z.Build(type);
+            z.Killed += OnKilled;
+            z.SetPlayer(_player, _playerHealth);
+            _all.Add(z);
+            return z;
+        }
+
+        /// <summary>Cuerpos creados durante la carga (no a mitad de oleada): crearlos era la causa de los tirones con muchos zombis.</summary>
+        public int Prewarmed { get; private set; }
+
+        /// <summary>
+        /// Llena el pool hasta el tope (MaxZombies + 4) durante la carga, con un presupuesto de ms por frame para no congelar la pantalla de carga.
+        /// La mitad son comunes y el resto se reparte entre los demás tipos no jefe (al aparecer, se reutiliza un cuerpo libre del mismo tipo).
+        /// </summary>
+        public System.Collections.IEnumerator Prewarm(float budgetMs = 8f)
+        {
+            var kinds = new List<ZombieTypeData>();
+            foreach (string id in ZombieAnatomies.Types) { var t = TypeById(id); if (t != null && !t.isBoss) kinds.Add(t); }
+            var common = TypeById(ZombieIds.Common);
+            if (kinds.Count == 0 || common == null) yield break;
+            int target = MaxZombies + 4, i = 0;
+            long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+            while (_all.Count < target)
+            {
+                var type = i % 2 == 0 ? common : kinds[(i / 2) % kinds.Count];
+                i++;
+                CreatePooled(type); Prewarmed++;
+                if ((System.Diagnostics.Stopwatch.GetTimestamp() - t0) * 1000.0 / System.Diagnostics.Stopwatch.Frequency > budgetMs) { yield return null; t0 = System.Diagnostics.Stopwatch.GetTimestamp(); }
+            }
+        }
+
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.IA); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             PlayerCoverSeconds = _cover != null && _cover.Active ? PlayerCoverSeconds + Time.deltaTime : 0f;
             // si una cobertura se rompió, el NavMesh se actualiza (como mucho cada 2 s, no en cada golpe)

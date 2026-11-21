@@ -94,7 +94,10 @@ namespace SevenDays.Player
         /// <summary>Empuja al jugador (velocidad inicial en m/s; se disipa en ~0.4 s).</summary>
         public void Push(Vector3 velocity) => _push += velocity;
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_camera == null || _health.IsDead) return;
             if (IsVaulting) return; // durante el vault la posición la gobierna PlayerVault

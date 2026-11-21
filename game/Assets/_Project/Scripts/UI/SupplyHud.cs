@@ -12,6 +12,8 @@ namespace SevenDays.UI
     /// </summary>
     public class SupplyHud : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private const int MaxArrows = 4;
         private readonly List<(LootPickup p, float d)> _near = new List<(LootPickup, float)>(32);
         private Texture2D _arrow;
@@ -30,15 +32,20 @@ namespace SevenDays.UI
             _ping = PingClip();
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Loot); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             var mgr = LootManager.Instance; var cam = Camera.main;
             _near.Clear(); _looked = null;
             if (mgr == null || cam == null) return;
             Vector3 eye = cam.transform.position, fwd = cam.transform.forward;
             float bestAngle = float.MaxValue;
-            foreach (var p in mgr.Active)
+            var act = mgr.Active;
+            for (int i = 0; i < act.Count; i++)   // con índice: foreach sobre IReadOnlyList reservaba un enumerador cada frame
             {
+                var p = act[i];
                 if (p == null || !p.gameObject.activeInHierarchy || !p.Reachable) continue;   // solo lo alcanzable
                 Vector3 c = p.GlintPosition;
                 float d = Vector3.Distance(eye, c);
@@ -54,7 +61,10 @@ namespace SevenDays.UI
             _near.Sort((a, b) => a.d.CompareTo(b.d));
         }
 
-        private void OnGUI()
+        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void OnGUIMedido()
         {
             if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             var cam = Camera.main;
@@ -65,6 +75,7 @@ namespace SevenDays.UI
             foreach (var (p, d) in _near)
             {
                 if (arrows >= MaxArrows) break;
+                if (p == null) continue;   // recogido o destruido desde el último Update (recarga, reintentar, cambio de mapa)
                 Vector3 v = cam.WorldToViewportPoint(p.GlintPosition);
                 if (SupplyVisibility.OnScreen(v.x, v.y, v.z)) continue;   // a la vista: ya lo marca su icono flotante
                 arrows++;
@@ -83,7 +94,7 @@ namespace SevenDays.UI
                 Vector2 inward = new Vector2(0.5f * Screen.width - x, 0.5f * Screen.height - y).normalized * 30f;
                 GUI.color = new Color(1f, 1f, 1f, col.a);
                 if (icon != null) GUI.DrawTexture(new Rect(x + inward.x - 14, y + inward.y - 14, 28, 28), icon);
-                GUI.Label(new Rect(x + inward.x - 30, y + inward.y + 12, 60, 18), Mathf.RoundToInt(d) + " m", _small);
+                GUI.Label(new Rect(x + inward.x - 30, y + inward.y + 12, 60, 18), Meters(Mathf.RoundToInt(d)), _small);
                 GUI.color = prev;
             }
             if (_looked != null)
@@ -92,24 +103,37 @@ namespace SevenDays.UI
                 if (v.z > 0f)
                 {
                     var item = _looked.Item;
-                    string amount = item.kind == "weapon" ? "" : " x" + item.amount;
-                    string rarity = WeaponCatalog.RarityName(_looked.Rarity);
+                    if (!ReferenceEquals(_lookedShown, _looked) || _lookedAmount != item.amount)
+                    {
+                        // la etiqueta se compone al mirar otro objeto, no cada frame
+                        _lookedShown = _looked; _lookedAmount = item.amount;
+                        _lookedName = Capital(LootPickup.ItemName(item)) + (item.kind == "weapon" ? "" : " x" + item.amount);
+                        _lookedSub = WeaponCatalog.RarityName(_looked.Rarity) + "  ·  E recoger";
+                    }
                     var r = new Rect(v.x - 170, Screen.height - v.y - 40, 340, 26);
                     var prev = GUI.color;
                     GUI.color = new Color(0f, 0f, 0f, 0.55f); GUI.DrawTexture(new Rect(r.x, r.y, r.width, 46), Texture2D.whiteTexture);
                     GUI.color = TintOf(_looked);
-                    GUI.Label(r, Capital(LootPickup.ItemName(item)) + amount, _label);
+                    GUI.Label(r, _lookedName, _label);
                     GUI.color = Color.white;
-                    GUI.Label(new Rect(r.x, r.y + 22, r.width, 22), rarity + "  ·  E recoger", _small);
+                    GUI.Label(new Rect(r.x, r.y + 22, r.width, 22), _lookedSub, _small);
                     GUI.color = prev;
                 }
             }
         }
 
+        private LootPickup _lookedShown;
+        private int _lookedAmount;
+        private string _lookedName = "", _lookedSub = "";
+        private static readonly string[] MeterLabels = new string[201];
+        private static string Meters(int m) { m = Mathf.Clamp(m, 0, 200); return MeterLabels[m] ??= m + " m"; }   // una vez por distancia
+        private static readonly System.Collections.Generic.Dictionary<SupplyKind, Color> KindColors = new System.Collections.Generic.Dictionary<SupplyKind, Color>();
+
         private static Color TintOf(LootPickup p)
         {
-            var c = p.Kind == SupplyKind.Weapon ? WeaponCatalog.RarityColor(p.Rarity) : SupplyModel.TypeColor(p.Kind);
-            return new Color(c[0], c[1], c[2], 1f);
+            if (p.Kind == SupplyKind.Weapon) { var w = WeaponCatalog.RarityColor(p.Rarity); return new Color(w[0], w[1], w[2], 1f); }
+            if (!KindColors.TryGetValue(p.Kind, out var col)) { var c = SupplyModel.TypeColor(p.Kind); col = new Color(c[0], c[1], c[2], 1f); KindColors[p.Kind] = col; }   // una vez por tipo
+            return col;
         }
 
         private static string Capital(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);

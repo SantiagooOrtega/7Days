@@ -356,7 +356,9 @@ namespace SevenDays.Procedural
     {
         public const float Near = 18f, Mid = 35f, Far = 60f;
 
-        public static int Interval(float distance) => distance < Near ? 1 : (distance < Mid ? 2 : (distance < Far ? 3 : 6));
+        /// <summary>Escala de las distancias (el gobernador de calidad la baja: menos animación a la misma distancia).</summary>
+        public static float Scale = 1f;
+        public static int Interval(float distance) { float d = distance / (Scale > 0.1f ? Scale : 0.1f); return d < Near ? 1 : (d < Mid ? 2 : (d < Far ? 3 : 6)); }
         /// <summary>A partir de esta distancia los pies no lanzan rayos al suelo (usa la altura del cuerpo): no se nota y ahorra física.</summary>
         public static bool FootRaycasts(float distance) => distance < Mid;
     }

@@ -155,7 +155,10 @@ namespace SevenDays.Player
         /// <summary>Compatibilidad: sube la mira unos grados de golpe (sin recuperación).</summary>
         public void Kick(float degrees) => Pitch = Mathf.Clamp(Pitch - degrees, Settings.minPitch, Settings.maxPitch);
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_motor == null) { _motor = GetComponent<PlayerMotor>(); _cover = GetComponent<PlayerCover>(); _impulse = GetComponent<PlayerImpulse>(); _rig = GetComponentInChildren<SevenDays.Animation.ProceduralRig>(); }
             float dt = Time.deltaTime;
@@ -257,7 +260,10 @@ namespace SevenDays.Player
             if (RunOutput.Stepped && RunOutput.Weight > 0.2f) _impulse?.RunStep(RunOutput.Weight);
         }
 
-        private void LateUpdate()
+        private void LateUpdate() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); LateUpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void LateUpdateMedido()
         {
             float dt = Time.deltaTime;
             // suavizado de rotación (menor al apuntar para que la mira responda)

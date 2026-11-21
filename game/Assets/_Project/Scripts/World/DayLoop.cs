@@ -19,6 +19,8 @@ namespace SevenDays.World
     /// </summary>
     public class DayLoop : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         public static DayLoop Instance { get; private set; }
         public DayCycle Cycle { get; private set; }
         public WaveState Wave { get; private set; }

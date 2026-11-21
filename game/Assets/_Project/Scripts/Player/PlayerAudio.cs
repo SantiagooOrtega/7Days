@@ -28,7 +28,10 @@ namespace SevenDays.Player
             _breath.Play();
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_camera == null || _camera.RunCam == null || _motor == null) return;
             var o = _camera.RunOutput;

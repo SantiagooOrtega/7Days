@@ -151,19 +151,22 @@ namespace SevenDays.Procedural
         public float Seconds(AmmoType t) => _t.TryGetValue(t, out float v) ? v : 0f;
 
         /// <summary>Tipo al que le toca un drop (o None).</summary>
+        private readonly List<AmmoType> _keys = new List<AmmoType>();
+
         public AmmoType Tick(float dt, IList<WeaponState> weapons, AmmoReserve ammo)
         {
             _empty.Clear();
-            foreach (var w in weapons)
+            for (int i = 0; i < weapons.Count; i++)   // con índice: foreach sobre IList reservaba un enumerador cada frame
             {
+                var w = weapons[i];
                 if (!w.Data.UsesAmmo) continue;
                 var t = w.Data.ammoType;
                 bool none = ammo.Count(t) <= 0;
-                if (none) foreach (var o in weapons) if (o.Data.UsesAmmo && o.Data.ammoType == t && o.Magazine > 0) { none = false; break; }
+                if (none) for (int j = 0; j < weapons.Count; j++) { var o = weapons[j]; if (o.Data.UsesAmmo && o.Data.ammoType == t && o.Magazine > 0) { none = false; break; } }
                 if (none && !_empty.Contains(t)) _empty.Add(t);
             }
-            var keys = new List<AmmoType>(_t.Keys);
-            foreach (var k in keys) if (!_empty.Contains(k)) _t.Remove(k);
+            _keys.Clear(); foreach (var k in _t.Keys) _keys.Add(k);   // lista reutilizada
+            foreach (var k in _keys) if (!_empty.Contains(k)) _t.Remove(k);
             AmmoType due = AmmoType.None;
             foreach (var t in _empty)
             {

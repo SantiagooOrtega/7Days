@@ -257,7 +257,10 @@ namespace SevenDays.Animation
         /// <summary>Aterrizaje: la pelvis baja según la altura de la caída y vuelve con suavidad.</summary>
         public void Land(float fall) => _landing.Kick(-Mathf.Clamp(1.2f + fall * 0.9f, 1.2f, 6f));
 
-        private void LateUpdate()
+        private void LateUpdate() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Animacion); LateUpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void LateUpdateMedido()
         {
             if (!_built || ManualTick) return;
             // LOD: lejos de la cámara se actualiza cada 2, 3 o 6 frames (con el tiempo acumulado, así la animación no se ralentiza) y sin rayos al suelo

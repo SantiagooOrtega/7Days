@@ -10,6 +10,8 @@ namespace SevenDays.UI
     /// <summary>HUD provisional con IMGUI (vida, munición, mira, cobertura). En la Fase 6 se reemplaza por uGUI.</summary>
     public class PlayerHud : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private Health _health;
         private PlayerShooting _shooting;
         private PlayerCover _cover;
@@ -23,7 +25,12 @@ namespace SevenDays.UI
         /// <summary>La ayuda larga de controles se oculta sola tras estos segundos (F1 la vuelve a mostrar y ya no se oculta).</summary>
         public const float HelpSeconds = 10f;
         private float _fps = 60f;
-        private GUIStyle _label, _big, _center;
+        private GUIStyle _label, _big, _center, _small18, _right, _inv20, _center28, _center26;
+        // textos cacheados: se rehacen solo cuando cambian sus números (antes, strings nuevos cada frame)
+        private string _hpText = "", _fpsText = "", _invText = "", _grenText = "", _whoText;
+        private int _hpShown = -1, _grenShown = -1, _grenMaxShown = -1;
+        private long _invKey = -1;
+        private float _nextFpsText;
 
         public void Initialize(GameObject player)
         {
@@ -37,7 +44,10 @@ namespace SevenDays.UI
             _shooting.HitConfirmed += () => _hitUntil = Time.time + 0.12f;
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_helpHideAt < 0f) _helpHideAt = Time.unscaledTime + HelpSeconds;
             if (GameInput.HelpPressed) { _showHelp = !_showHelp; _helpPinned = true; }
@@ -47,7 +57,10 @@ namespace SevenDays.UI
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
-        private void OnGUI()
+        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void OnGUIMedido()
         {
             if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             if (_health == null) return;
@@ -56,6 +69,11 @@ namespace SevenDays.UI
                 _label = new GUIStyle(GUI.skin.label) { fontSize = 26, normal = { textColor = Color.white } };
                 _big = new GUIStyle(_label) { fontSize = 56, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleRight };
                 _center = new GUIStyle(_label) { alignment = TextAnchor.MiddleCenter, fontSize = 40, fontStyle = FontStyle.Bold };
+                _small18 = new GUIStyle(_label) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
+                _right = new GUIStyle(_label) { alignment = TextAnchor.MiddleRight };
+                _inv20 = new GUIStyle(_label) { fontSize = 20 };
+                _center28 = new GUIStyle(_center) { fontSize = 28 };
+                _center26 = new GUIStyle(_center) { fontSize = 26 };
             }
 
             float s = Screen.height / 1080f;
@@ -70,7 +88,9 @@ namespace SevenDays.UI
             Rect bar = new Rect(60, h - 90, 420, 30);
             Fill(new Rect(bar.x - 4, bar.y - 4, bar.width + 8, bar.height + 8), new Color(0, 0, 0, 0.6f));
             Fill(new Rect(bar.x, bar.y, bar.width * pct, bar.height), Color.Lerp(new Color(0.8f, 0.1f, 0.1f), new Color(0.3f, 0.8f, 0.3f), pct));
-            GUI.Label(new Rect(bar.x, bar.y - 40, 420, 36), "VIDA  " + Mathf.CeilToInt(_health.Current), _label);
+            int hp = Mathf.CeilToInt(_health.Current);
+            if (hp != _hpShown) { _hpShown = hp; _hpText = "VIDA  " + hp; }
+            GUI.Label(new Rect(bar.x, bar.y - 40, 420, 36), _hpText, _label);
 
             // El arma activa, la barra de ranuras con iconos, la munición y el modo de disparo los dibuja WeaponHud (uGUI).
             var wpn = _shooting.Current;
@@ -107,21 +127,25 @@ namespace SevenDays.UI
                     GUI.Label(new Rect(w / 2 - 200, h - 150, 400, 50), state, _center);
                     GUI.color = prevS;
                     if (_camera.Aiming && _cover.PopDir == SevenDays.Procedural.PopDirection.None)
-                        GUI.Label(new Rect(w / 2 - 300, h - 105, 600, 30), "Sin sitio para asomarse: solo fuego a ciegas (clic izq. sin apuntar)", new GUIStyle(_label) { fontSize = 18, alignment = TextAnchor.MiddleCenter });
+                        GUI.Label(new Rect(w / 2 - 300, h - 105, 600, 30), "Sin sitio para asomarse: solo fuego a ciegas (clic izq. sin apuntar)", _small18);
                 }
 
             // FPS (objetivo: 60)
             Color prevColor = GUI.color;
             GUI.color = _fps >= 55f ? new Color(0.5f, 1f, 0.5f) : (_fps >= 40f ? Color.yellow : new Color(1f, 0.4f, 0.4f));
             var qd = SevenDays.Look.QualityDirector.Instance;
-            GUI.Label(new Rect(w - 620, 20, 590, 40), "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)  ambiente " + (3 - SevenDays.Look.AtmosphereBudget.Level) + "/3" +
-                (qd != null ? "  calidad " + SevenDays.Procedural.QualityProfile.For(qd.Level).Name + " · escala " + qd.RenderScale.ToString("0.00") : ""),
-                new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
+            if (Time.unscaledTime >= _nextFpsText)
+            {
+                _nextFpsText = Time.unscaledTime + 0.5f;   // dos veces por segundo
+                _fpsText = "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)  ambiente " + (3 - SevenDays.Look.AtmosphereBudget.Level) + "/3" +
+                    (qd != null ? "  calidad " + SevenDays.Procedural.QualityProfile.For(qd.Level).Name + " · escala " + qd.RenderScale.ToString("0.00") : "");
+            }
+            GUI.Label(new Rect(w - 620, 20, 590, 40), _fpsText, _right);
             GUI.color = prevColor;
 
             // Cuenta
-            string who = Session.IsLoggedIn ? Session.User.username : "(sin sesión)";
-            GUI.Label(new Rect(30, 20, 700, 40), "Jugador: " + who, _label);
+            _whoText ??= "Jugador: " + (Session.IsLoggedIn ? Session.User.username : "(sin sesión)");
+            GUI.Label(new Rect(30, 20, 700, 40), _whoText, _label);
             if (_showHelp)
             {
                 GUI.Label(new Rect(30, 60, 900, 260),
@@ -149,10 +173,20 @@ namespace SevenDays.UI
         private void DrawInventoryLine(float w, float h)
         {
             var a = _inventory.Ammo; var m = _inventory.Medkits;
+            // clave con todos los contadores: el texto solo se rehace cuando cambia alguno
+            long key = a.Count(AmmoType.Pistol) | (long)a.Count(AmmoType.Shotgun) << 9 | (long)a.Count(AmmoType.Rifle) << 18 | (long)m.Count(MedkitKind.Bandage) << 27
+                | (long)m.Count(MedkitKind.Small) << 33 | (long)m.Count(MedkitKind.Medium) << 39 | (long)m.Count(MedkitKind.Large) << 45
+                | (long)(a.Max(AmmoType.Pistol) + a.Max(AmmoType.Shotgun) * 3 + a.Max(AmmoType.Rifle) * 7) << 51;
+            DrawGrenades(w, h);
+            if (key != _invKey) { _invKey = key; _invText = BuildInventoryText(a, m); }
+            GUI.Label(new Rect(60, h - 190, 900, 90), _invText, _inv20);
+        }
+
+        private static string BuildInventoryText(AmmoReserve a, MedkitInventory m)
+        {
             string text = "Munición  pistola " + a.Count(AmmoType.Pistol) + "/" + a.Max(AmmoType.Pistol) + "  escopeta " + a.Count(AmmoType.Shotgun) + "/" + a.Max(AmmoType.Shotgun) + "  rifle " + a.Count(AmmoType.Rifle) + "/" + a.Max(AmmoType.Rifle)
                 + "\nVendas " + m.Count(MedkitKind.Bandage) + " [B]   Botiquines  peq. " + m.Count(MedkitKind.Small) + "  med. " + m.Count(MedkitKind.Medium) + "  gran. " + m.Count(MedkitKind.Large) + " [H]";
-            DrawGrenades(w, h);
-            GUI.Label(new Rect(60, h - 190, 900, 90), text, new GUIStyle(_label) { fontSize = 20 });
+            return text;
         }
 
         private static Texture2D _grenadeIcon;
@@ -169,7 +203,8 @@ namespace SevenDays.UI
             if (_grenadeStyle == null) _grenadeStyle = new GUIStyle(_label) { fontSize = 22 };
             var g = _inventory.Grenades;
             GUI.DrawTexture(new Rect(60, h - 232, 36, 36), _grenadeIcon);
-            GUI.Label(new Rect(102, h - 228, 300, 32), "x" + g.Count + "/" + g.Max + "  [F]", _grenadeStyle);
+            if (g.Count != _grenShown || g.Max != _grenMaxShown) { _grenShown = g.Count; _grenMaxShown = g.Max; _grenText = "x" + g.Count + "/" + g.Max + "  [F]"; }
+            GUI.Label(new Rect(102, h - 228, 300, 32), _grenText, _grenadeStyle);
         }
 
         /// <summary>Aviso de interacción (E recoger / mantén E buscar) y barras de búsqueda y de curación.</summary>
@@ -178,12 +213,12 @@ namespace SevenDays.UI
             var t = _interact.Target;
             if (t != null)
             {
-                GUI.Label(new Rect(0, h / 2 + 150, w, 40), t.Prompt, new GUIStyle(_center) { fontSize = 28 });
+                GUI.Label(new Rect(0, h / 2 + 150, w, 40), t.Prompt, _center28);
                 if (_interact.Holding) Bar(new Rect(w / 2 - 150, h / 2 + 200, 300, 14), _interact.HoldProgress, new Color(1f, 0.9f, 0.4f));
             }
             if (_healing.Healing)
             {
-                GUI.Label(new Rect(0, h / 2 + 235, w, 40), "Curando... (recibir daño la cancela)", new GUIStyle(_center) { fontSize = 26 });
+                GUI.Label(new Rect(0, h / 2 + 235, w, 40), "Curando... (recibir daño la cancela)", _center26);
                 Bar(new Rect(w / 2 - 150, h / 2 + 280, 300, 14), _healing.Session.Progress, new Color(0.4f, 1f, 0.5f));
             }
         }
@@ -195,7 +230,7 @@ namespace SevenDays.UI
             {
                 Color prev = GUI.color;
                 GUI.color = list[i].Color;
-                GUI.Label(new Rect(0, 110 + i * 38, w, 40), list[i].Text, new GUIStyle(_center) { fontSize = 28 });
+                GUI.Label(new Rect(0, 110 + i * 38, w, 40), list[i].Text, _center28);
                 GUI.color = prev;
             }
         }

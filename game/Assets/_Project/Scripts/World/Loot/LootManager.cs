@@ -395,7 +395,9 @@ namespace SevenDays.World.Loot
         public System.Collections.Generic.IReadOnlyList<LootPoint> Points => Layout.points;
 
         // ---------------------------------------------------------------- bucle
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Loot); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+        private void UpdateMedido()
         {
             LootPickup.VisibleMarkers = 0;   // los cuenta cada pickup en su LateUpdate (panel F6)
             PulseContainers();
@@ -442,17 +444,24 @@ namespace SevenDays.World.Loot
         }
 
         /// <summary>Solo las luces de los MaxGlintLights objetos más cercanos están encendidas.</summary>
+        private readonly List<ILootGlint> _order = new List<ILootGlint>();
+        private Vector3 _glintOrigin;
+        private System.Comparison<ILootGlint> _byGlintKey;
+        // los drops de zombis (sin punto de origen) cuentan como si estuvieran más cerca: su brillo suave tiene prioridad para localizarlos
+        private float GlintKey(ILootGlint g) => (g.GlintPosition - _glintOrigin).sqrMagnitude * (g is LootPickup lp && lp.SourcePointId == null ? 0.25f : 1f);
+
         private void AssignGlints()
         {
             if (_player == null) return;
             _glints.RemoveAll(g => g == null || (g is LootPickup lp && !lp.gameObject.activeSelf));
-            var order = new List<ILootGlint>(_glints);
-            // los drops de zombis (sin punto de origen) cuentan como si estuvieran más cerca: su brillo suave tiene prioridad para localizarlos
-            float Key(ILootGlint g) => (g.GlintPosition - _player.position).sqrMagnitude * (g is LootPickup lp && lp.SourcePointId == null ? 0.25f : 1f);
-            order.Sort((a, b) => Key(a).CompareTo(Key(b)));
+            var order = _order; order.Clear(); order.AddRange(_glints);   // lista y comparador reutilizados (antes, nuevos cada 0.5 s)
+            _glintOrigin = _player.position;
+            _byGlintKey ??= (a, b) => GlintKey(a).CompareTo(GlintKey(b));
+            order.Sort(_byGlintKey);
             int on = 0, sparkles = 0;
-            foreach (var g in order)
+            for (int oi = 0; oi < order.Count; oi++)
             {
+                var g = order[oi];
                 if (g.GlintLight == null) continue;
                 bool searched = g is SearchableContainer sc && sc.Searched;
                 bool enable = !searched && on < MaxGlintLights;

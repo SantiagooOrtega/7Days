@@ -11,6 +11,8 @@ namespace SevenDays.Combat
     /// </summary>
     public class CombatMetricsTracker : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         public static CombatMetricsTracker Instance { get; private set; }
         public CombatMetrics Metrics { get; } = new CombatMetrics();
         /// <summary>Lo que lee el director: métricas del día actual.</summary>
@@ -106,7 +108,10 @@ namespace SevenDays.Combat
 
         private void OnKilled(ZombieController z) => Metrics.RecordKill(z.DiedByHeadshot, z.TimeToKill);
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             Metrics.Tick(Time.deltaTime, _cover != null && _cover.Active);
             if (_cover != null) Metrics.RecordCover(_cover.Exposure.CoveredSeconds, _cover.Exposure.PoppedSeconds, _cover.Exposure.BlindSeconds);
@@ -115,7 +120,10 @@ namespace SevenDays.Combat
             if (k != null && k.f4Key.wasPressedThisFrame) _showPanel = !_showPanel;
         }
 
-        private void OnGUI()
+        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void OnGUIMedido()
         {
             if (!_showPanel) return;
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 13, normal = { textColor = Color.white } };

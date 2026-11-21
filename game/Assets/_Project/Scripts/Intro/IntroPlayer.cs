@@ -16,6 +16,8 @@ namespace SevenDays.Intro
     /// </summary>
     public class IntroPlayer : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         public const string SeenKey = "intro.seen";
         public static bool Active { get; private set; }
         /// <summary>VIGÍA está hablando en la intro o el epílogo (la música baja).</summary>

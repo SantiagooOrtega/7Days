@@ -84,16 +84,22 @@ namespace SevenDays.World
         }
 
         /// <summary>Solo las luces de los fuegos más cercanos al jugador quedan encendidas (el tope baja con el nivel de recorte).</summary>
+        private readonly List<V3> _pos = new List<V3>();
+        private readonly List<int> _pri = new List<int>();
+        private readonly HashSet<int> _chosen = new HashSet<int>();
+        private readonly List<int> _picked = new List<int>();
+        private readonly List<float> _scores = new List<float>();
+
         private void AssignLights()
         {
             if (_fires.Count == 0) return;
             Vector3 viewer = _player != null ? _player.position : (Camera.main != null ? Camera.main.transform.position : Vector3.zero);
-            var pos = new List<V3>(_fires.Count);
-            var pri = new List<int>(_fires.Count);
-            foreach (var f in _fires) { var p = f.transform.position; pos.Add(new V3(p.x, p.y, p.z)); pri.Add(f.Profile.Priority); }
+            _pos.Clear(); _pri.Clear();   // listas reutilizadas (antes, nuevas cada 0.4 s)
+            for (int i = 0; i < _fires.Count; i++) { var p = _fires[i].transform.position; _pos.Add(new V3(p.x, p.y, p.z)); _pri.Add(_fires[i].Profile.Priority); }
             int max = FireMath.MaxLights(_s.MaxFireLights, AtmosphereBudget.Level);
-            var chosen = new HashSet<int>(FireMath.NearestLights(pos, pri, new V3(viewer.x, viewer.y, viewer.z), max));
-            for (int i = 0; i < _fires.Count; i++) _fires[i].Light.enabled = chosen.Contains(i);
+            FireMath.NearestLights(_pos, _pri, new V3(viewer.x, viewer.y, viewer.z), max, _picked, _scores);
+            _chosen.Clear(); for (int i = 0; i < _picked.Count; i++) _chosen.Add(_picked[i]);
+            for (int i = 0; i < _fires.Count; i++) _fires[i].Light.enabled = _chosen.Contains(i);
         }
 
         private void ApplyBurn(float dt)

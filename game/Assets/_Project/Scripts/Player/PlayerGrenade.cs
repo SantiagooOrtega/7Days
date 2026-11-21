@@ -51,7 +51,10 @@ namespace SevenDays.Player
             _marker = mk.transform; mk.SetActive(false);
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             var kb = Keyboard.current;
             bool canUse = kb != null && Time.timeScale > 0f && (_health == null || !_health.IsDead) && _inventory != null && GrenadeManager.Instance != null;

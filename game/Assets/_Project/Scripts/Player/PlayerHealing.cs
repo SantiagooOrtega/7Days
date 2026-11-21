@@ -35,7 +35,10 @@ namespace SevenDays.Player
             HudMessages.Add("Curación cancelada: recibiste daño", new Color(1f, 0.55f, 0.4f));
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_health.IsDead) { Session.Cancel(); return; }
 

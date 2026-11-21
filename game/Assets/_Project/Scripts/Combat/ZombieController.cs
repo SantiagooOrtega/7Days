@@ -50,7 +50,7 @@ namespace SevenDays.Combat
         private bool _hordePending;
         private float _hordeAt, _hordeSpeed = 1f;
         /// <summary>Intervalo de recálculo de ruta en horda cuando el jugador está lejos (s). Cerca se recalcula cada 0.2 s como siempre.</summary>
-        public const float HordeRepathMin = 0.5f, HordeRepathMax = 1f, HordeNearDistance = 12f;
+        public const float HordeRepathMin = 0.5f, HordeRepathMax = 1f, HordeNearDistance = 12f, AvoidanceDistance = 25f;
 
         /// <summary>Se une a la horda: tras "delay" segundos persigue al jugador por el NavMesh; speedFactor da a cada uno su ritmo (no llegan todos a la vez).</summary>
         public void JoinHorde(float delay, float speedFactor)
@@ -244,7 +244,10 @@ namespace SevenDays.Combat
             Killed?.Invoke(this);
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.IA); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (!InUse) return;
             float dt = Time.deltaTime;
@@ -311,9 +314,11 @@ namespace SevenDays.Combat
             float attackT = PoseAttackOverride >= 0f ? PoseAttackOverride : (_attackStart > 0f ? Mathf.Clamp01((Time.time - _attackStart) / ZombieMotion.AttackSeconds) : -1f);
             float amount = Mathf.Clamp01(moveAmount);
             if (_cam == null) _cam = Camera.main;
-            Bar.Tick(dist, _cam);
+            SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); Bar.Tick(dist, _cam); SevenDays.Core.PerfProbe.End();
             AnimateBody(dt, amount, attackT, dist);
+            SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Audio);
             _sounds.Tick(dist, _sm.State == ZombieState.Chase, amount, _walkPhase, _impulse);
+            SevenDays.Core.PerfProbe.End();
             // golpe de suelo del tanque: onda de polvo y sacudida en el instante exacto del impacto visual
             if (Rig.ConsumeImpact()) GroundImpact(dist);
         }
@@ -364,6 +369,12 @@ namespace SevenDays.Combat
             {
                 // en horda y lejos: ruta cada 0.5-1 s (aleatorio, así los recálculos de muchos zombis no caen en el mismo frame)
                 _nextPath = Time.time + (_sm.Horde && dist > HordeNearDistance ? UnityEngine.Random.Range(HordeRepathMin, HordeRepathMax) : 0.2f);
+                // evitación entre zombis solo de cerca: lejos no se nota que se rocen y es lo más caro del crowd del NavMesh
+                if (_useAgent && _agent.enabled)
+                {
+                    var want = dist > AvoidanceDistance ? ObstacleAvoidanceType.NoObstacleAvoidance : ObstacleAvoidanceType.LowQualityObstacleAvoidance;
+                    if (_agent.obstacleAvoidanceType != want) _agent.obstacleAvoidanceType = want;
+                }
                 MoveTo(_player.position, speed);
             }
             if (!_useAgent) DirectMove(toPlayer, speed, dt);

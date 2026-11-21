@@ -354,7 +354,27 @@ namespace SevenDays.Combat
             if (_steam != null) { var em = _steam.emission; em.rateOverTime = 10f * phase; }
         }
 
-        public void SetHitboxesEnabled(bool on) { foreach (var h in Hitboxes) { var c = h.GetComponent<Collider>(); if (c != null) c.enabled = on; } }
+        public void SetHitboxesEnabled(bool on) { _hitOn = on; _hitFar = false; foreach (var h in Hitboxes) { var c = h.GetComponent<Collider>(); if (c != null) c.enabled = on; } }
+
+        /// <summary>A partir de esta distancia solo quedan cabeza y torso (los tiros de francotirador a la cabeza siguen valiendo): menos colliders que mover en la física.</summary>
+        public const float FullHitboxDistance = 30f;
+        private bool _hitOn = true, _hitFar;
+        public bool LimbHitboxesActive => _hitOn && !_hitFar;
+
+        private void UpdateHitboxLod(float dist)
+        {
+            if (!_hitOn || Hitboxes == null) return;
+            bool far = _hitFar ? dist > FullHitboxDistance - 3f : dist > FullHitboxDistance;   // con histéresis: no parpadea en el límite
+            if (far == _hitFar) return;
+            SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Hitbox);
+            _hitFar = far;
+            foreach (var h in Hitboxes)
+            {
+                if (h.Zone == HitZone.Head || h.Zone == HitZone.Torso || h.Zone == HitZone.WeakPoint) continue;
+                var c = h.GetComponent<Collider>(); if (c != null) c.enabled = !far;
+            }
+            SevenDays.Core.PerfProbe.End();
+        }
 
         public void Pose(float walkPhase, float amount, float attack, float stagger, float time, float lunge = 0f) { }
 
@@ -422,7 +442,9 @@ namespace SevenDays.Combat
         public void Animate(in ZombieAnimState s)
         {
             long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+            SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Animacion);
             AnimateInner(s);
+            SevenDays.Core.PerfProbe.End();
             float ms = (System.Diagnostics.Stopwatch.GetTimestamp() - t0) * 1000f / System.Diagnostics.Stopwatch.Frequency;
             if (_accumFrame != Time.frameCount) { AnimateMsLastFrame = _accumMs; _accumMs = 0f; _accumFrame = Time.frameCount; }
             _accumMs += ms;
@@ -463,6 +485,7 @@ namespace SevenDays.Combat
                 ApplyDecalVisibility();
             }
             Rig.ApplyLod(dist);
+            UpdateHitboxLod(dist);
             bool vis = dist < 110f;
             if (Renderer.enabled != vis) Renderer.enabled = vis;
         }

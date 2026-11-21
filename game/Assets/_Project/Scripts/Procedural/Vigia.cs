@@ -134,7 +134,7 @@ namespace SevenDays.Procedural
         public VigiaItem Next(double now, Func<VigiaItem, double> duration, out bool interrupted)
         {
             interrupted = false;
-            Pending.RemoveAll(p => now > p.ExpiresAt);
+            for (int i = Pending.Count - 1; i >= 0; i--) if (now > Pending[i].ExpiresAt) Pending.RemoveAt(i);   // sin cierre: se llama cada frame
             if (Pending.Count == 0) return null;
             int best = 0;
             for (int i = 1; i < Pending.Count; i++)

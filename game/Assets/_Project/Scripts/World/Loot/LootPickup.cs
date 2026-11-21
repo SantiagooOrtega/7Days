@@ -160,7 +160,10 @@ namespace SevenDays.World.Loot
             em.enabled = on;
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Loot); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_visual == null) return;
             SupplyArt.Tick();
@@ -176,7 +179,10 @@ namespace SevenDays.World.Loot
             }
         }
 
-        private void LateUpdate()
+        private void LateUpdate() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Loot); LateUpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void LateUpdateMedido()
         {
             var cam = Camera.main;
             if (cam == null || _visual == null) return;

@@ -8,6 +8,8 @@ namespace SevenDays.UI
     /// <summary>Pantalla de login/registro (IMGUI provisional). Consume el backend con UnityWebRequest.</summary>
     public class LoginScreen : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         [SerializeField] private string gameSceneName = "Game";
 
         private bool _registerMode;

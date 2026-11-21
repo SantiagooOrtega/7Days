@@ -91,7 +91,10 @@ namespace SevenDays.Player
             _health = GetComponent<Health>();
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             var cfg = _camera.Settings;
             if (_health.IsDead) { Active = false; Exposure.Reset(); }

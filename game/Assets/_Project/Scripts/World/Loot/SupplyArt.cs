@@ -17,6 +17,8 @@ namespace SevenDays.World.Loot
         private static readonly Dictionary<SupplyKind, Mesh> Outlines = new Dictionary<SupplyKind, Mesh>();
         private static readonly Dictionary<SupplyKind, Material[]> Materials = new Dictionary<SupplyKind, Material[]>();
         private static readonly Dictionary<SupplyKind, Material> OutlineMats = new Dictionary<SupplyKind, Material>();
+        private static readonly Dictionary<SupplyKind, Color> BaseColors = new Dictionary<SupplyKind, Color>();
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly Dictionary<SupplyKind, Material> IconMats = new Dictionary<SupplyKind, Material>();
         private static readonly Dictionary<int, Material> WeaponIconMats = new Dictionary<int, Material>();
         private static Mesh _quad;
@@ -104,7 +106,9 @@ namespace SevenDays.World.Loot
             {
                 if (kv.Value == null) continue;
                 float p = SupplyVisibility.Pulse(Time.time, (int)kv.Key * 0.13f);
-                kv.Value.SetColor("_BaseColor", ToColor(SupplyModel.TypeColor(kv.Key), 0.35f + 1.4f * p));
+                if (!BaseColors.TryGetValue(kv.Key, out var c)) { var a = SupplyModel.TypeColor(kv.Key); c = new Color(a[0], a[1], a[2]); BaseColors[kv.Key] = c; }   // una vez por tipo
+                float k = 0.35f + 1.4f * p;
+                kv.Value.SetColor(BaseColorId, new Color(c.r * k, c.g * k, c.b * k, 1f));
             }
         }
 

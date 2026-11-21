@@ -54,7 +54,10 @@ namespace SevenDays.UI
             _open = false; _slow.Reset();
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (View == null || _shooting == null) return;
             bool hide = SevenDays.UI.StatsScreen.Blocking;

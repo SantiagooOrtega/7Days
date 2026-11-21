@@ -100,9 +100,16 @@ namespace SevenDays.Tests.PlayMode
             float t1 = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - t1 < 20f && (bool)P(z, "InUse")) yield return null;
             Assert.IsFalse((bool)P(z, "InUse"));
+            var mgrT = T("SevenDays.Combat.ZombieManager"); var mgr = mgrT.GetProperty("Instance").GetValue(null);
+            int pooled = ((System.Collections.ICollection)mgrT.GetProperty("All").GetValue(mgr)).Count;
             var z2 = Spawn("common", _player.transform.position + fwd * 12f);
-            Assert.AreSame(z, z2, "el pool reutiliza el cuerpo del mismo tipo");
-            Assert.AreEqual(Vector3.one, head.localScale, "cabeza restaurada");
+            // el pool viene precalentado: reutiliza un cuerpo libre del mismo tipo (no tiene por qué ser el mismo) y no crea ninguno nuevo
+            Assert.AreEqual("common", P(z2, "BodyKey"), "el pool reutiliza un cuerpo del mismo tipo");
+            Assert.AreEqual(pooled, ((System.Collections.ICollection)mgrT.GetProperty("All").GetValue(mgr)).Count, "sin crear cuerpos nuevos");
+            var rig2 = (Component)P(P(z2, "Rig"), "Rig");
+            var head2 = rig2.GetType().GetMethod("Bone").Invoke(rig2, new object[] { BoneId.Head }) as Transform;
+            Assert.AreEqual(Vector3.one, head2.localScale, "cabeza restaurada (el cuerpo reutilizado sale entero)");
+            if (ReferenceEquals(z2, z)) Assert.AreEqual(Vector3.one, head.localScale, "cabeza restaurada");
             for (int i = 0; i < 160; i++) yield return null;
             Assert.IsFalse((bool)P(P(z2, "Health"), "IsDead"));
             Assert.Greater(HipsY(P(z2, "Rig")), 0.7f, "de pie otra vez");

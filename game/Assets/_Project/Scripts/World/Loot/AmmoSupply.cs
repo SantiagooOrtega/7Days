@@ -76,7 +76,10 @@ namespace SevenDays.World.Loot
             if (_loot.Spawn(LootItem.Ammo(t, pack), new Vector3(at.x + 0.4f, 0.35f, at.z), null) != null) { Credit -= pack; RoundsGiven += pack; }
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Loot); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_inventory == null) return;
             if (_wave && _batchesLeft > 0 && Time.time >= _nextBatch)

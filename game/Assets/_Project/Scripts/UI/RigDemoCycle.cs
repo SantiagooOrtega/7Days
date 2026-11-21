@@ -18,6 +18,8 @@ namespace SevenDays.UI
     /// </summary>
     public class RigDemoCycle : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         public static RigDemoCycle Current { get; private set; }
         /// <summary>El rig que se está mostrando (el del tramo actual).</summary>
         public ProceduralRig Rig => _weapon != null && _weapon.Rig.gameObject.activeSelf ? _weapon.Rig : _legs;

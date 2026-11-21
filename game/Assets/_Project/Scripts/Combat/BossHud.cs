@@ -6,6 +6,8 @@ namespace SevenDays.Combat
     /// <summary>Barra de vida grande y fija del jefe (arriba, centrada) con su nombre, las marcas de furia al 50 % y 25 %, el aviso del ataque en curso y el punto débil.</summary>
     public class BossHud : MonoBehaviour
     {
+        private void Awake() { useGUILayout = false; }   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
+
         private float _shown = 1f, _alpha;
         private GUIStyle _name, _label;
         private ZombieController _boss;
@@ -21,7 +23,10 @@ namespace SevenDays.Combat
         public bool Hidden => SevenDays.UI.StatsScreen.Blocking;
         public bool Visible => !Hidden && _boss != null && _alpha > 0.01f;
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (Hidden) { _boss = null; _alpha = 0f; _shown = 1f; return; }
             var mgr = ZombieManager.Instance;
@@ -33,7 +38,10 @@ namespace SevenDays.Combat
             if (_boss != null && _boss.Health.IsDead && _alpha <= 0.01f) _boss = null;
         }
 
-        private void OnGUI()
+        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void OnGUIMedido()
         {
             if (Hidden || _boss == null || _alpha <= 0.01f || Event.current.type != EventType.Repaint) return;
             if (_name == null)

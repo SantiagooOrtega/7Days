@@ -75,7 +75,10 @@ namespace SevenDays.Vigia
             return go;
         }
 
-        private void LateUpdate()
+        private void LateUpdate() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Vigia); LateUpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void LateUpdateMedido()
         {
             if (_player == null) return;
             if (_cam == null && Camera.main != null) _cam = Camera.main.transform;

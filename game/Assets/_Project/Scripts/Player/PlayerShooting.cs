@@ -125,7 +125,10 @@ namespace SevenDays.Player
         /// <summary>Al recoger un arma nueva se queda con la que ya tienes; se elige con su número.</summary>
         private void OnWeaponAdded(WeaponState w) { }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             if (_camera == null || _health.IsDead) return;
             float dt = Time.deltaTime;

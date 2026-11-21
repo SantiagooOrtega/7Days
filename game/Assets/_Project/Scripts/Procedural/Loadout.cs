@@ -75,7 +75,7 @@ namespace SevenDays.Player
 
         public static bool HasAnyAmmo(IList<WeaponState> weapons, AmmoReserve ammo)
         {
-            foreach (var w in weapons) if (w.Data.UsesAmmo && (w.Magazine > 0 || ammo.Count(w.Data.ammoType) > 0)) return true;
+            for (int i = 0; i < weapons.Count; i++) { var w = weapons[i]; if (w.Data.UsesAmmo && (w.Magazine > 0 || ammo.Count(w.Data.ammoType) > 0)) return true; }   // sin enumerador (se llama cada frame)
             return false;
         }
     }

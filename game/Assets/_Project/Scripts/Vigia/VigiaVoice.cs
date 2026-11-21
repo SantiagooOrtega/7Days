@@ -34,7 +34,7 @@ namespace SevenDays.Vigia
         }
 
         private void Awake()
-        {
+        { useGUILayout = false;   // sin GUILayout: Unity se salta la pasada de Layout (la mitad del coste de IMGUI)
             Instance = this;
             var ta = Resources.Load<TextAsset>("vigia_frases");
             var errors = new List<string>();
@@ -57,22 +57,33 @@ namespace SevenDays.Vigia
             return v.Queue.Request(line, Time.unscaledTimeAsDouble, v.Intense);
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Vigia); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             Queue.Mode = VigiaSettings.Mode;
             double now = Time.unscaledTimeAsDouble;
-            AudioClip clip = null;
-            var item = Queue.Next(now, it =>
-            {
-                clip = Queue.Mode == VigiaMode.SoloTexto ? null : ClipFor(it);
-                return clip != null ? clip.length + 0.25 : VigiaQueue.TextSeconds(it.Text);
-            }, out bool interrupted);
+            _pickedClip = null;
+            _durationFn ??= Duration;   // delegado creado una vez (antes, un cierre nuevo cada frame)
+            var item = Queue.Next(now, _durationFn, out bool interrupted);
+            var clip = _pickedClip;
             if (item == null) return;
             if (interrupted || _src.isPlaying) _src.Stop();
             if (clip != null) { _src.clip = clip; _src.Play(); }
             _subText = item.Text;
             _subStart = Time.unscaledTime;
             _subEnd = (float)Queue.CurrentEnds;
+        }
+
+        private string _subShown, _subFull = "";
+        private readonly GUIContent _subContent = new GUIContent();
+        private AudioClip _pickedClip;
+        private System.Func<VigiaItem, double> _durationFn;
+        private double Duration(VigiaItem it)
+        {
+            _pickedClip = Queue.Mode == VigiaMode.SoloTexto ? null : ClipFor(it);
+            return _pickedClip != null ? _pickedClip.length + 0.25 : VigiaQueue.TextSeconds(it.Text);
         }
 
         /// <summary>Clip procesado (radio + bips) de la variante. null si no existe.</summary>
@@ -92,10 +103,11 @@ namespace SevenDays.Vigia
             int size = Mathf.RoundToInt(26 * VigiaSettings.SubtitleScale);   // más compacto
             _style ??= new GUIStyle(GUI.skin.label) { wordWrap = true, alignment = TextAnchor.MiddleCenter, richText = true };
             _style.fontSize = size;
-            string text = "<color=#5fd0ff><b>VIGÍA:</b></color> " + _subText;
+            if (!ReferenceEquals(_subShown, _subText)) { _subShown = _subText; _subFull = "<color=#5fd0ff><b>VIGÍA:</b></color> " + _subText; _subContent.text = _subFull; }   // se compone al cambiar de frase, no cada frame
+            string text = _subFull;
             float bw = Mathf.Min(SubtitleLayout.MaxWidth, w - 80f);
             float lineH = size * 1.3f;
-            float th = Mathf.Min(_style.CalcHeight(new GUIContent(text), bw - 32f), lineH * 2f);   // máx. 2 líneas
+            float th = Mathf.Min(_style.CalcHeight(_subContent, bw - 32f), lineH * 2f);   // máx. 2 líneas
             var lr = SubtitleLayout.Rect(w, th, VigiaSettings.SubtitleHeight);   // abajo, justo sobre la vida y la munición (ajustable en Esc)
             var r = new Rect(lr[0], lr[1], lr[2], lr[3]);
             var prev = GUI.color;

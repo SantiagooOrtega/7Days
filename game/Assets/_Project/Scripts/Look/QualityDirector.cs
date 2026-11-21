@@ -93,7 +93,10 @@ namespace SevenDays.Look
             Apply();
         }
 
-        private void Update()
+        private void Update() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); UpdateMedido(); SevenDays.Core.PerfProbe.End(); }
+
+
+        private void UpdateMedido()
         {
             float dt = Time.unscaledDeltaTime;
             _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(1e-4f, dt), 0.08f);
@@ -138,6 +141,10 @@ namespace SevenDays.Look
             }
             LookAndFeel.SetPostQuality(p.Bloom, p.BloomQuarter, p.Grain);
             AtmosphereBudget.SetLevel(p.Atmosphere);
+            // también la IA y la animación, no solo los gráficos
+            RigLod.Scale = p.AnimDistance;
+            var zm = SevenDays.Combat.ZombieManager.Instance;
+            if (zm != null) zm.MaxZombies = p.MaxZombies;
         }
 
         public static string Describe()
