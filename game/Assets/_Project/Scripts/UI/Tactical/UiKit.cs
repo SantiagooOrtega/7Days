@@ -13,10 +13,10 @@ namespace SevenDays.UI.Tactical
     /// </summary>
     public static class UiKit
     {
-        // paleta: crema grisáceo #D8D2C8 (opciones), blanco roto #F0ECE6 (noticias y teclas), rojo #B0140C, granate #5A0A08, gris #6A6460 (bordes y separadores)
-        public static readonly Color Cream = new Color(0.847f, 0.824f, 0.784f), CreamDim = new Color(0.6f, 0.575f, 0.54f), Red = new Color(0.69f, 0.078f, 0.047f),
-            Orange = new Color(1f, 0.55f, 0.15f), Ink = new Color(0.02f, 0.018f, 0.018f, 0.75f), Olive = new Color(0.55f, 0.66f, 0.38f),
-            White = new Color(0.94f, 0.925f, 0.9f), Grey = new Color(0.416f, 0.392f, 0.376f), Maroon = new Color(0.353f, 0.039f, 0.031f);
+        // paleta del menú: negro carbón #0A0808, rojo #8E1B12 (Maroon) y #B3261A (Red), naranja fuego #FF7A1F (Orange) y #FFB347 (Amber), crema #D9CDB4, gris acero #3A3D40 (Grey)
+        public static readonly Color Cream = new Color(0.851f, 0.804f, 0.706f), CreamDim = new Color(0.6f, 0.565f, 0.5f), Red = new Color(0.702f, 0.149f, 0.102f),
+            Orange = new Color(1f, 0.478f, 0.122f), Amber = new Color(1f, 0.702f, 0.278f), Ink = new Color(0.039f, 0.031f, 0.031f, 0.75f), Olive = new Color(0.55f, 0.66f, 0.38f),
+            White = new Color(0.94f, 0.925f, 0.9f), Grey = new Color(0.227f, 0.239f, 0.251f), Maroon = new Color(0.557f, 0.106f, 0.071f), Charcoal = new Color(0.039f, 0.031f, 0.031f);
         public const float Condensed = 0.84f;
         public static readonly Vector2 Reference = new Vector2(1920, 1080);
 

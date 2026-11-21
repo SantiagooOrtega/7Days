@@ -17,8 +17,6 @@ namespace SevenDays.Tests
             Assert.Greater(r, g * 1.5f, "rojo dominante"); Assert.Greater(g, bl, "naranja, no azul");
             int dark = 0; for (int x = 0; x < w; x++) if (a[(1 * w + x) * 4] < 40) dark++;
             Assert.Greater(dark, w / 3, "silueta de la ciudad abajo");
-            Assert.Less(MenuArt.SkullOpacity, 0.45f, "calavera a baja opacidad");
-            Assert.Less(MenuArt.SkullSd(0f, 0.3f), 0f, "frente de la calavera dentro"); Assert.Greater(MenuArt.SkullSd(0.3f, 0.12f), 0f, "cuenca hueca");
         }
 
         [Test]
@@ -44,6 +42,26 @@ namespace SevenDays.Tests
             Assert.Greater(bottom, 50f, "base llena de fuego"); Assert.Less(top, 6f, "arriba casi transparente");
             Assert.AreEqual(MenuArt.FlameW * MenuArt.FlameH * MenuArt.FlameFrames * 4, MenuArt.FlameAtlas(3).Length);
         }
+
+        [Test]
+        public void RedSkull_GradientMap_RimOrange_Alpha60to70_CutsFlatBackground()
+        {
+            SkullGradientIs(0f, 0x1A, 0x05, 0x04); SkullGradientIs(1f, 0xFF, 0x5A, 0x2A);
+            Assert.That(MenuArt.SkullAlpha, Is.InRange(0.6f, 0.7f));
+            // fondo blanco plano: se recorta; el dibujo oscuro del centro queda
+            int w = 32; var img = new byte[w * w * 4];
+            for (int i = 0; i < w * w; i++) { bool c = System.Math.Abs(i % w - 16) < 8 && System.Math.Abs(i / w - 16) < 8; byte v = c ? (byte)90 : (byte)255; img[i * 4] = img[i * 4 + 1] = img[i * 4 + 2] = v; img[i * 4 + 3] = 255; }
+            MenuArt.Cutout(img, w, w, out var lum, out var al);
+            Assert.AreEqual(0f, al[0], 1e-3f, "fondo fuera"); Assert.AreEqual(1f, al[16 * w + 16], 1e-3f, "cráneo dentro");
+            MenuArt.ProceduralSkull(96, out lum, out al);
+            var px = MenuArt.RedSkull(lum, al, 96, 96, 5);
+            Assert.AreEqual(0, px[3], "esquina transparente");
+            int maxA = 0, rimish = 0, red = 0; for (int i = 0; i < 96 * 96; i++) { maxA = System.Math.Max(maxA, px[i * 4 + 3]); if (px[i * 4 + 3] > 0 && px[i * 4] > 200 && px[i * 4 + 1] > 90) rimish++; if (px[i * 4] > px[i * 4 + 1] * 2 && px[i * 4 + 3] > 100) red++; }
+            Assert.LessOrEqual(maxA, 180, "60-70 % de opacidad"); Assert.Greater(rimish, 10, "borde de luz naranja"); Assert.Greater(red, 1500, "teñida en rojo");
+        }
+
+        private static void SkullGradientIs(float l, int r, int g, int b)
+        { MenuArt.SkullGradient(l, out var rr, out var gg, out var bb); Assert.AreEqual(r / 255f, rr, 0.01f); Assert.AreEqual(g / 255f, gg, 0.01f); Assert.AreEqual(b / 255f, bb, 0.01f); }
 
         [Test]
         public void Frame_CornersBroken_LineAndDarkFill()

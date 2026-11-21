@@ -85,7 +85,7 @@ namespace SevenDays.UI
         private void BuildFull(StatsScreenMode mode, int day, List<DayStats> list, DayStats today, IList<string> reasons)
         {
             bool dead = mode == StatsScreenMode.Defeat;
-            FlameBackdrop.Create(_root, dead ? new Color(0.75f, 0.55f, 0.5f) : new Color(0.62f, 0.7f, 0.52f));
+            FlameBackdrop.Create(_root, dead ? new Color(0.75f, 0.55f, 0.5f) : new Color(0.62f, 0.7f, 0.52f)).Skull.gameObject.SetActive(false);   // sin calavera: la tabla ocupa la pantalla
             UiKit.Image(_root, "Velo", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1920f, 1080f), dead ? new Color(0.2f, 0f, 0f, 0.35f) : new Color(0f, 0.05f, 0f, 0.3f));
 
             // cabecera con glitch, día y VIGÍA a máquina de escribir

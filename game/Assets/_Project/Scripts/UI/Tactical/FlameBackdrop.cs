@@ -4,7 +4,7 @@ using UnityEngine.UI;
 namespace SevenDays.UI.Tactical
 {
     /// <summary>
-    /// Fondo compartido del menú y de las pantallas: la textura cacheada (ciudad ardiendo, calavera propia, pintura desgastada) y encima, animados sin memoria
+    /// Fondo compartido del menú y de las pantallas: la textura cacheada (ciudad ardiendo, pintura desgastada), la calavera roja (SkullBackdrop) y encima, animados sin memoria
     /// por frame: parpadeo del fuego, humo que sube despacio, grano que salta, 40 chispas recicladas y una pared de llamas animadas abajo
     /// (atlas de 32 fotogramas en bucle, tres capas con distinto tamaño y desfase para que no se note la repetición).
     /// </summary>
@@ -20,6 +20,7 @@ namespace SevenDays.UI.Tactical
         private Image[] _sparkImg;
         private float[] _sparkSpeed;
         private Color _tint = Color.white;
+        public SkullBackdrop Skull { get; private set; }
 
         public static FlameBackdrop Create(Transform parent, Color tint)
         {
@@ -27,6 +28,7 @@ namespace SevenDays.UI.Tactical
             var b = root.gameObject.AddComponent<FlameBackdrop>(); b._tint = tint;
             var bg = new GameObject("Base", typeof(RectTransform)).AddComponent<RawImage>(); bg.transform.SetParent(root, false); Fill(bg.rectTransform);
             bg.texture = UiKit.Backdrop; bg.color = tint; bg.raycastTarget = false;
+            b.Skull = SkullBackdrop.Create(root);
             b._flicker = new GameObject("Fuego", typeof(RectTransform)).AddComponent<Image>(); b._flicker.transform.SetParent(root, false); Fill(b._flicker.rectTransform);
             b._flicker.color = new Color(1f, 0.4f, 0.1f, 0.05f); b._flicker.raycastTarget = false;
             b._smoke = new GameObject("Humo", typeof(RectTransform)).AddComponent<RawImage>(); b._smoke.transform.SetParent(root, false); Fill(b._smoke.rectTransform);

@@ -4,13 +4,11 @@ namespace SevenDays.Procedural
 {
     /// <summary>
     /// Arte procedural del menú y de las pantallas (puro, propio): fondo de pintura roja y naranja desgastada con grunge, ciudad en ruinas ardiendo abajo
-    /// (edificios rotos, grúas), calavera propia agrietada a baja opacidad en la pared (la del casco de la Calavera, estilizada), viñeta; marco de panel
+    /// (edificios rotos, grúas), viñeta (la calavera roja va aparte: RedSkull); marco de panel
     /// desgastado (esquinas rotas, rayones, óxido), resaltado de fila, grano, humo y silueta del soldado. Todo RGBA32 de abajo arriba (como Texture2D).
     /// </summary>
     public static class MenuArt
     {
-        public const float SkullOpacity = 0.32f;
-
         private static float Hash(int x, int y, int s) { unchecked { int h = x * 374761393 + y * 668265263 + s * 1442695041; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) & 0xFFFFFF) / (float)0xFFFFFF; } }
         private static float Noise(float x, float y, int s)
         {
@@ -23,31 +21,10 @@ namespace SevenDays.Procedural
         private static float C01(float v) => v < 0 ? 0 : (v > 1 ? 1 : v);
         private static byte B(float v) => (byte)(C01(v) * 255f + 0.5f);
 
-        /// <summary>Distancia con signo de la calavera propia (coordenadas -1..1, y hacia arriba): casco redondo, cuencas angulosas, nariz triangular y mandíbula con placas.</summary>
-        public static float SkullSd(float u, float v)
-        {
-            float cranium = (float)Math.Sqrt(u * u / 0.64f + (v - 0.18f) * (v - 0.18f) / 0.56f) - 1f;
-            float jaw = Math.Max(Math.Abs(u) - 0.46f + (v + 0.55f) * 0.25f, Math.Abs(v + 0.52f) - 0.28f);
-            float head = Math.Min(cranium * 0.6f, jaw);
-            float eye(float cx) { float x = (u - cx) * (cx > 0 ? 1 : -1); return Math.Max(Math.Max(-(v + 0.02f) + x * 0.35f, v - 0.28f), Math.Abs(u - cx) - 0.2f); }
-            float eyes = Math.Min(eye(0.3f), eye(-0.3f));
-            float nose = Math.Max(Math.Abs(u) - (v + 0.32f) * 0.45f, Math.Max(-(v + 0.32f), v + 0.08f));
-            float teeth = (v < -0.42f && v > -0.62f && Math.Abs(u) < 0.36f && Math.Abs((u + 0.5f) * 8f % 1f - 0.5f) < 0.08f) ? -1f : 1f;
-            return Math.Max(head, -Math.Min(Math.Min(eyes, nose), teeth < 0 ? -0.01f : 1f));
-        }
-
         // paleta del menú (valores de la descripción acordada)
-        public static readonly float[] WallDark = { 0.54f, 0.055f, 0.03f }, WallBright = { 0.88f, 0.12f, 0.063f }, Maroon = { 0.353f, 0.039f, 0.031f };
+        public static readonly float[] WallDark = { 0.557f, 0.106f, 0.071f }, WallBright = { 0.702f, 0.149f, 0.102f }, Maroon = { 0.557f, 0.106f, 0.071f };
 
         private static float Smooth(float a, float b, float x) { float t = C01((x - a) / (b - a)); return t * t * (3 - 2 * t); }
-
-        /// <summary>Máscara de la cabeza de la calavera (sin los huecos) en sus coordenadas -1..1.</summary>
-        public static float SkullHeadSd(float u, float v)
-        {
-            float cranium = (float)Math.Sqrt(u * u / 0.64f + (v - 0.18f) * (v - 0.18f) / 0.56f) - 1f;
-            float jaw = Math.Max(Math.Abs(u) - 0.46f + (v + 0.55f) * 0.25f, Math.Abs(v + 0.52f) - 0.28f);
-            return Math.Min(cranium * 0.6f, jaw);
-        }
 
         /// <summary>El "7" estarcido en la frente de la calavera (coordenadas de la calavera): barra arriba y trazo en diagonal.</summary>
         public static bool Seven(float u, float v)
@@ -59,8 +36,7 @@ namespace SevenDays.Procedural
         }
 
         /// <summary>
-        /// Fondo del menú (w x h): muro carmesí con juntas de paneles, grano negro y manchas; la calavera propia grande a la derecha (sombra negra con las
-        /// cuencas más negras y el "7" en la frente), ciudad en ruinas en silueta a la izquierda, escombros con fuego abajo y viñeta casi negra en los bordes.
+        /// Fondo del menú (w x h): muro carmesí con juntas de paneles, grano negro y manchas; ciudad en ruinas en silueta a la izquierda, escombros con fuego abajo y viñeta casi negra en los bordes.
         /// </summary>
         public static byte[] Backdrop(int w, int h, int seed)
         {
@@ -98,14 +74,6 @@ namespace SevenDays.Procedural
                     float speck = Hash(x, y, seed + 11), blot = Fbm(u * 22f, v * 18f, seed + 13, 3);
                     float dark = (speck > 0.82f ? 0.65f : 0f) + C01((blot - 0.6f) * 2.5f) * 0.5f;
                     r *= 1f - dark; g *= 1f - dark; b *= 1f - dark;
-                    // calavera grande: sombra negra con borde difuso, cuencas y nariz casi negras, "7" en la frente
-                    float su = (u - 0.65f) / 0.2f * ((float)w / h) * 0.5625f, sv = (v - 0.55f) / 0.36f;
-                    float head = SkullHeadSd(su, sv), sd = SkullSd(su, sv);
-                    float inHead = 1f - Smooth(-0.04f, 0.06f, head);
-                    float hole = inHead * Smooth(-0.02f, 0.04f, sd);
-                    float k = inHead * 0.42f + hole * 0.5f + (Seven(su, sv) && head < 0f ? 0.45f : 0f);
-                    k = Math.Min(0.95f, k);
-                    r *= 1f - k; g *= 1f - k; b *= 1f - k;
                     // ciudad en silueta negra a la izquierda
                     if (v < city[x]) { r = 0.02f; g = 0.01f; b = 0.01f; if (v < city[x] - 0.03f && Hash(x / 4, y / 5, seed + 3) < 0.03f) { r = 0.9f; g = 0.35f; b = 0.05f; } }
                     // fuego sobre los escombros y escombros negros
@@ -284,6 +252,92 @@ namespace SevenDays.Procedural
             float cheek = (float)Math.Sqrt((au - 0.42f) * (au - 0.42f) / 0.06f + (v + 0.2f) * (v + 0.2f) / 0.05f) - 1f;
             float jaw = Math.Max(au - 0.36f + (v + 0.42f) * 0.35f, Math.Abs(v + 0.55f) - 0.24f);
             return SMin(SMin(cranium * 0.55f, cheek * 0.2f, 0.06f), jaw, 0.08f);
+        }
+
+        // ---------------------------------------------------------------- calavera roja del fondo del menú
+        public const float SkullAlpha = 0.66f;
+        private static readonly float[][] SkullRamp = { new[] { 0x1A / 255f, 0x05 / 255f, 0x04 / 255f }, new[] { 0x8E / 255f, 0x1B / 255f, 0x12 / 255f }, new[] { 0xB3 / 255f, 0x26 / 255f, 0x1A / 255f }, new[] { 1f, 0x5A / 255f, 0x2A / 255f } };
+        private static readonly float[] SkullRampAt = { 0f, 0.42f, 0.66f, 1f };
+        public static readonly float[] RimOrange = { 1f, 0x7A / 255f, 0x1F / 255f };
+
+        /// <summary>Mapa de degradado de la calavera: gris 0..1 → #1A0504 (sombras), #8E1B12 y #B3261A (medios), #FF5A2A (luces).</summary>
+        public static void SkullGradient(float l, out float r, out float g, out float b)
+        {
+            l = C01(l); int i = 0; while (i < SkullRampAt.Length - 2 && l > SkullRampAt[i + 1]) i++;
+            float t = (l - SkullRampAt[i]) / (SkullRampAt[i + 1] - SkullRampAt[i]);
+            r = SkullRamp[i][0] + (SkullRamp[i + 1][0] - SkullRamp[i][0]) * t; g = SkullRamp[i][1] + (SkullRamp[i + 1][1] - SkullRamp[i][1]) * t; b = SkullRamp[i][2] + (SkullRamp[i + 1][2] - SkullRamp[i][2]) * t;
+        }
+
+        /// <summary>
+        /// Recorte de una imagen importada: si ya trae transparencia la usa; si no, quita el fondo plano (color de las esquinas) por distancia de color.
+        /// Devuelve gris (luminancia) y alfa por píxel.
+        /// </summary>
+        public static void Cutout(byte[] rgba, int w, int h, out float[] lum, out float[] alpha)
+        {
+            lum = new float[w * h]; alpha = new float[w * h];
+            bool hasAlpha = false; for (int i = 0; i < w * h; i++) if (rgba[i * 4 + 3] < 250) { hasAlpha = true; break; }
+            float kr = 0, kg = 0, kb = 0; int[] cs = { 0, w - 1, (h - 1) * w, h * w - 1 };
+            foreach (var c in cs) { kr += rgba[c * 4] / 1020f; kg += rgba[c * 4 + 1] / 1020f; kb += rgba[c * 4 + 2] / 1020f; }
+            for (int i = 0; i < w * h; i++)
+            {
+                float r = rgba[i * 4] / 255f, g = rgba[i * 4 + 1] / 255f, b = rgba[i * 4 + 2] / 255f;
+                lum[i] = 0.299f * r + 0.587f * g + 0.114f * b;
+                if (hasAlpha) alpha[i] = rgba[i * 4 + 3] / 255f;
+                else { float d = (float)Math.Sqrt((r - kr) * (r - kr) + (g - kg) * (g - kg) + (b - kb) * (b - kb)); alpha[i] = Smooth(0.08f, 0.22f, d); }
+            }
+        }
+
+        /// <summary>Respaldo procedural sin símbolos (n x n): cráneo en relieve en gris (cuencas negras), alfa = silueta.</summary>
+        public static void ProceduralSkull(int n, out float[] lum, out float[] alpha)
+        {
+            lum = new float[n * n]; alpha = new float[n * n]; float e = 2f / n;
+            float H(float u, float v) => Smooth(0f, -0.16f, BadgeSkullSd(u, v)) * (0.6f + 0.4f * C01(1f - (u * u + (v - 0.1f) * (v - 0.1f)) * 0.6f));
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = ((x + 0.5f) / n * 2f - 1f) / 0.86f, v = ((y + 0.5f) / n * 2f - 1f) / 0.86f + 0.05f;
+                    float head = SkullHeadSdBadge(u, v), sd = BadgeSkullSd(u, v); int i = y * n + x;
+                    alpha[i] = 1f - Smooth(-0.01f, 0.01f, head);
+                    if (sd < 0f)
+                    {
+                        float h0 = H(u, v), nx = -(H(u + e, v) - h0) * 30f, ny = -(H(u, v + e) - h0) * 30f, inv = 1f / (float)Math.Sqrt(nx * nx + ny * ny + 1f);
+                        lum[i] = 0.05f + 0.9f * (float)Math.Pow(C01((nx * -0.5f + ny * 0.6f + 0.62f) * inv), 2.2f);
+                    }
+                    else lum[i] = 0.02f;
+                }
+        }
+
+        /// <summary>
+        /// La calavera roja del menú (w x h, RGBA32): gris → degradado rojo, relieve (realce desde arriba a la izquierda), borde de luz naranja #FF7A1F en el lado
+        /// iluminado, grano y grietas multiplicados, resplandor de fuego desde abajo; alfa = silueta × SkullAlpha (60-70 %).
+        /// </summary>
+        public static byte[] RedSkull(float[] lum, float[] alpha, int w, int h, int seed)
+        {
+            var px = new byte[w * h * 4]; int d = Math.Max(2, w / 128);
+            float A(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? 0f : alpha[y * w + x];
+            float L(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? 0f : lum[y * w + x];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x; float a = alpha[i]; if (a <= 0f) continue;
+                    float u = x / (float)w, v = y / (float)h;
+                    float relief = (L(x - 1, y + 1) - L(x + 1, y - 1)) * 2.5f;
+                    float l = C01(lum[i] * 0.9f + relief);
+                    SkullGradient(l, out float r, out float g, out float b);
+                    // borde de luz naranja: dentro de la silueta con el vecino hacia la luz (arriba a la izquierda) fuera
+                    float rim = C01(a - A(x - d, y + d)) * 0.9f + C01(a - A(x, y + d)) * 0.3f;
+                    r += (RimOrange[0] - r) * rim; g += (RimOrange[1] - g) * rim; b += (RimOrange[2] - b) * rim;
+                    // desgaste: grano y grietas por multiplicación
+                    float grain = Hash(x, y, seed) > 0.82f ? 0.72f : 1f;
+                    float cr = Fbm(u * 6f + 3f, v * 6f, seed + 4, 4), crack = Math.Abs(cr - 0.5f) < 0.007f ? 0.45f : 1f;
+                    float wear = 0.82f + 0.25f * Fbm(u * 14f, v * 14f, seed + 8, 3);
+                    float m = grain * crack * wear; r *= m; g *= m; b *= m;
+                    // resplandor de fuego por abajo
+                    float fire = (1f - v) * (1f - v) * (1f - v) * 0.55f;
+                    r += fire * 1f; g += fire * 0.38f; b += fire * 0.06f;
+                    int o = i * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a * SkullAlpha);
+                }
+            return px;
         }
 
         /// <summary>Marco de panel (n x n, para 9-slice con borde "border"): banda negra al 75 % con una línea gris fina desgastada y grano leve.</summary>

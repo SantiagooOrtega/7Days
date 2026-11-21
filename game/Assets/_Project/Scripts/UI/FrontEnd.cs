@@ -73,11 +73,12 @@ namespace SevenDays.UI
             if (_canvas == null)
             {
                 _canvas = UiKit.Canvas(transform, "Canvas menú", 900);
-                FlameBackdrop.Create(_canvas, Color.white);
+                _backdrop = FlameBackdrop.Create(_canvas, Color.white);
                 _variant = Mathf.Max(0, IndexOfVariant(CharacterVariantLibrary.Current.id));
                 _map = Mathf.Max(0, System.Array.IndexOf(MapIO.PlayableIds, MapIO.SelectedId));
             }
             if (_screen != null) Destroy(_screen.gameObject);
+            _backdrop.Skull.gameObject.SetActive(screen == FrontScreen.Menu);   // calavera roja solo en el menú: en las demás taparía texto
             KillPreview();
             _screen = UiKit.Stretch(_canvas, "Pantalla " + screen);
             _current = screen; _list = null; _email = _user = _pass = null; _preview = _soldier = null;
@@ -201,6 +202,7 @@ namespace SevenDays.UI
         // Emblema propio (calavera con el "7") a la izquierda del título "7DAYS" en el centro, "PULSA ENTER" parpadeando debajo, aviso de estado abajo a la derecha.
         private static Texture2D _emblem;
         public PressStart PressStartScreen { get; private set; }
+        private FlameBackdrop _backdrop;
 
         private void BuildTitle()
         {
