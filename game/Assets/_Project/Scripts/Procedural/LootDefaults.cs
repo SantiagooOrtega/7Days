@@ -57,6 +57,8 @@ namespace SevenDays.Procedural
             P("house_crate_a", hx - 0.9f, hz + 3.2f, "furniture", "mid", 1, 1.5f, true);
             P("house_crate_b", hx + 1.2f, hz - 3.1f, "furniture", "mid", 1, 1.5f, true);
             P("house_shelf", hx - 3.6f, hz + 3.55f, "furniture", "high", 1, 2.0f, true); pts[pts.Count - 1].guaranteeWeapon = true; // arma garantizada dentro de la casa
+            // piso 2: una caja más (búsqueda normal, sin arma garantizada: la escasez se mantiene)
+            if (house != null && house.upperFloor) P("house_upper_crate", hx + 3.8f, hz - 1.6f, "furniture", "low", 1, 1.5f, true);
             // coches destrozados (los que no están ardiendo)
             if (props != null)
             {

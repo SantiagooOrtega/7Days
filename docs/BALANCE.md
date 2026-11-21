@@ -171,7 +171,7 @@ Código: `Procedural/AmmoEconomy.cs` (puro) y `World/Loot/AmmoSupply.cs`. Prueba
 
 - **Zombis por oleada**: 14 + 7 por día (14 … 56), +40 % respecto a la primera versión (10 + 5 por día).
 - **Presupuesto**: balas por zombi = 4.5 el día 1 y baja en línea recta a 3 el día 7 (antes 1.5 → 1.2: demasiado escasa al probar) (un cartucho de escopeta cuenta como una bala). No incluye el botín inicial del mapa ni la munición de salida.
-- **Fuentes**: relleno entre días de contenedores y puntos (x1.5 y +3 reapariciones por punto), drops normales de las tablas (con el tope diario) y lo que falta lo completa la economía: 40 % en 4 tandas durante la oleada (a los 20 s y cada 25 s, en puntos no usados en los últimos 60 s y a más de 8 m del jugador) y 60 % como crédito por baja (cuando llega a un paquete, el zombi lo suelta). Todo respeta el tope de pickups activos; lo que no cabe queda como crédito.
+- **Fuentes**: relleno entre días de contenedores y puntos (x1.3 y +3 reapariciones por punto), drops normales de las tablas (con el tope diario) y lo que falta lo completa la economía: 40 % en 4 tandas durante la oleada (a los 20 s y cada 25 s, en puntos no usados en los últimos 60 s y a más de 8 m del jugador) y 60 % como crédito por baja (cuando llega a un paquete, el zombi lo suelta). Todo respeta el tope de pickups activos; lo que no cabe queda como crédito.
 - **Pity timer**: 60 s sin munición en ninguna arma → paquete doble cerca del jugador.
 
 ### Munición generosa (ajuste tras probar el juego)

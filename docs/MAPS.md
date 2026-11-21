@@ -53,3 +53,12 @@ Generadores puros en `Procedural/MapLibrary.cs` (probados en `MapLibraryTests`);
 - **Auditoría**: al construir el mapa y en cada reposición la Console dice `Loot: N válidos, 0 fuera de rango (...)`.
 - **Validación de los JSON**: `MapKit.Validate` (C#) y el esquema zod del backend rechazan puntos de botín fuera del perímetro.
 - **Pruebas**: `LootPlacementTests` (EditMode) y `MapsTests.Loot_AfterSevenDaysAnd30DropsOutside_...` (PlayMode, los 2 mapas: 7 días de reposición + 30 drops lanzados fuera o bajo el suelo; todos dentro, sobre el NavMesh y alcanzables).
+
+## Casa con segundo piso (Calle en ruinas)
+- Datos: `upperFloor`, `upperHeight`, `upperOpenings` y `upperFurniture` en la casa del JSON; `HouseLayoutData.WithUpperFloor` da los valores del mapa 1. Lo construye `HousePlanner.AddUpperFloor` (puro, `HouseUpperFloorTests`).
+- **Escalera interior** (habitación este, junto al muro norte): 13 escalones macizos de 0.255 m (el jugador sube 0.3), con colliders. El forjado (suelo de arriba) tiene el hueco de la escalera, con barandilla de 1 m (cobertura baja) en sus bordes.
+- **Piso 2**: muros de 2.6 m con 4 ventanas de antepecho a 1 m (línea de tiro de pie, cobertura agachado), muebles de cobertura (2 cajas, mesa, cama), techo de arriba parcialmente caído con losas caídas sobre el suelo del piso 2, y **balcón** al sur (2.2 x 4.2 m, barandilla) para disparar desde arriba y flanquear.
+- **NavMesh**: la escalera es un `NavMeshLink` de humanoides con coste x8 (los zombis prefieren el suelo y suben solo si compensa). El tanque usa otro tipo de agente y un volumen que le cierra la casa: no entra ni sube.
+- **Arreglo de paso**: con agentes de 0.5 m de radio, el horneado cerraba la puerta interior y la trasera (1.1 m), y los zombis nunca llegaban a la habitación este. Ahora esas dos puertas miden 1.5 m en la casa del mapa 1, y todas las puertas de casas y refugios llevan un enlace que el director apaga al tapiarlas (como la ventana grande).
+- **Botín**: una caja más arriba (`house_upper_crate`, tabla `low`, sin arma garantizada: la escasez se mantiene).
+- El refugio del Bosque no lleva piso 2. Es una cabaña pequeña y una escalera no cabe sin rehacerla; se queda como estaba, pero con los enlaces de las puertas.

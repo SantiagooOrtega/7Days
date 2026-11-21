@@ -94,7 +94,7 @@ namespace SevenDays.World
     {
         public static MapData StreetRuins(LookSettings look)
         {
-            var house = HouseIO.Load();
+            var house = HouseLayoutData.WithUpperFloor(HouseIO.Load());   // casa central con segundo piso
             var vegetation = Vegetation.BuildLayout(look);   // árboles, arbustos, coches, señales... con las semillas de LookSettings
             var exclusions = IndustrialRuins.Exclusions();
             var m = new MapData

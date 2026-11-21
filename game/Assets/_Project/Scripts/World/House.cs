@@ -45,6 +45,7 @@ namespace SevenDays.World
             }
 
             foreach (var info in plan.Openings) AddNavigation(houseGo.transform, info, look, controller);
+            if (layout.upperFloor) AddStairLink(houseGo.transform, layout);
             foreach (var t in plan.TorchPositions)
             {
                 var local = new Vector3(t.X, t.Y, t.Z);
@@ -108,6 +109,28 @@ namespace SevenDays.World
         }
 
         // ---------------------------------------------------------------- NavMesh
+        /// <summary>Coste del enlace de la escalera: los zombis la usan solo si el camino por el suelo es mucho peor (prefieren rodear abajo).</summary>
+        public const float StairCost = 8f;
+
+        /// <summary>
+        /// La escalera no se hornea (sus bloques son "no caminables"): un enlace de humanoides del pie a la llegada, bidireccional y caro. El tanque usa otro
+        /// tipo de agente, así que no lo ve y sigue sin poder entrar ni subir.
+        /// </summary>
+        private static void AddStairLink(Transform house, HouseLayoutData l)
+        {
+            var go = new GameObject("Link stairs");
+            go.transform.SetParent(house, false);
+            var link = go.AddComponent<NavMeshLink>();
+            var a = HousePlanner.StairFoot(l); var b = HousePlanner.StairTop(l);
+            link.startPoint = new Vector3(a.X, a.Y, a.Z);
+            link.endPoint = new Vector3(b.X, b.Y, b.Z);
+            link.width = HousePlanner.StairWidth * 0.8f;
+            link.bidirectional = true;
+            link.area = 0;
+            link.costModifier = StairCost;
+            link.autoUpdate = false;
+        }
+
         private static void AddNavigation(Transform house, OpeningInfo info, LookSettings look, HouseController controller)
         {
             var o = info.Opening;
@@ -119,12 +142,29 @@ namespace SevenDays.World
                 // puerta: volumen "Walkable" que tiene prioridad sobre el marco y los muros "Not Walkable" vecinos
                 var go = new GameObject("Walkable " + o.id);
                 go.transform.SetParent(house, false);
-                go.transform.localPosition = new Vector3(center.x, 1.2f, center.z);
+                float floorY = center.y - o.sill - o.height / 2f - HousePlanner.FloorThickness;   // 0 abajo; el piso 2 lleva su altura
+                go.transform.localPosition = new Vector3(center.x, floorY + 1.2f, center.z);
                 var vol = go.AddComponent<NavMeshModifierVolume>();
                 bool alongX = Mathf.Abs(normal.z) > 0.5f;
                 vol.size = alongX ? new Vector3(o.width, 2.4f, info.Thickness + 1.0f) : new Vector3(info.Thickness + 1.0f, 2.4f, o.width);
                 vol.center = Vector3.zero;
                 vol.area = 0; // Walkable
+                // y un enlace a través del hueco: con agentes de 0.5 m de radio el horneado cerraba las puertas de 1.1 m (la habitación este quedaba aislada).
+                // El director lo apaga al tapiar la puerta (RegisterLink), igual que la ventana grande.
+                var lg = new GameObject("Link " + o.id);
+                lg.transform.SetParent(house, false);
+                lg.transform.localPosition = new Vector3(center.x, 0f, center.z);
+                var dl = lg.AddComponent<NavMeshLink>();
+                float reach = info.Thickness / 2f + 0.75f;
+                float inY = floorY + HousePlanner.FloorThickness;                                  // suelo de dentro (abajo o piso 2)
+                float outY = o.wall == "interior" || floorY > 0.5f ? inY : 0f;                    // fuera: calle, otra habitación o balcón
+                dl.startPoint = new Vector3(-normal.x * reach, inY, -normal.z * reach);
+                dl.endPoint = new Vector3(normal.x * reach, outY, normal.z * reach);
+                dl.width = Mathf.Max(0.3f, o.width - 0.3f);
+                dl.bidirectional = true;
+                dl.area = 0;
+                dl.autoUpdate = false;
+                controller.RegisterLink(o.id, dl);
                 return;
             }
 

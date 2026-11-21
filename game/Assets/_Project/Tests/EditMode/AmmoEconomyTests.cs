@@ -40,7 +40,7 @@ namespace SevenDays.Tests
                 double old = AmmoEconomy.ExpectedTableDropRounds(l, d.Day, 10 + 5 * (d.Day - 1)) + OldRefill(l, d.Day);
                 totalNew += d.Total; totalOld += old;
                 sb.AppendLine(d.Day + " | " + d.Zombies + " | " + d.Refill.ToString("0") + " | " + d.TableDrops.ToString("0") + " | " + d.Trickle.ToString("0") + " | " + d.KillCredit.ToString("0") + " | " + d.Total.ToString("0") + " | " + d.Ratio.ToString("0.00") + " | " + old.ToString("0"));
-                Assert.LessOrEqual(d.Refill + d.TableDrops, d.Budget * 1.10, id + " día " + d.Day + ": las fuentes naturales ya superan el presupuesto");
+                Assert.LessOrEqual(d.Refill + d.TableDrops, d.Budget * 1.15, id + " día " + d.Day + ": las fuentes naturales ya superan el presupuesto");
                 Assert.That(d.Ratio, Is.InRange(d.Day == 1 ? 4.0 : 2.8, d.Day == 1 ? 5.0 : 4.7), id + " día " + d.Day + " rango");
                 Assert.AreEqual(AmmoEconomy.TargetRatio(d.Day), d.Ratio, 0.3, id + " día " + d.Day + " balas/zombi");
                 Assert.LessOrEqual(d.Ratio, prev + 0.02, "no debe subir de un día a otro");

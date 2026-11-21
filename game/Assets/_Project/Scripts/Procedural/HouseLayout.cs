@@ -48,6 +48,45 @@ namespace SevenDays.Procedural
         public HouseOpening[] openings = new HouseOpening[0];
         public HouseFurniture[] furniture = new HouseFurniture[0];
         public HouseTorch[] torches = new HouseTorch[0];
+        /// <summary>Segundo piso (Calle en ruinas): escalera interior, forjado con hueco, muros con ventanas, balcón y techo de arriba parcialmente caído.</summary>
+        public bool upperFloor;
+        public float upperHeight = 2.6f;
+        public HouseOpening[] upperOpenings = new HouseOpening[0];
+        public HouseFurniture[] upperFurniture = new HouseFurniture[0];
+
+        /// <summary>La casa por defecto con segundo piso: la cama baja deja sitio a la escalera (habitación este, junto al muro norte).</summary>
+        public static HouseLayoutData WithUpperFloor(HouseLayoutData l)
+        {
+            l.upperFloor = true;
+            // la cama sube al piso 2 (abajo cerraba el paso de la puerta interior con la escalera) y el armario deja libre el pie de la escalera
+            var ground = new List<HouseFurniture>();
+            foreach (var f in l.furniture)
+            {
+                if (f.kind == "bed") continue;
+                if (f.kind == "cabinet") { f.x = 4.5f; f.z = -2.9f; }
+                ground.Add(f);
+            }
+            l.furniture = ground.ToArray();
+            // la puerta interior y la trasera medían 1.1 m: con agentes de 0.5 m de radio el NavMesh las cerraba y los zombis no entraban a la habitación
+            // este (donde está la escalera). A 1.5 m pasan; los tablones del director se ajustan al ancho.
+            foreach (var o in l.openings) if (o.id == "inner_door" || o.id == "back_door") o.width = 1.5f;
+            l.upperOpenings = new[]
+            {
+                new HouseOpening { id = "up_balcony_door", wall = "south", offset = -2.5f, width = 1.2f, height = 2.1f, kind = "door" },
+                new HouseOpening { id = "up_win_south", wall = "south", offset = 2.6f, width = 1.3f, sill = 1.0f, height = 0.9f, kind = "window" },
+                new HouseOpening { id = "up_win_north", wall = "north", offset = -2.6f, width = 1.3f, sill = 1.0f, height = 0.9f, kind = "window" },
+                new HouseOpening { id = "up_win_east", wall = "east", offset = -1.6f, width = 1.3f, sill = 1.0f, height = 0.9f, kind = "window" },
+                new HouseOpening { id = "up_win_west", wall = "west", offset = 1.2f, width = 1.3f, sill = 1.0f, height = 0.9f, kind = "window" },
+            };
+            l.upperFurniture = new[]
+            {
+                new HouseFurniture { kind = "crate", x = 3.8f, z = -1.6f },
+                new HouseFurniture { kind = "table", x = -2.6f, z = 0.6f },
+                new HouseFurniture { kind = "crate", x = -3.9f, z = -2.6f, yaw = 25f },
+                new HouseFurniture { kind = "bed", x = 2.0f, z = 0.9f },
+            };
+            return l;
+        }
 
         public static HouseLayoutData Default()
         {

@@ -97,13 +97,20 @@ namespace SevenDays.Procedural
                 var ops = new List<HouseOpening>();
                 foreach (var o in l.openings) if (o.wall == wall) ops.Add(o);
                 AddWall(plan, l, wall, ops);
+                if (l.upperFloor && wall != "interior")
+                {
+                    var up = new List<HouseOpening>();
+                    foreach (var o in l.upperOpenings) if (o.wall == wall) up.Add(o);
+                    AddWall(plan, l, wall, up, UpperFloorY(l), l.upperHeight);   // muros del piso 2 (planta abierta, sin muro interior)
+                }
             }
 
             // vigas del techo (a lo largo de X)
             foreach (float z in new[] { -D * 0.34f, 0f, D * 0.34f })
                 plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Beam, Center = new V3(0, FloorThickness + H - 0.15f, z), Size = new V3(W - T, 0.3f, 0.25f), Nav = NavFlag.Ignore, Tag = "beam" });
 
-            AddRoof(plan, l);
+            if (l.upperFloor) { AddUpperFloor(plan, l); AddRoof(plan, l, UpperFloorY(l) + l.upperHeight - FloorThickness - l.wallHeight, UpperFloorY(l) - FloorThickness); }
+            else AddRoof(plan, l);
             AddFurniture(plan, l);
 
             foreach (var t in l.torches) plan.TorchPositions.Add(new V3(t.x, t.y, t.z));
@@ -111,9 +118,9 @@ namespace SevenDays.Procedural
         }
 
         // ------------------------------------------------------------------ muros
-        private static void AddWall(HousePlan plan, HouseLayoutData l, string wall, List<HouseOpening> ops)
+        private static void AddWall(HousePlan plan, HouseLayoutData l, string wall, List<HouseOpening> ops, float floorY = FloorThickness, float height = -1f)
         {
-            float W = l.width, D = l.depth, H = l.wallHeight;
+            float W = l.width, D = l.depth, H = height > 0f ? height : l.wallHeight;
             float thick = wall == "interior" ? 0.2f : l.wallThickness;
             float length = WallPlanner.WallLength(l, wall);
             bool alongX = wall == "north" || wall == "south";
@@ -130,7 +137,7 @@ namespace SevenDays.Procedural
 
             foreach (var p in WallPlanner.Segments(length, H, ops))
             {
-                float tc = (p.T0 + p.T1) / 2f, len = p.T1 - p.T0, yc = FloorThickness + (p.Y0 + p.Y1) / 2f, hy = p.Y1 - p.Y0;
+                float tc = (p.T0 + p.T1) / 2f, len = p.T1 - p.T0, yc = floorY + (p.Y0 + p.Y1) / 2f, hy = p.Y1 - p.Y0;
                 V3 center = alongX ? new V3(origin.X + tc, yc, origin.Z) : new V3(origin.X, yc, origin.Z + tc);
                 V3 size = alongX ? new V3(len, hy, thick) : new V3(thick, hy, len);
                 plan.Boxes.Add(new HouseBox
@@ -144,9 +151,9 @@ namespace SevenDays.Procedural
             foreach (var o in ops)
             {
                 float tc = o.offset;
-                V3 c = alongX ? new V3(origin.X + tc, FloorThickness + o.sill + o.height / 2f, origin.Z) : new V3(origin.X, FloorThickness + o.sill + o.height / 2f, origin.Z + tc);
+                V3 c = alongX ? new V3(origin.X + tc, floorY + o.sill + o.height / 2f, origin.Z) : new V3(origin.X, floorY + o.sill + o.height / 2f, origin.Z + tc);
                 plan.Openings.Add(new OpeningInfo { Opening = o, Center = c, Normal = normal, Thickness = thick });
-                AddFrame(plan, o, alongX, origin, thick);
+                AddFrame(plan, o, alongX, origin, thick, floorY);
                 // tablones para cuando el director bloquea la abertura (desactivados por defecto)
                 V3 bsize = alongX ? new V3(o.width, o.height, 0.14f) : new V3(0.14f, o.height, o.width);
                 plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Barricade, Center = c, Size = bsize, OpeningId = o.id, Nav = NavFlag.NotWalkable, Tag = "barricade" });
@@ -160,10 +167,10 @@ namespace SevenDays.Procedural
         }
 
         /// <summary>Marco: jambas y dintel por FUERA del hueco (no reducen el paso libre), y un reborde en las ventanas.</summary>
-        private static void AddFrame(HousePlan plan, HouseOpening o, bool alongX, V3 origin, float thick)
+        private static void AddFrame(HousePlan plan, HouseOpening o, bool alongX, V3 origin, float thick, float floorY)
         {
             float pad = DoorFramePad, ft = thick + 0.06f;
-            float y0 = FloorThickness + o.sill, y1 = y0 + o.height, yc = (y0 + y1) / 2f;
+            float y0 = floorY + o.sill, y1 = y0 + o.height, yc = (y0 + y1) / 2f;
             void Add(float t, float tw, float yCenter, float h, string tag)
             {
                 V3 c = alongX ? new V3(origin.X + t, yCenter, origin.Z) : new V3(origin.X, yCenter, origin.Z + t);
@@ -177,7 +184,9 @@ namespace SevenDays.Procedural
         }
 
         // ------------------------------------------------------------------ techo
-        private static void AddRoof(HousePlan plan, HouseLayoutData l)
+        /// <param name="lift">cuánto más arriba va el techo (piso 2: encima de sus muros)</param>
+        /// <param name="fallenLift">dónde caen las losas (piso 2: sobre su suelo)</param>
+        private static void AddRoof(HousePlan plan, HouseLayoutData l, float lift = 0f, float fallenLift = 0f)
         {
             var rng = new Random(l.roofSeed);
             float W = l.width, D = l.depth, H = l.wallHeight;
@@ -202,7 +211,7 @@ namespace SevenDays.Procedural
                             fallenCount++;
                             plan.Boxes.Add(new HouseBox
                             {
-                                Kind = HouseBoxKind.Roof, Center = new V3(cx + (float)(rng.NextDouble() - 0.5) * 0.6f, FloorThickness + 0.3f, cz + (float)(rng.NextDouble() - 0.5) * 0.6f),
+                                Kind = HouseBoxKind.Roof, Center = new V3(cx + (float)(rng.NextDouble() - 0.5) * 0.6f, fallenLift + FloorThickness + 0.3f, cz + (float)(rng.NextDouble() - 0.5) * 0.6f),
                                 Size = new V3(tw - 0.1f, RoofThickness, td - 0.1f), Yaw = (float)(rng.NextDouble() * 60 - 30), TiltX = (float)(rng.NextDouble() * 12 - 6), TiltZ = (float)(rng.NextDouble() * 12 - 6),
                                 Cover = true, Tag = "fallen",
                             });
@@ -212,7 +221,7 @@ namespace SevenDays.Procedural
                     bool tilted = rng.NextDouble() < 0.25;
                     plan.Boxes.Add(new HouseBox
                     {
-                        Kind = HouseBoxKind.Roof, Center = new V3(cx, FloorThickness + H + RoofThickness / 2f + (tilted ? 0.12f : 0f), cz),
+                        Kind = HouseBoxKind.Roof, Center = new V3(cx, lift + FloorThickness + H + RoofThickness / 2f + (tilted ? 0.12f : 0f), cz),
                         Size = new V3(tw, RoofThickness, td), TiltX = tilted ? (float)(rng.NextDouble() * 14 + 8) * (rng.NextDouble() < 0.5 ? -1 : 1) : 0f,
                         Nav = NavFlag.Ignore, Tag = tilted ? "tile_tilted" : "tile",
                     });
@@ -220,7 +229,75 @@ namespace SevenDays.Procedural
             }
             // al menos una losa caída en el piso aunque la probabilidad no la haya dado
             if (fallenCount == 0)
-                plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Roof, Center = new V3(-W * 0.25f, FloorThickness + 0.3f, -D * 0.1f), Size = new V3(tw - 0.1f, RoofThickness, td - 0.1f), Yaw = 18f, TiltX = 5f, TiltZ = -4f, Cover = true, Tag = "fallen" });
+                plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Roof, Center = new V3(-W * 0.25f, fallenLift + FloorThickness + 0.3f, -D * 0.1f), Size = new V3(tw - 0.1f, RoofThickness, td - 0.1f), Yaw = 18f, TiltX = 5f, TiltZ = -4f, Cover = true, Tag = "fallen" });
+        }
+
+
+        // ------------------------------------------------------------------ segundo piso
+        public const float SlabThickness = 0.2f, StairWidth = 1.0f, RailHeight = 1.0f;
+        public const int StairSteps = 13;
+
+        /// <summary>Altura del suelo del piso 2 (encima del forjado).</summary>
+        public static float UpperFloorY(HouseLayoutData l) => FloorThickness + l.wallHeight + SlabThickness;
+
+        /// <summary>Hueco de la escalera en el forjado (local): x0, x1, z0, z1. Habitación este, pegado al muro norte; se sube hacia el oeste.</summary>
+        public static float[] Stairwell(HouseLayoutData l)
+        {
+            float zN = l.depth / 2f - l.wallThickness;
+            return new[] { l.interiorX + 0.3f, l.interiorX + 3.4f, zN - StairWidth - 0.05f, zN };
+        }
+
+        /// <summary>Pie (abajo) y llegada (arriba) de la escalera, para el enlace del NavMesh.</summary>
+        /// Los extremos van en zona abierta (a más del radio del agente de muros y barandillas: si no, la erosión del NavMesh los deja fuera y el enlace no conecta).
+        public static V3 StairFoot(HouseLayoutData l) { var w = Stairwell(l); return new V3(w[1] + 0.5f, FloorThickness, w[2] - 0.55f); }
+        public static V3 StairTop(HouseLayoutData l) { var w = Stairwell(l); return new V3(w[0] - 0.9f, UpperFloorY(l), w[2] - 0.4f); }
+
+        /// <summary>Balcón (local): x0, x1, z0, z1, fuera del muro sur, delante de la puerta del piso 2.</summary>
+        public static float[] Balcony(HouseLayoutData l) { float zS = -l.depth / 2f; return new[] { -4.6f, -0.4f, zS - 2.2f, zS }; }   // 2.2 m de fondo: con la erosión del NavMesh (0.5 m) queda paso
+
+        private static void AddUpperFloor(HousePlan plan, HouseLayoutData l)
+        {
+            float W = l.width, D = l.depth, Y2 = UpperFloorY(l), yc = Y2 - SlabThickness / 2f;
+            var w = Stairwell(l);
+            void Slab(float x0, float x1, float z0, float z1, string tag)
+            {
+                if (x1 - x0 < 0.05f || z1 - z0 < 0.05f) return;
+                plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Floor, Center = new V3((x0 + x1) / 2f, yc, (z0 + z1) / 2f), Size = new V3(x1 - x0, SlabThickness, z1 - z0), Tag = tag });
+            }
+            // forjado (techo de abajo y suelo de arriba) con el hueco de la escalera
+            Slab(-W / 2f, W / 2f, -D / 2f, w[2], "upper_floor");
+            Slab(-W / 2f, w[0], w[2], D / 2f, "upper_floor");
+            Slab(w[1], W / 2f, w[2], D / 2f, "upper_floor");
+            Slab(w[0], w[1], w[3], D / 2f, "upper_floor");
+            // barandilla del hueco (sur y este): no se cae nadie, y sirve de cobertura baja
+            void Rail(float x0, float x1, float z0, float z1, float floorY, string tag)
+                => plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Frame, Center = new V3((x0 + x1) / 2f, floorY + RailHeight / 2f, (z0 + z1) / 2f), Size = new V3(x1 - x0, RailHeight, z1 - z0),
+                    Nav = NavFlag.NotWalkable, Cover = true, Tag = tag });
+            Rail(w[0], w[1] + 0.06f, w[2] - 0.06f, w[2], Y2, "rail");
+            Rail(w[1], w[1] + 0.06f, w[2], w[3], Y2, "rail");
+            // escalera: bloques macizos de 0.255 m (el CharacterController sube 0.3); el NavMesh la cruza con un enlace caro
+            float rise = Y2 / StairSteps, run = (w[1] - w[0]) / StairSteps;
+            for (int i = 1; i <= StairSteps; i++)
+            {
+                float x1 = w[1] - (i - 1) * run, top = Math.Min(Y2, rise * i);
+                // escalón i: de su borde de subida hasta la llegada, macizo hasta el suelo
+                float edge = w[1] - i * run;
+                plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Floor, Center = new V3((edge + x1) / 2f, top / 2f, (w[2] + w[3]) / 2f), Size = new V3(x1 - edge, top, w[3] - w[2]),
+                    Nav = NavFlag.NotWalkable, Tag = "stair" });
+            }
+            // balcón con barandilla para flanquear y disparar desde arriba
+            var b = Balcony(l);
+            Slab(b[0], b[1], b[2], b[3], "balcony");
+            Rail(b[0], b[1], b[2], b[2] + 0.12f, Y2, "rail_balcony");
+            Rail(b[0], b[0] + 0.12f, b[2], b[3], Y2, "rail_balcony");
+            Rail(b[1] - 0.12f, b[1], b[2], b[3], Y2, "rail_balcony");
+            // muebles de arriba (cobertura)
+            foreach (var f in l.upperFurniture)
+            {
+                var s = HouseTypes.FurnitureSize(f.kind);
+                bool vaultable = VaultMath.Classify(s.Y, true, new MovementSettings()) == VaultVerdict.Vault;
+                plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Furniture, Center = new V3(f.x, Y2 + s.Y / 2f, f.z), Size = s, Yaw = f.yaw, Cover = true, Vaultable = vaultable, Nav = NavFlag.NotWalkable, Tag = "furniture:" + f.kind });
+            }
         }
 
         // ------------------------------------------------------------------ muebles

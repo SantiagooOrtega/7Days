@@ -175,5 +175,50 @@ namespace SevenDays.Tests.PlayMode
             Assert.IsTrue(log.Exists(l => l.Contains("al construir el mapa") && l.Contains(" 0 fuera de rango")), "auditoría al construir");
             Assert.IsTrue(log.Exists(l => l.Contains("reposición del día 7")), "auditoría al reponer");
         }
+
+        [UnityTest]
+        public IEnumerator HouseUpperFloor_ZombiesReachItByTheStairs_TankDoesNot_LootUpstairs()
+        {
+            var log = new System.Collections.Generic.List<string>();
+            Application.LogCallback cb = (msg, st, type) => { if (type != LogType.Log || msg.Contains("Auditoría") || msg.Contains("house_upper")) log.Add(type + ": " + msg); };
+            Application.logMessageReceived += cb;
+            T("SevenDays.World.MapIO").GetField("SelectedId").SetValue(null, "calle_en_ruinas");
+            _arena = new GameObject("Arena"); var arena = _arena.AddComponent(T("SevenDays.World.TestArena"));
+            float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 60f && GameObject.FindWithTag("Player") == null) yield return null;
+            for (int i = 0; i < 30; i++) yield return null;
+            Application.logMessageReceived -= cb;
+            var map = (MapData)arena.GetType().GetProperty("Map").GetValue(arena);
+            var h = map.houses[0];
+            Assert.IsTrue(h.upperFloor, "la casa de la Calle tiene piso 2");
+            float y2 = HousePlanner.UpperFloorY(h);
+            Vector3 W(float lx, float ly, float lz) => new Vector3(h.x + lx, ly, h.z + lz);   // yaw 0
+            var start = new Vector3(map.playerStart[0], map.playerStart[1], map.playerStart[2]);
+            Assert.IsTrue(NavMesh.SamplePosition(start, out var s0, 4f, NavMesh.AllAreas));
+            var targets = new[] { ("centro del piso 2", W(-2f, y2, -1.5f)), ("balcón", W(-2.5f, y2, -h.depth / 2f - 1.1f)), ("llegada de la escalera", W(HousePlanner.StairTop(h).X - 0.6f, y2, HousePlanner.StairTop(h).Z)) };
+            var path = new NavMeshPath();
+            foreach (var (name, t) in targets)
+            {
+                Assert.IsTrue(NavMesh.SamplePosition(t + Vector3.up * 0.3f, out var hit, 0.8f, NavMesh.AllAreas), name + ": NavMesh arriba");
+                Assert.Greater(hit.position.y, y2 - 0.3f, name + ": en el piso 2, no en el de abajo");
+                Assert.IsTrue(NavMesh.CalculatePath(s0.position, hit.position, NavMesh.AllAreas, path), name);
+                Assert.AreEqual(NavMeshPathStatus.PathComplete, path.status, name + ": los zombis llegan por la escalera");
+            }
+            // el tanque (otro tipo de agente) no sube
+            var zm = T("SevenDays.Combat.ZombieManager"); var inst = zm.GetProperty("Instance").GetValue(null);
+            int giant = (int)zm.GetProperty("GiantAgentTypeId").GetValue(inst);
+            if (giant >= 0)
+            {
+                var f = new NavMeshQueryFilter { agentTypeID = giant, areaMask = NavMesh.AllAreas };
+                bool up = NavMesh.SamplePosition(targets[0].Item2 + Vector3.up * 0.3f, out var gh, 0.8f, f) && gh.position.y > y2 - 0.3f
+                    && NavMesh.SamplePosition(start, out var gs, 6f, f) && NavMesh.CalculatePath(gs.position, gh.position, f, path) && path.status == NavMeshPathStatus.PathComplete;
+                Assert.IsFalse(up, "el tanque no sube al piso 2");
+            }
+            // auditoría de colisiones limpia y la caja de arriba es buscable
+            Assert.IsFalse(log.Exists(l => (l.StartsWith("Warning") || l.StartsWith("Error")) && !l.Contains("sin sesión")), string.Join("\n", log));
+            Assert.IsTrue(log.Exists(l => l.Contains("Auditoría de colisiones") && l.Contains("Todo en orden")), "auditoría N/N sin avisos");
+            var lm = T("SevenDays.World.Loot.LootManager").GetProperty("Instance").GetValue(null);
+            Assert.AreEqual(0, (int)lm.GetType().GetField("SkippedPoints").GetValue(lm), "todos los muebles con botín encontrados (también arriba)");
+        }
     }
 }

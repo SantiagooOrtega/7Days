@@ -30,8 +30,8 @@ namespace SevenDays.Procedural
         public const float TrickleFirstSeconds = 20f, TrickleIntervalSeconds = 25f;
         /// <summary>Un punto donde reapareció botín no se vuelve a usar para las tandas hasta pasados estos segundos.</summary>
         public const float PointCooldownSeconds = 60f;
-        /// <summary>Relleno entre días: más cantidad que antes (x1.5) y más reapariciones por punto (+3).</summary>
-        public const float RefillScale = 1.5f;
+        /// <summary>Relleno entre días: más cantidad que antes (x1.3) y más reapariciones por punto (+3).</summary>
+        public const float RefillScale = 1.3f;   // 1.5 antes; con los pickups x2.5 el relleno ya pasaba del objetivo
         public const int ExtraRespawns = 3;
         /// <summary>Sin munición en ninguna arma durante este tiempo, el director deja un drop cerca.</summary>
         public const float PitySeconds = 60f;
