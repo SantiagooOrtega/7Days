@@ -78,7 +78,7 @@ namespace SevenDays.UI
                 _map = Mathf.Max(0, System.Array.IndexOf(MapIO.PlayableIds, MapIO.SelectedId));
             }
             if (_screen != null) Destroy(_screen.gameObject);
-            _backdrop.Skull.gameObject.SetActive(screen == FrontScreen.Menu);   // calavera roja solo en el menú: en las demás taparía texto
+            _backdrop.Skull.gameObject.SetActive(screen == FrontScreen.Menu || screen == FrontScreen.Title);   // calavera tras el menú y el inicio; en las demás taparía paneles
             KillPreview();
             _screen = UiKit.Stretch(_canvas, "Pantalla " + screen);
             _current = screen; _list = null; _email = _user = _pass = null; _preview = _soldier = null;

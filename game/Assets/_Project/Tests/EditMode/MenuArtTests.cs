@@ -57,20 +57,24 @@ namespace SevenDays.Tests
         }
 
         [Test]
-        public void RedSkull_GradientMap_RimOrange_Alpha60to70_CutsFlatBackground()
+        public void DetailedSkull_Red_SemiTransparent_DeepSockets_TeethGaps_BloodDrips_NoSymbols()
         {
             SkullGradientIs(0f, 0x1A, 0x05, 0x04); SkullGradientIs(1f, 0xFF, 0x5A, 0x2A);
-            Assert.That(MenuArt.SkullAlpha, Is.InRange(0.6f, 0.7f));
-            // fondo blanco plano: se recorta; el dibujo oscuro del centro queda
-            int w = 32; var img = new byte[w * w * 4];
-            for (int i = 0; i < w * w; i++) { bool c = System.Math.Abs(i % w - 16) < 8 && System.Math.Abs(i / w - 16) < 8; byte v = c ? (byte)90 : (byte)255; img[i * 4] = img[i * 4 + 1] = img[i * 4 + 2] = v; img[i * 4 + 3] = 255; }
-            MenuArt.Cutout(img, w, w, out var lum, out var al);
-            Assert.AreEqual(0f, al[0], 1e-3f, "fondo fuera"); Assert.AreEqual(1f, al[16 * w + 16], 1e-3f, "cráneo dentro");
-            MenuArt.ProceduralSkull(96, out lum, out al);
-            var px = MenuArt.RedSkull(lum, al, 96, 96, 5);
+            Assert.That(MenuArt.SkullBodyAlpha, Is.InRange(MenuArt.SkullMinAlpha, MenuArt.SkullMaxAlpha));
+            Assert.That(MenuArt.SkullMinAlpha, Is.EqualTo(0.55f)); Assert.That(MenuArt.SkullMaxAlpha, Is.EqualTo(0.65f));
+            int n = 256; var px = MenuArt.DetailedSkull(n, 13);
+            CollectionAssert.AreEqual(px, MenuArt.DetailedSkull(n, 13), "cacheable");
             Assert.AreEqual(0, px[3], "esquina transparente");
-            int maxA = 0, rimish = 0, red = 0; for (int i = 0; i < 96 * 96; i++) { maxA = System.Math.Max(maxA, px[i * 4 + 3]); if (px[i * 4 + 3] > 0 && px[i * 4] > 200 && px[i * 4 + 1] > 90) rimish++; if (px[i * 4] > px[i * 4 + 1] * 2 && px[i * 4 + 3] > 100) red++; }
-            Assert.LessOrEqual(maxA, 180, "60-70 % de opacidad"); Assert.Greater(rimish, 10, "borde de luz naranja"); Assert.Greater(red, 1500, "teñida en rojo");
+            int maxA = 0, red = 0; for (int i = 0; i < n * n; i++) { maxA = System.Math.Max(maxA, px[i * 4 + 3]); if (px[i * 4 + 3] > 100 && px[i * 4] > px[i * 4 + 1] * 2) red++; }
+            Assert.LessOrEqual(maxA, (int)(255 * 0.65f) + 1, "semitransparente"); Assert.Greater(red, n * n / 5, "grande y roja");
+            // cuencas más oscuras que la frente; dientes separados por huecos; sangre bajo los ojos
+            Assert.Greater(MenuArt.SkullCavity(0.27f, 0.06f, out _), 0.8f, "cuenca profunda");
+            Assert.AreEqual(0f, MenuArt.SkullCavity(0f, 0.45f, out _), 1e-4f, "frente lisa: sin números ni símbolos");
+            int teeth = 0, gaps = 0; bool last = false;
+            for (int i = 0; i < 200; i++) { MenuArt.SkullCavity(-0.3f + i * 0.003f, -0.44f, out var th); bool t = th > 0f; if (t && !last) teeth++; if (!t && last) gaps++; last = t; }
+            Assert.That(teeth, Is.InRange(7, 9), "dientes uno a uno arriba");
+            Assert.Greater(MenuArt.Blood(-0.25f, -0.2f, out _), 0.5f, "sangre que gotea de la cuenca");
+            Assert.Less(MenuArt.SkullSilhouette(0f, -0.7f), 0f, "mandíbula"); Assert.Greater(MenuArt.SkullSilhouette(0f, 0.98f), 0f);
         }
 
         private static void SkullGradientIs(float l, int r, int g, int b)

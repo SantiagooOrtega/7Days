@@ -4,7 +4,7 @@ namespace SevenDays.Procedural
 {
     /// <summary>
     /// Arte procedural del menú y de las pantallas (puro, propio): fondo de pintura roja y naranja desgastada con grunge, ciudad en ruinas ardiendo abajo
-    /// (edificios rotos, grúas), viñeta (la calavera roja va aparte: RedSkull); marco de panel
+    /// (edificios rotos, grúas), viñeta (la calavera roja va aparte: DetailedSkull); marco de panel
     /// desgastado (esquinas rotas, rayones, óxido), resaltado de fila, grano, humo y silueta del soldado. Todo RGBA32 de abajo arriba (como Texture2D).
     /// </summary>
     public static class MenuArt
@@ -333,7 +333,6 @@ namespace SevenDays.Procedural
         }
 
         // ---------------------------------------------------------------- calavera roja del fondo del menú
-        public const float SkullAlpha = 0.66f;
         private static readonly float[][] SkullRamp = { new[] { 0x1A / 255f, 0x05 / 255f, 0x04 / 255f }, new[] { 0x8E / 255f, 0x1B / 255f, 0x12 / 255f }, new[] { 0xB3 / 255f, 0x26 / 255f, 0x1A / 255f }, new[] { 1f, 0x5A / 255f, 0x2A / 255f } };
         private static readonly float[] SkullRampAt = { 0f, 0.42f, 0.66f, 1f };
         public static readonly float[] RimOrange = { 1f, 0x7A / 255f, 0x1F / 255f };
@@ -346,74 +345,171 @@ namespace SevenDays.Procedural
             r = SkullRamp[i][0] + (SkullRamp[i + 1][0] - SkullRamp[i][0]) * t; g = SkullRamp[i][1] + (SkullRamp[i + 1][1] - SkullRamp[i][1]) * t; b = SkullRamp[i][2] + (SkullRamp[i + 1][2] - SkullRamp[i][2]) * t;
         }
 
-        /// <summary>
-        /// Recorte de una imagen importada: si ya trae transparencia la usa; si no, quita el fondo plano (color de las esquinas) por distancia de color.
-        /// Devuelve gris (luminancia) y alfa por píxel.
-        /// </summary>
-        public static void Cutout(byte[] rgba, int w, int h, out float[] lum, out float[] alpha)
+        // ---------------------------------------------------------------- calavera detallada del menú (procedural, sin símbolos)
+        public const int SkullSize = 1024;
+        public const float SkullMinAlpha = 0.55f, SkullMaxAlpha = 0.65f, SkullBodyAlpha = 0.6f;
+
+        private static float Ell(float u, float v, float cx, float cy, float rx, float ry) { float x = (u - cx) / rx, y = (v - cy) / ry; return ((float)Math.Sqrt(x * x + y * y) - 1f) * Math.Min(rx, ry); }
+        private static float Gauss(float u, float v, float cx, float cy, float rx, float ry) { float x = (u - cx) / rx, y = (v - cy) / ry; return (float)Math.Exp(-(x * x + y * y)); }
+
+        /// <summary>Silueta de la calavera (distancia con signo aprox., negativa dentro; u -1..1, v -1..1 arriba): cráneo, sienes hundidas, pómulos, maxilar y mandíbula.</summary>
+        public static float SkullSilhouette(float u, float v)
         {
-            lum = new float[w * h]; alpha = new float[w * h];
-            bool hasAlpha = false; for (int i = 0; i < w * h; i++) if (rgba[i * 4 + 3] < 250) { hasAlpha = true; break; }
-            float kr = 0, kg = 0, kb = 0; int[] cs = { 0, w - 1, (h - 1) * w, h * w - 1 };
-            foreach (var c in cs) { kr += rgba[c * 4] / 1020f; kg += rgba[c * 4 + 1] / 1020f; kb += rgba[c * 4 + 2] / 1020f; }
-            for (int i = 0; i < w * h; i++)
-            {
-                float r = rgba[i * 4] / 255f, g = rgba[i * 4 + 1] / 255f, b = rgba[i * 4 + 2] / 255f;
-                lum[i] = 0.299f * r + 0.587f * g + 0.114f * b;
-                if (hasAlpha) alpha[i] = rgba[i * 4 + 3] / 255f;
-                else { float d = (float)Math.Sqrt((r - kr) * (r - kr) + (g - kg) * (g - kg) + (b - kb) * (b - kb)); alpha[i] = Smooth(0.08f, 0.22f, d); }
-            }
+            float au = Math.Abs(u);
+            float cranium = Ell(u, v, 0f, 0.3f, 0.7f, 0.64f);
+            cranium = Math.Max(cranium, -Ell(au, v, 0.8f, -0.02f, 0.15f, 0.3f));                       // sienes
+            float cheek = Ell(au, v, 0.5f, -0.12f, 0.2f, 0.1f);                                       // pómulos
+            float maxW = 0.34f - C01((-v - 0.1f) / 0.42f) * 0.05f;
+            float maxilla = Math.Max(au - maxW, Math.Max(v - (-0.05f), -0.515f - v));
+            float t = C01((-0.53f - v) / 0.3f);                                                       // 0 arriba de la mandíbula, 1 en el mentón
+            float jawW = 0.41f - 0.1f * t * t - 0.08f * t;
+            float mandible = Math.Max(au - jawW, Math.Max(v + 0.525f, -0.8f - v));
+            mandible = SMin(mandible, Ell(u, v, 0f, -0.8f, 0.24f, 0.075f), 0.08f);                   // mentón redondo
+            float rx = 0.4f + (v + 0.62f) * 0.12f;
+            float ramus = Math.Max(Math.Abs(au - rx) - 0.045f, Math.Max(v + 0.22f, -0.66f - v));     // rama inclinada hacia la articulación (detrás del pómulo)
+            float face = SMin(SMin(cranium, cheek, 0.08f), maxilla, 0.06f);
+            return SMin(face, SMin(mandible, ramus, 0.07f), 0.02f);
         }
 
-        /// <summary>Respaldo procedural sin símbolos (n x n): cráneo en relieve en gris (cuencas negras), alfa = silueta.</summary>
-        public static void ProceduralSkull(int n, out float[] lum, out float[] alpha)
+        /// <summary>Profundidad de las cavidades 0..1 (cuencas, nariz, boca, separación de dientes y de la mandíbula articulada) y si es diente (1) o hueso (0).</summary>
+        public static float SkullCavity(float u, float v, out float tooth)
         {
-            lum = new float[n * n]; alpha = new float[n * n]; float e = 2f / n;
-            float H(float u, float v) => Smooth(0f, -0.16f, BadgeSkullSd(u, v)) * (0.6f + 0.4f * C01(1f - (u * u + (v - 0.1f) * (v - 0.1f)) * 0.6f));
+            float au = Math.Abs(u); tooth = 0f;
+            // cuencas: cuadradas redondeadas, el lado de fuera más bajo
+            float ex = (au - 0.27f) / 0.2f, ey = (v - 0.06f + (au - 0.27f) * 0.25f) / 0.165f;
+            float se = (float)Math.Pow(Math.Pow(Math.Abs(ex), 2.6) + Math.Pow(Math.Abs(ey), 2.6), 1 / 2.6);
+            float socket = C01((1f - se) * 4f) * (0.55f + 0.45f * C01(1f - se));
+            // nariz: pera invertida con tabique
+            float nt = C01((0.0f - v) / 0.3f), nhw = 0.03f + 0.065f * (float)Math.Sin(Math.Min(1f, nt * 1.15f) * Math.PI * 0.8f);
+            float nose = (v < -0.01f && v > -0.31f) ? C01((nhw - au) / 0.025f) : 0f;
+            if (au < 0.007f && v < -0.14f) nose *= 0.3f;
+            // dientes de arriba y abajo, y la boca entre ellos
+            float mouth = 0f;
+            bool upper = v < -0.38f && v > -0.505f && au < 0.3f, lower = v < -0.525f && v > -0.63f && au < 0.27f;
+            if (upper || lower)
+            {
+                float cols = upper ? 8f : 8f, w = upper ? 0.6f : 0.54f;
+                float x = (u + w / 2f) / w * cols, f = x - (float)Math.Floor(x);
+                float yy = upper ? (v + 0.505f) / 0.125f : (-0.525f - v) / 0.105f;   // 0 en el borde de mordida
+                float edge = Math.Min(f, 1f - f);
+                int idx = (int)Math.Floor(x); float len = 0.08f + 0.1f * Hash(idx, upper ? 1 : 2, 7);   // cada diente con su largo
+                bool gap = edge < 0.06f || (yy < len && edge < 0.06f + (len - yy) * 1.6f);
+                if (gap) mouth = 0.9f; else tooth = 0.4f + 0.6f * (float)Math.Sin(Math.PI * f);   // diente redondeado
+
+            }
+            else if (v <= -0.505f && v >= -0.525f && au < 0.3f) mouth = 1f;          // mordida
+            else if (Math.Abs(v + 0.515f) < 0.012f && au < 0.44f) mouth = 0.7f;       // línea de la mandíbula articulada
+            return Math.Max(Math.Max(socket, nose), mouth);
+        }
+
+        /// <summary>Altura del relieve (0 fuera): bisel del borde, cúpula del cráneo, arco de las cejas, pómulos, hueso nasal, sienes hundidas y cavidades.</summary>
+        public static float SkullHeight(float u, float v, out float cavity, out float tooth)
+        {
+            float sd = SkullSilhouette(u, v);
+            cavity = 0f; tooth = 0f;
+            if (sd > 0f) return 0f;
+            float au = Math.Abs(u);
+            float bevel = Smooth(0f, 0.06f, -sd);
+            float dome = (float)Math.Sqrt(C01(1f - (u * u / 0.55f + (v - 0.3f) * (v - 0.3f) / 0.5f)));
+            float h = bevel * (0.45f + 0.35f * dome);
+            h += 0.12f * Gauss(au, v, 0.27f, 0.25f, 0.2f, 0.05f);          // arco superciliar
+            h += 0.14f * Gauss(au, v, 0.5f, -0.13f, 0.14f, 0.07f);         // pómulos
+            h += 0.1f * Gauss(u, v, 0f, 0.07f, 0.05f, 0.09f);              // hueso nasal (triángulo entre las cuencas)
+            h -= 0.14f * Gauss(au, v, 0.62f, 0.12f, 0.1f, 0.18f);          // sien
+            h += 0.06f * Gauss(u, v, 0f, -0.84f, 0.2f, 0.06f);             // mentón
+            cavity = SkullCavity(u, v, out tooth);
+            h += 0.07f * tooth;
+            return h - cavity * 0.4f;
+        }
+
+        // regueros de sangre: x, y de inicio, largo, ancho (bajo las cuencas, de los dientes y de la mandíbula)
+        private static readonly float[] Drips =
+        {
+            -0.33f, -0.07f, 0.2f, 0.016f,  -0.25f, -0.09f, 0.33f, 0.02f,  -0.19f, -0.07f, 0.13f, 0.012f,
+             0.21f, -0.08f, 0.26f, 0.018f,  0.29f, -0.09f, 0.4f, 0.022f,   0.36f, -0.06f, 0.15f, 0.013f,
+            -0.17f, -0.5f, 0.12f, 0.014f,  -0.05f, -0.5f, 0.2f, 0.016f,   0.09f, -0.5f, 0.09f, 0.012f,  0.2f, -0.5f, 0.15f, 0.014f,
+            -0.12f, -0.85f, 0.1f, 0.02f,   0.06f, -0.86f, 0.08f, 0.017f, 0.17f, -0.83f, 0.07f, 0.015f,
+        };
+
+        /// <summary>Sangre en un punto: 0..1 de cobertura y la "normal" lateral del reguero (-1..1, para el brillo húmedo).</summary>
+        public static float Blood(float u, float v, out float side)
+        {
+            side = 0f; float best = 0f;
+            for (int i = 0; i < Drips.Length; i += 4)
+            {
+                float x = Drips[i], y0 = Drips[i + 1], len = Drips[i + 2], w = Drips[i + 3];
+                float t = (y0 - v) / len; if (t < -0.02f || t > 1.25f) continue;
+                float wobble = 0.003f * (float)Math.Sin(v * 37f + i * 1.7f) + 0.002f * (float)Math.Sin(v * 91f + i);
+                float ww = t > 1f ? 0f : w * (0.55f + 0.45f * (1f - t)) * 1.3f;
+                float dx = u - x - wobble, cov = ww > 0f ? C01((ww - Math.Abs(dx)) / 0.004f) : 0f;
+                float by = y0 - len, bulb = C01((w * 1.35f - (float)Math.Sqrt(dx * dx + (v - by) * (v - by) * 1.3f)) / 0.004f);   // gota al final
+                float c = Math.Max(cov, bulb);
+                if (c > best) { best = c; side = C01(dx / Math.Max(w * 1.3f, 1e-4f) * 0.5f + 0.5f) * 2f - 1f; }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Calavera detallada del menú (n x n, RGBA32 de abajo arriba): relieve iluminado desde arriba con resplandor de fuego desde abajo, cuencas profundas,
+        /// nariz con tabique, pómulos, sienes, sutura craneal, mandíbula articulada con dientes uno a uno, grietas, manchas, ruido de hueso; teñida rojo sangre
+        /// (#1A0504 → #8E1B12 / #B3261A → #FF5A2A) con borde naranja #FF7A1F, sangre que gotea con brillo húmedo. Alfa 60 %. Sin números ni símbolos.
+        /// </summary>
+        public static byte[] DetailedSkull(int n, int seed)
+        {
+            var hgt = new float[n * n]; var cav = new float[n * n]; var tth = new float[n * n];
+            Func<int, float> U = x => (x + 0.5f) / n * 2f - 1f;
             for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
                 {
-                    float u = ((x + 0.5f) / n * 2f - 1f) / 0.86f, v = ((y + 0.5f) / n * 2f - 1f) / 0.86f + 0.05f;
-                    float head = SkullHeadSdBadge(u, v), sd = BadgeSkullSd(u, v); int i = y * n + x;
-                    alpha[i] = 1f - Smooth(-0.01f, 0.01f, head);
-                    if (sd < 0f)
-                    {
-                        float h0 = H(u, v), nx = -(H(u + e, v) - h0) * 30f, ny = -(H(u, v + e) - h0) * 30f, inv = 1f / (float)Math.Sqrt(nx * nx + ny * ny + 1f);
-                        lum[i] = 0.05f + 0.9f * (float)Math.Pow(C01((nx * -0.5f + ny * 0.6f + 0.62f) * inv), 2.2f);
-                    }
-                    else lum[i] = 0.02f;
+                    int i = y * n + x;
+                    hgt[i] = SkullHeight(U(x) / 0.86f, U(y) / 0.97f, out cav[i], out tth[i]);
                 }
-        }
-
-        /// <summary>
-        /// La calavera roja del menú (w x h, RGBA32): gris → degradado rojo, relieve (realce desde arriba a la izquierda), borde de luz naranja #FF7A1F en el lado
-        /// iluminado, grano y grietas multiplicados, resplandor de fuego desde abajo; alfa = silueta × SkullAlpha (60-70 %).
-        /// </summary>
-        public static byte[] RedSkull(float[] lum, float[] alpha, int w, int h, int seed)
-        {
-            var px = new byte[w * h * 4]; int d = Math.Max(2, w / 128);
-            float A(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? 0f : alpha[y * w + x];
-            float L(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? 0f : lum[y * w + x];
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
+            var px = new byte[n * n * 4]; float k = n / 6f;
+            for (int y = 1; y < n - 1; y++)
+                for (int x = 1; x < n - 1; x++)
                 {
-                    int i = y * w + x; float a = alpha[i]; if (a <= 0f) continue;
-                    float u = x / (float)w, v = y / (float)h;
-                    float relief = (L(x - 1, y + 1) - L(x + 1, y - 1)) * 2.5f;
-                    float l = C01(lum[i] * 0.9f + relief);
-                    SkullGradient(l, out float r, out float g, out float b);
-                    // borde de luz naranja: dentro de la silueta con el vecino hacia la luz (arriba a la izquierda) fuera
-                    float rim = C01(a - A(x - d, y + d)) * 0.9f + C01(a - A(x, y + d)) * 0.3f;
+                    int i = y * n + x; float u = U(x) / 0.86f, v = U(y) / 0.97f;
+                    float sd = SkullSilhouette(u, v);
+                    float bl = Blood(u, v, out float side);
+                    if (sd > 0.004f && bl <= 0f) continue;
+                    float nx = -(hgt[i + 1] - hgt[i - 1]) * k, ny = -(hgt[i + n] - hgt[i - n]) * k, inv = 1f / (float)Math.Sqrt(nx * nx + ny * ny + 1f);
+                    nx *= inv; ny *= inv; float nz = inv;
+                    float top = C01(nx * -0.2f + ny * 0.72f + nz * 0.66f), fire = C01(nx * 0.05f - ny * 0.75f + nz * 0.45f);
+                    float c = cav[i];
+                    float edgeAo = 0.45f + 0.55f * Smooth(0f, 0.12f, -sd);                                  // el borde se hunde en sombra
+                    float lum = (0.04f + 1.15f * (float)Math.Pow(top, 1.6f)) * (1f - 0.95f * c) * edgeAo;
+                    lum *= 1f - 0.25f * C01(Math.Abs(u) - 0.35f);                                         // los lados, más oscuros
+                    if (tth[i] > 0f) lum = lum * 1.1f + 0.06f * tth[i];
+                    // ruido de hueso, manchas de desgaste, sutura y grietas
+                    float au = Math.Abs(u);
+                    lum *= 0.9f + 0.2f * Fbm(u * 40f, v * 40f, seed, 2);
+                    lum *= 1f - 0.32f * C01((Fbm(u * 5f, v * 5f, seed + 3, 4) - 0.55f) * 3.5f);
+                    float tri = Math.Abs((u * 22f + 100f) % 1f - 0.5f) * 2f; float sut = 0.66f - 0.24f * u * u + 0.03f * (tri - 0.5f) * (0.4f + Hash((int)(u * 22f + 100f), 3, seed)) + 0.012f * (Fbm(u * 9f, 1f, seed + 5, 2) - 0.5f);
+                    bool suture = Math.Abs(v - sut) < 0.005f && au < 0.62f;
+                    float tri2 = Math.Abs((v * 22f + 100f) % 1f - 0.5f) * 2f; bool sag = v > sut && Math.Abs(u - 0.025f * (tri2 - 0.5f)) < 0.004f;
+                    float cr = Fbm(u * 3.2f + 11f, v * 3.2f, seed + 9, 4), crMask = Fbm(u * 1.5f, v * 1.5f, seed + 13, 2);
+                    bool crack = Math.Abs(cr - 0.5f) < 0.0045f && crMask > 0.52f && c < 0.2f;
+                    if (suture || sag) lum *= 0.35f;
+                    if (crack) lum *= 0.18f;
+                    else if (Math.Abs(cr - 0.5f) < 0.009f && crMask > 0.52f && c < 0.2f) lum = Math.Min(1f, lum * 1.15f);   // filo claro de la grieta
+                    SkullGradient(lum, out float r, out float g, out float b);
+                    // resplandor de fuego desde abajo en las caras que miran hacia abajo (más abajo, más fuerte)
+                    float fz = fire * (0.35f + 0.65f * C01((0.2f - v) * 0.9f)) * (1f - c) * 0.55f;
+                    r += fz; g += fz * 0.36f; b += fz * 0.05f;
+                    // borde de luz naranja en la silueta
+                    float rim = (1f - Smooth(0f, 0.028f, -sd)) * C01(0.35f + 0.65f * C01(-nx * 0.3f + ny * 0.9f + 0.4f));
                     r += (RimOrange[0] - r) * rim; g += (RimOrange[1] - g) * rim; b += (RimOrange[2] - b) * rim;
-                    // desgaste: grano y grietas por multiplicación
-                    float grain = Hash(x, y, seed) > 0.82f ? 0.72f : 1f;
-                    float cr = Fbm(u * 6f + 3f, v * 6f, seed + 4, 4), crack = Math.Abs(cr - 0.5f) < 0.007f ? 0.45f : 1f;
-                    float wear = 0.82f + 0.25f * Fbm(u * 14f, v * 14f, seed + 8, 3);
-                    float m = grain * crack * wear; r *= m; g *= m; b *= m;
-                    // resplandor de fuego por abajo
-                    float fire = (1f - v) * (1f - v) * (1f - v) * 0.55f;
-                    r += fire * 1f; g += fire * 0.38f; b += fire * 0.06f;
-                    int o = i * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a * SkullAlpha);
+                    float a = sd < 0f ? 1f : C01(1f - sd / 0.004f);
+                    // sangre con brillo húmedo
+                    if (bl > 0f)
+                    {
+                        float shade = 0.55f + 0.45f * (1f - Math.Abs(side));
+                        float br = 0.23f + 0.33f * shade, bg = 0.012f + 0.03f * shade, bb = 0.01f + 0.02f * shade;
+                        float gloss = (float)Math.Pow(C01(1f - Math.Abs(side + 0.35f) * 3f), 6f) * 0.75f;
+                        br += gloss; bg += gloss * 0.55f; bb += gloss * 0.45f;
+                        r += (br - r) * bl; g += (bg - g) * bl; b += (bb - b) * bl; a = Math.Max(a, bl);
+                    }
+                    int o = i * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a * SkullBodyAlpha);
                 }
             return px;
         }
