@@ -13,6 +13,7 @@ namespace SevenDays.Core
     {
         private static readonly Dictionary<string, Material> Cache = new Dictionary<string, Material>();
         private static Material _template;
+        public const string LitShader = "Universal Render Pipeline/Lit";
 
         public static GameObject Create(PrimitiveType type, string name, Vector3 position, Vector3 scale, Color color,
             Transform parent = null, bool collider = true)
@@ -179,9 +180,10 @@ namespace SevenDays.Core
         {
             if (_template == null)
             {
-                var probe = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                _template = probe.GetComponent<Renderer>().sharedMaterial;
-                if (Application.isPlaying) Object.Destroy(probe); else Object.DestroyImmediate(probe);   // fuera de Play (pruebas EditMode) Destroy no está permitido
+                // URP Lit explícito. Antes se copiaba el material de un cubo de CreatePrimitive: en el editor es el de URP, pero en la build es el
+                // Default-Material con el shader Standard (que URP no dibuja): toda la escena salía en magenta. El shader entra en la build por
+                // Resources/Look/ShadersUsados (Graphics > Preloaded Shaders).
+                _template = new Material(Shader.Find(LitShader)) { name = "Plantilla URP Lit" };
             }
             var mat = new Material(_template) { enableInstancing = true };
             mat.SetColor("_BaseColor", color); // URP Lit
