@@ -364,7 +364,7 @@ namespace SevenDays.Combat
 
         private void ResumeAgent()
         {
-            if (_z.Agent == null) return;
+            if (_z.Agent == null || _z.Health.IsDead) return;   // un jefe muerto en mitad de un salto no vuelve al NavMesh: su cadáver es intangible
             if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 4f, NavMesh.AllAreas)) { transform.position = hit.position; _z.Agent.enabled = true; }
         }
 

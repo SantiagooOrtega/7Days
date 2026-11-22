@@ -142,6 +142,7 @@ namespace SevenDays.Combat
             _body.radius = 0.32f * type.scale; _body.height = 1.8f * type.scale; _body.center = new Vector3(0f, 0.9f * type.scale, 0f);
             Health.Configure(type.maxHealth * healthMultiplier, type.resistance, type.stunResistance, type.zones.Clone());
             Rig.SetHitboxesEnabled(true);
+            _body.enabled = true;   // al reutilizar un cadáver del pool vuelve a tener cuerpo de colisión
             _sm.Reset(); _hordePending = false; _hordeSpeed = 1f; _sm.AggroRange = type.aggroRange; _sm.AttackRange = type.attackRange * type.scale;
             _brain = type.projectile != "none" ? SpitterBrain.For(type) : null;
             // si el jugador abusa de la cobertura (reglas del director sobre las estadísticas guardadas), los lanzadores flanquean antes (hasta la mitad del tiempo)
@@ -192,6 +193,13 @@ namespace SevenDays.Combat
             _sounds.Begin(transform, type.id, seed, emerge);
         }
 
+        /// <summary>Cadáver a la vista (muerto y aún sin volver al pool).</summary>
+        public bool IsCorpse => InUse && Health.IsDead;
+        public float DeadAt => _deadAt;
+        /// <summary>Que empiece a hundirse ya (tope de cadáveres a la vista).</summary>
+        public void RetireCorpse() { if (IsCorpse) _deadAt = Mathf.Min(_deadAt, Time.time - CorpseRules.SinkStart - 0.05f); }   // un poco más allá del umbral: ya cuenta como hundiéndose
+        public bool Sinking => IsCorpse && Time.time - _deadAt >= CorpseRules.SinkStart;
+
         public void Deactivate()
         {
             InUse = false;
@@ -237,9 +245,13 @@ namespace SevenDays.Combat
                 BloodFx.Instance.Spray(transform.position + Vector3.up * (Health.KilledByHeadshot ? 1.7f : 1.2f) * Type.scale, Vector3.up + (_player != null ? (transform.position - _player.position).normalized : Vector3.zero), Health.KilledByHeadshot ? 40 : 24);
             _puddle.gameObject.SetActive(true);
             if (_fuse != null) { _fuse.ForceDetonate(); Explode(); }   // también explota si lo matan, aunque sea de un headshot en plena mecha
+            // cadáver intangible: sin hitboxes (las balas lo atraviesan), sin cuerpo de colisión y fuera del NavMesh (un agente parado seguía en la evasión
+            // de los demás y los atascaba en la escalera, puertas y pasillos)
             Rig.SetHitboxesEnabled(false);
             _body.enabled = false;
-            if (_useAgent && _agent.enabled) _agent.isStopped = true;
+            if (_agent.enabled) _agent.enabled = false;
+            _knock = Vector3.zero;
+            if (ZombieManager.Instance != null) ZombieManager.Instance.OnCorpse(this);
             DropSystem.OnZombieKilled(Type.dropKind, transform.position + Vector3.up * 0.3f);
             Killed?.Invoke(this);
         }
@@ -816,18 +828,18 @@ namespace SevenDays.Combat
             {
                 // el cuerpo cae solo (poses finales ajustadas al suelo); aquí solo se hunde al final antes de volver al pool
                 AnimateBodyDead(Time.deltaTime);
-                Rig.Visual.localPosition = new Vector3(0f, -Mathf.Max(0f, t - 4f) * 0.25f, 0f);
+                Rig.Visual.localPosition = new Vector3(0f, -CorpseRules.Sink(t), 0f);
             }
             else
             {
                 // cae hacia atrás en 0.45 s, se queda en el suelo y se hunde antes de volver al pool
                 Rig.Visual.localRotation = Quaternion.Euler(-88f * fall, 0f, 0f);
-                Rig.Visual.localPosition = new Vector3(0f, 0.12f * fall - Mathf.Max(0f, t - 4f) * 0.25f, 0f);
+                Rig.Visual.localPosition = new Vector3(0f, 0.12f * fall - CorpseRules.Sink(t), 0f);
             }
             float grow = Mathf.Clamp01(t / 1.5f);
             _puddle.localPosition = new Vector3(0f, 0.02f, 0f);
             _puddle.localScale = new Vector3(Mathf.Lerp(0.1f, 1.3f, grow) * Type.scale, 0.005f, Mathf.Lerp(0.1f, 1.3f, grow) * Type.scale);
-            if (t > 8f) Deactivate();
+            if (CorpseRules.Expired(t)) Deactivate();   // ~15 s a la vista (los últimos 2.5 s se hunde) y vuelve al pool
         }
     }
 }

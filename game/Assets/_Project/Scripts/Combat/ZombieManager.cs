@@ -178,6 +178,21 @@ namespace SevenDays.Combat
 
         private void OnKilled(ZombieController z) => ZombieKilled?.Invoke(z);
 
+        /// <summary>Cadáveres a la vista que aún no se hunden.</summary>
+        public int VisibleCorpses { get { int n = 0; foreach (var z in _all) if (z.IsCorpse && !z.Sinking) n++; return n; } }
+
+        /// <summary>Un zombi acaba de morir: si hay más de CorpseRules.MaxVisible cadáveres a la vista, el más antiguo empieza a hundirse (sin memoria).</summary>
+        public void OnCorpse(ZombieController fresh)
+        {
+            for (int guard = 0; guard < _all.Count && VisibleCorpses > SevenDays.Procedural.CorpseRules.MaxVisible; guard++)
+            {
+                ZombieController oldest = null;
+                foreach (var z in _all) if (z.IsCorpse && !z.Sinking && z != fresh && (oldest == null || z.DeadAt < oldest.DeadAt)) oldest = z;
+                if (oldest == null) break;
+                oldest.RetireCorpse();
+            }
+        }
+
         private ZombieController CreatePooled(ZombieTypeData type)
         {
             var go = new GameObject("Zombie");
