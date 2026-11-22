@@ -118,7 +118,7 @@ namespace SevenDays.World
 
             var hud = new GameObject("HUD").AddComponent<PlayerHud>();
             hud.Initialize(player);
-            hud.gameObject.AddComponent<SettingsOverlay>().Initialize(player.GetComponent<PlayerCamera>());
+            PauseMenu.Create(hud.transform, player.GetComponent<PlayerCamera>(), player.GetComponent<Health>());   // Esc: menú de pausa
             hud.gameObject.AddComponent<CombatDebugPanel>().Initialize(player);
             hud.gameObject.AddComponent<RigDebugPanel>().Initialize(player.GetComponentInChildren<SevenDays.Animation.ProceduralRig>());
             hud.gameObject.AddComponent<RigDemoCycle>().Initialize(player.transform);

@@ -165,8 +165,7 @@ namespace SevenDays.Player
             var w = Weapon ?? Fallback;
 
             bool locked = Cursor.lockState == CursorLockMode.Locked;
-            if (GameInput.EscapePressed) LockCursor(false);
-            else if (!locked && GameInput.FirePressed && Time.unscaledTime > UiHoverUntil) LockCursor(true);
+            if (!locked && GameInput.FirePressed && Time.unscaledTime > UiHoverUntil) LockCursor(true);
 
             if (locked && GameInput.ShoulderSwapPressed) Shoulder.Toggle();
             Shoulder.Tick(dt, Settings.shoulderSwapTime);
