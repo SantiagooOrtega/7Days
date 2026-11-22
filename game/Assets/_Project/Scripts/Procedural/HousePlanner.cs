@@ -110,9 +110,18 @@ namespace SevenDays.Procedural
                 }
             }
 
-            // vigas del techo (a lo largo de X)
+            // vigas del techo (a lo largo de X). Con piso 2 la viga que pasa por el hueco de la escalera se corta en dos: entera cruzaba la escalera a ~2.6 m
+            // y el jugador y los zombis chocaban con la cabeza (el NavMesh la ignora, así que el camino existía pero no se podía recorrer)
+            float yBeam = FloorThickness + H - 0.15f, x0 = -(W - T) / 2f, x1 = (W - T) / 2f;
+            var sw = l.upperFloor ? Stairwell(l) : null;
             foreach (float z in new[] { -D * 0.34f, 0f, D * 0.34f })
-                plan.Boxes.Add(new HouseBox { Kind = HouseBoxKind.Beam, Center = new V3(0, FloorThickness + H - 0.15f, z), Size = new V3(W - T, 0.3f, 0.25f), Nav = NavFlag.Ignore, Tag = "beam" });
+            {
+                bool crosses = sw != null && z + 0.125f > sw[2] - 0.2f && z - 0.125f < sw[3] + 0.2f;
+                if (!crosses) { plan.Boxes.Add(Beam(0f, yBeam, z, W - T)); continue; }
+                float a0 = sw[0] - 0.05f, a1 = sw[1] + 0.05f;
+                if (a0 - x0 > 0.3f) plan.Boxes.Add(Beam((x0 + a0) / 2f, yBeam, z, a0 - x0));
+                if (x1 - a1 > 0.3f) plan.Boxes.Add(Beam((a1 + x1) / 2f, yBeam, z, x1 - a1));
+            }
 
             if (l.upperFloor) { AddUpperFloor(plan, l); AddRoof(plan, l, UpperFloorY(l) + l.upperHeight - FloorThickness - l.wallHeight, UpperFloorY(l) - FloorThickness); }
             else AddRoof(plan, l);
@@ -120,6 +129,35 @@ namespace SevenDays.Procedural
 
             foreach (var t in l.torches) plan.TorchPositions.Add(new V3(t.x, t.y, t.z));
             return plan;
+        }
+
+        private static HouseBox Beam(float x, float y, float z, float length)
+            => new HouseBox { Kind = HouseBoxKind.Beam, Center = new V3(x, y, z), Size = new V3(length, 0.3f, 0.25f), Nav = NavFlag.Ignore, Tag = "beam" };
+
+        public const float StairMinWidth = 1.2f, StairHeadroom = 2.3f;
+
+        /// <summary>
+        /// Piezas que invaden el paso de la escalera: sobre cada escalón, un volumen del ancho de la escalera (menos 5 cm por lado) y 2.3 m de alto
+        /// no puede tocar nada que no sea la propia escalera. Devuelve las etiquetas de lo que estorba (vacío = paso libre).
+        /// </summary>
+        public static List<string> StairObstructions(HouseLayoutData l, HousePlan plan)
+        {
+            var bad = new List<string>();
+            if (!l.upperFloor) return bad;
+            var w = Stairwell(l); float Y2 = UpperFloorY(l), rise = Y2 / StairSteps, run = (w[1] - w[0]) / StairSteps;
+            for (int i = 1; i <= StairSteps; i++)
+            {
+                float xa = w[1] - i * run, xb = w[1] - (i - 1) * run, top = Math.Min(Y2, rise * i);
+                var c = new V3((xa + xb) / 2f, top + StairHeadroom / 2f + 0.01f, (w[2] + w[3]) / 2f);
+                var size = new V3(xb - xa - 0.04f, StairHeadroom - 0.02f, w[3] - w[2] - 0.1f);   // 5 cm de margen junto a los muros (los marcos sobresalen 3 cm): quedan 1.3 m de paso
+                foreach (var b in plan.Boxes)
+                {
+                    if (b.Tag == "stair" || Math.Abs(b.Yaw) > 0.01f) continue;
+                    bool overlap = Math.Abs(b.Center.X - c.X) * 2f < b.Size.X + size.X && Math.Abs(b.Center.Y - c.Y) * 2f < b.Size.Y + size.Y && Math.Abs(b.Center.Z - c.Z) * 2f < b.Size.Z + size.Z;
+                    if (overlap && !bad.Contains(b.Tag + " escalón " + i)) bad.Add(b.Tag + " escalón " + i);
+                }
+            }
+            return bad;
         }
 
         // ------------------------------------------------------------------ muros

@@ -300,6 +300,7 @@ namespace SevenDays.Tests.PlayMode
             var spawn = Array.Find(zm.GetMethods(), x => x.Name == "Spawn" && x.GetParameters()[0].ParameterType == typeof(string));
             var z = (Component)spawn.Invoke(mgr, new object[] { "common", W(2.8f, 0.2f, -1.6f), 1f, 1f, 1f, true });
             Assert.IsNotNull(z);
+            z.GetType().GetMethod("JoinHorde").Invoke(z, new object[] { 0f, 1f });   // va a por el jugador como en una oleada (si no, puede quedarse patrullando)
             Vector3 prev = z.transform.position; float maxStep = 0f, t1 = Time.time; bool up = false; int frames = 0; bool prevLink = false;
             while (Time.time - t1 < 120f)   // tarda 9-55 s según cuándo termina de emerger y la carga de la máquina: margen holgado (antes 60 s, fallaba a veces)
             {
