@@ -28,7 +28,17 @@ namespace SevenDays.Core
         public static float Master { get { Load(); return _master; } set { Load(); _master = Mathf.Clamp01(value); PlayerPrefs.SetFloat(PrefPrefix + "master", _master); ApplyAll(); } }
 
         /// <summary>Volumen final de un grupo (grupo x general).</summary>
-        public static float Volume(AudioGroup g) { Load(); return g == AudioGroup.Music && !_musicOn ? 0f : Volumes[(int)g] * _master; }
+        public static float Volume(AudioGroup g)
+        {
+            Load();
+            if (g == AudioGroup.Music && !_musicOn) return 0f;
+            if (_gameplayMuted && (g == AudioGroup.Zombies || g == AudioGroup.Weapons || g == AudioGroup.Ambient)) return 0f;
+            return Volumes[(int)g] * _master;
+        }
+
+        /// <summary>Partida terminada: zombis, armas y ambiente a 0 (GameAudio). Se restablece al recargar la escena.</summary>
+        public static bool GameplayMuted { get => _gameplayMuted; set { if (_gameplayMuted == value) return; _gameplayMuted = value; ApplyAll(); } }
+        private static bool _gameplayMuted;
         public static float GroupVolume(AudioGroup g) { Load(); return Volumes[(int)g]; }
 
         public static void SetGroupVolume(AudioGroup g, float v)
@@ -68,6 +78,6 @@ namespace SevenDays.Core
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() { Sources.Clear(); _loaded = false; }
+        private static void ResetStatics() { Sources.Clear(); _loaded = false; _gameplayMuted = false; }
     }
 }

@@ -100,6 +100,7 @@ namespace SevenDays.Combat
             a._follow[slot] = follow;
             a._offset[slot] = follow != null ? pos - follow.position : Vector3.zero;
             s.transform.position = pos;
+            if (AudioMix.GameplayMuted) return false;   // partida terminada: ningún zombi vuelve a sonar
             s.clip = clip; s.pitch = pitch; s.volume = volume * AudioMix.Volume(AudioGroup.Zombies); s.minDistance = nearRadius;
             a._lp[slot].cutoffFrequency = cutoff;
             a._owner[slot] = owner;

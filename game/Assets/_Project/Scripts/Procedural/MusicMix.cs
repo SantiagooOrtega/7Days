@@ -11,7 +11,7 @@ namespace SevenDays.Procedural
     /// </summary>
     public static class MusicMix
     {
-        public const float High = 1f, Talk = 0.4f, Game = 0.18f, Tense = 0.4f, Dead = 0.3f, Victory = 0.8f;
+        public const float High = 1f, Talk = 0.4f, Game = 0.18f, Tense = 0.4f, Dead = High, Victory = High;   // al acabar la partida: volumen de menú
         public const float DuckFactor = 0.6f;          // en partida, mientras habla VIGÍA
         public const float FadeSeconds = 1.5f, DuckSeconds = 0.6f;
         public const float CrossfadeBelow = 60f, CrossfadeSeconds = 2f;
@@ -26,7 +26,7 @@ namespace SevenDays.Procedural
                     float v = tense ? Tense : Game;
                     return vigiaSpeaking ? v * DuckFactor : v;
                 }
-                case MusicPhase.Dead: return Dead;
+                case MusicPhase.Dead: return vigiaSpeaking ? Talk : Dead;
                 case MusicPhase.Victory: return vigiaSpeaking ? Talk : Victory;
                 default: return vigiaSpeaking ? Talk : High;
             }

@@ -532,6 +532,7 @@ namespace SevenDays.Combat
 
         private void StartHiss()
         {
+            if (AudioMix.GameplayMuted) return;   // partida terminada
             if (_hiss == null)
             {
                 _hiss = gameObject.AddComponent<AudioSource>();

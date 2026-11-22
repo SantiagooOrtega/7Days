@@ -160,6 +160,7 @@ namespace SevenDays.World
                     if (p == DayPhase.Victory)
                     {
                         Finish(true);
+                        SevenDays.Core.GameAudio.SilenceGameplay();   // fin de la partida: solo la música (y VIGÍA en el epílogo y la pantalla)
                         // epílogo en cómic justo antes de la pantalla de victoria (en las pruebas automáticas, directo a la pantalla)
                         if (SevenDays.Procedural.IntroText.PlaysEpilogue(true) && !Application.isBatchMode) SevenDays.Intro.IntroPlayer.PlayEpilogue(transform, ShowVictory);
                         else ShowVictory();
@@ -174,6 +175,7 @@ namespace SevenDays.World
                     _nextReasons.Clear();
                     _summary = BuildSummary();
                     Finish(false);
+                    SevenDays.Core.GameAudio.SilenceGameplay();   // antes del aviso de VIGÍA: ese sí suena
                     VigiaVoice.Say("derrota");
                     SevenDays.UI.StatsScreen.Show(StatsScreenMode.Defeat, Cycle.Day, Match.days, _nextReasons);
                     break;

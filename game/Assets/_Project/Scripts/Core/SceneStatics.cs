@@ -30,6 +30,7 @@ namespace SevenDays.Core
             GroundMarker.ResetPools();
             HouseController.Footprints.Clear();
             HudMessages.Clear();
+            GameAudio.Restore();                     // reintentar o volver al menú: vuelve el sonido del juego
             ZombieAudio.StopAll();                   // el pool de voces vive entre escenas: que no se quede ocupado con zombis de la partida anterior
             SevenDays.Look.AtmosphereBudget.Prune(); // partículas, grupos y suscriptores destruidos de la escena anterior
         }

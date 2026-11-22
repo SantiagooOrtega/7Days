@@ -20,7 +20,8 @@ namespace SevenDays.Tests
             Assert.AreEqual(0.4f, MusicMix.Target(MusicPhase.Game, false, true), 1e-5f, "~40 % con jefe o combate intenso");
             Assert.Less(MusicMix.Target(MusicPhase.Game, true, false), game, "ducking suave en partida");
             Assert.Greater(MusicMix.Target(MusicPhase.Game, true, false), game * 0.4f, "suave: no se apaga");
-            Assert.Less(MusicMix.Target(MusicPhase.Dead, false, false), 1f);
+            Assert.AreEqual(MusicMix.Target(MusicPhase.Menu, false, false), MusicMix.Target(MusicPhase.Dead, false, false), "al morir, la música a volumen de menú");
+            Assert.AreEqual(MusicMix.Target(MusicPhase.Menu, false, false), MusicMix.Target(MusicPhase.Victory, false, false), "al ganar, también");
         }
 
         [Test]

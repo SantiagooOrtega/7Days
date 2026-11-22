@@ -49,6 +49,9 @@ namespace SevenDays.Vigia
 
         private void OnDestroy() { if (Instance == this) Instance = null; }
 
+        /// <summary>Calla lo que dice ahora y vacía la cola (fin de partida); lo que se pida después (avisos de pantalla) sí suena.</summary>
+        public void Silence() { if (_src != null) _src.Stop(); Queue.Clear(); _subEnd = 0f; }
+
         /// <summary>Pide decir una frase del catálogo (se ignora si no existe, si está en enfriamiento o si el modo no la deja pasar).</summary>
         public static bool Say(string id)
         {
