@@ -1,6 +1,6 @@
 # Créditos y origen del arte
 
-**Todo el arte y la animación del juego son procedurales y propios**: se generan por código al ejecutar el juego. No se descarga ni se importa ningún modelo, textura, animación ni sonido externo (ni Mixamo, ni Quaternius, ni Kenney, ni Poly Haven por defecto).
+**Todo el arte y la animación del juego son procedurales y propios**: se generan por código al ejecutar el juego. No se descarga ni se importa ningún modelo, textura, animación ni sonido externo (ni Mixamo, ni Quaternius, ni Kenney, ni Poly Haven por defecto). Las únicas excepciones son las láminas del cómic y la música (ver al final).
 
 | Qué | Cómo se hace | Código |
 |-----|--------------|--------|
@@ -28,4 +28,11 @@ Opcional: si alguien añade texturas propias en `Resources/Look` (ver `docs/ASSE
 
 ## Voz de VIGÍA
 - Voz sintetizada "Paulina" (español de México) incluida en macOS, generada offline con el comando `say` (`tools/generate_vigia_voice.sh`) y convertida a WAV con `afconvert`. Respaldo: "Mónica" (es_ES). Los WAV se guardan en el repo; el juego no usa `say` ni internet. El filtro de radio, el eco, los bips y la compresión se aplican por código (`Procedural/RadioFx.cs`).
+
+## Láminas del cómic (intro y epílogo)
+- `game/Assets/_Project/Intro/Resources/intro_01.png` a `intro_08.png` y `final_01.png`: ilustraciones generadas con IA de imágenes a partir de un guion y prompts propios (`docs/HISTORIA.md`). No usan personajes, logos ni arte de otros juegos.
+- `intro_08.png` conserva en sus metadatos la marca C2PA de OpenAI (generada con ChatGPT). Las demás no traen metadatos de origen: **por confirmar** la herramienta de cada una antes de la entrega (el plan era usar Google Gemini).
+
+## Música
+- `game/Assets/_Project/Audio/Music/musica_juego.mp3` (unos 3 minutos). **Por confirmar** su autor, su origen y su licencia (por ejemplo CC0 o una licencia libre de regalías). El archivo no trae esos datos en sus etiquetas.
 
