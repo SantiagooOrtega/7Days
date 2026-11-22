@@ -68,8 +68,6 @@ namespace SevenDays.Tests.PlayMode
         {
             var fe = T("SevenDays.UI.FrontEnd"); var scr = T("SevenDays.UI.FrontScreen"); var ip = T("SevenDays.Intro.IntroPlayer");
             PlayerPrefs.SetInt("intro.seen", 1);   // la marca vieja ya no la oculta
-            bool skipBefore = (bool)ip.GetProperty("SkipAlways").GetValue(null);
-            ip.GetProperty("SkipAlways").SetValue(null, false);
             var inst = (Component)fe.GetMethod("Show").Invoke(null, new[] { Enum.Parse(scr, "Select") });
             var arena = new GameObject("Arena"); arena.AddComponent(T("SevenDays.World.TestArena"));
             try
@@ -106,7 +104,6 @@ namespace SevenDays.Tests.PlayMode
             finally
             {
                 ip.GetField("NewGameRequested").SetValue(null, false);
-                ip.GetProperty("SkipAlways").SetValue(null, skipBefore);
                 UnityEngine.Object.Destroy(arena); UnityEngine.Object.Destroy(inst.gameObject);
                 foreach (var p in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(p);
             }
@@ -138,6 +135,40 @@ namespace SevenDays.Tests.PlayMode
             testMode.SetValue(null, prev);
             UnityEngine.Object.Destroy(inst.gameObject);
             yield return null;
+        }
+
+        [UnityTest, Timeout(300000)]
+        public IEnumerator Empezar_TwoNewGamesInARow_IntroBothTimes_NoSkipOption()
+        {
+            var fe = T("SevenDays.UI.FrontEnd"); var scr = T("SevenDays.UI.FrontScreen"); var ip = T("SevenDays.Intro.IntroPlayer");
+            Assert.IsNull(ip.GetProperty("SkipAlways"), "ya no existe la casilla 'Saltar intro siempre'");
+            PlayerPrefs.SetInt("intro.skipAlways", 1);   // marca vieja guardada: ya no cuenta
+            for (int game = 1; game <= 2; game++)
+            {
+                var inst = (Component)fe.GetMethod("Show").Invoke(null, new[] { Enum.Parse(scr, "Select") });
+                var arena = new GameObject("Arena"); arena.AddComponent(T("SevenDays.World.TestArena"));
+                try
+                {
+                    yield return null;
+                    var list = fe.GetProperty("List").GetValue(inst);
+                    list.GetType().GetMethod("Select").Invoke(list, new object[] { 2, false });
+                    list.GetType().GetMethod("Confirm").Invoke(list, null);   // EMPEZAR
+                    float t0 = Time.realtimeSinceStartup;
+                    while (Time.realtimeSinceStartup - t0 < 10f && !(bool)ip.GetProperty("Active").GetValue(null)) yield return null;
+                    Assert.IsTrue((bool)ip.GetProperty("Active").GetValue(null), "partida " + game + ": tras EMPEZAR sale la intro");
+                    var player = (Component)UnityEngine.Object.FindFirstObjectByType(ip);
+                    ip.GetMethod("Finish", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).Invoke(player, null);   // SALTAR / Esc
+                    yield return null;
+                    Assert.IsFalse((bool)ip.GetProperty("Active").GetValue(null), "SALTAR la cierra");
+                }
+                finally
+                {
+                    ip.GetField("NewGameRequested").SetValue(null, false);
+                    UnityEngine.Object.Destroy(arena); UnityEngine.Object.Destroy(inst.gameObject);
+                    foreach (var p in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(p);
+                }
+                yield return null; yield return null;
+            }
         }
     }
 }

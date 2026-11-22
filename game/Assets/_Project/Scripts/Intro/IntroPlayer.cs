@@ -23,18 +23,22 @@ namespace SevenDays.Intro
         /// <summary>VIGÍA está hablando en la intro o el epílogo (la música baja).</summary>
         public static bool Speaking { get; private set; }
         public static bool Seen { get => PlayerPrefs.GetInt(SeenKey, 0) == 1; set => PlayerPrefs.SetInt(SeenKey, value ? 1 : 0); }
-        /// <summary>Opción "Saltar intro siempre" (Opciones; desactivada por defecto).</summary>
+        /// <summary>Marca de la antigua opción "Saltar intro siempre" (ya no existe): se borra al arrancar.</summary>
         public const string SkipAlwaysKey = "intro.skipAlways";
-        public static bool SkipAlways { get => PlayerPrefs.GetInt(SkipAlwaysKey, 0) == 1; set => PlayerPrefs.SetInt(SkipAlwaysKey, value ? 1 : 0); }
         /// <summary>EMPEZAR en una partida nueva la pide (no reintentar ni continuar); se consume al arrancar la arena.</summary>
         public static bool NewGameRequested;
-        /// <summary>Sale en cada partida nueva salvo que se haya elegido "Saltar intro siempre".</summary>
-        public static bool ShouldPlay => NewGameRequested && !SkipAlways;
+        /// <summary>Sale SIEMPRE en cada partida nueva (EMPEZAR); nunca al reintentar ni al continuar. Se puede saltar con SALTAR o Esc.</summary>
+        public static bool ShouldPlay => NewGameRequested;
         public static bool ConsumeNewGame() { bool play = ShouldPlay; NewGameRequested = false; return play; }
 
-        /// <summary>La antigua marca "intro ya vista" la ocultaba para siempre tras verla una vez: se borra al arrancar.</summary>
+        /// <summary>Las marcas viejas "intro ya vista" y "saltar intro siempre" la ocultaban en las partidas siguientes: se borran al arrancar.</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void ClearOldSeenFlag() { if (PlayerPrefs.HasKey(SeenKey)) { PlayerPrefs.DeleteKey(SeenKey); PlayerPrefs.Save(); } }
+        private static void ClearOldSeenFlag()
+        {
+            bool any = false;
+            foreach (var k in new[] { SeenKey, SkipAlwaysKey }) if (PlayerPrefs.HasKey(k)) { PlayerPrefs.DeleteKey(k); any = true; }
+            if (any) PlayerPrefs.Save();
+        }
 
         private IntroSequence _seq;
         private bool _markSeen;

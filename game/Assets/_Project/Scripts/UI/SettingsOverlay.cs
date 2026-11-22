@@ -81,9 +81,6 @@ namespace SevenDays.UI
             y += 30f;
             if (GUI.Button(new Rect(r.x + 16, y, 368, 28), "Ver la intro otra vez")) SevenDays.Intro.IntroPlayer.Play();
             y += 36f;
-            bool skipIntro = GUI.Toggle(new Rect(r.x + 16, y, 368, 26), SevenDays.Intro.IntroPlayer.SkipAlways, " Saltar intro siempre");
-            if (skipIntro != SevenDays.Intro.IntroPlayer.SkipAlways) SevenDays.Intro.IntroPlayer.SkipAlways = skipIntro;
-            y += 32f;
             AudioRow(r.x, ref y, "Tamaño texto", (SevenDays.Vigia.VigiaSettings.SubtitleScale - 0.8f) / 0.8f, v => SevenDays.Vigia.VigiaSettings.SubtitleScale = 0.8f + v * 0.8f);
             AudioRow(r.x, ref y, "Altura subtítulos", (SevenDays.Vigia.VigiaSettings.SubtitleHeight - 0.04f) / 0.26f, v => SevenDays.Vigia.VigiaSettings.SubtitleHeight = 0.04f + v * 0.26f);
         }
