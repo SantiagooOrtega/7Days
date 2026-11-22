@@ -58,6 +58,18 @@ namespace SevenDays.Core
             return src;
         }
 
+        /// <summary>Partida terminada: para cualquier fuente de Zombis, Armas o Ambiente que siga sonando (recorre la lista fija: sin memoria).</summary>
+        public static void StopMutedSources()
+        {
+            if (!_gameplayMuted) return;
+            for (int i = Sources.Count - 1; i >= 0; i--)
+            {
+                var s = Sources[i];
+                if (s.src == null) { Sources.RemoveAt(i); continue; }
+                if ((s.g == AudioGroup.Zombies || s.g == AudioGroup.Weapons || s.g == AudioGroup.Ambient) && s.src.isPlaying) s.src.Stop();
+            }
+        }
+
         private static void ApplyAll()
         {
             for (int i = Sources.Count - 1; i >= 0; i--)

@@ -283,6 +283,7 @@ namespace SevenDays.Player
         /// <summary>Se agotó el aire: jadeo audible y un pequeño cabeceo.</summary>
         private void Gasp()
         {
+            if (SevenDays.Core.AudioMix.GameplayMuted) return;   // partida terminada
             if (_gasp == null) { _gasp = gameObject.AddComponent<AudioSource>(); _gasp.playOnAwake = false; _gasp.spatialBlend = 0f; }
             _gasp.pitch = 1.3f;
             _gasp.PlayOneShot(SevenDays.Weapons.ProceduralAudio.Breath(), 0.9f);

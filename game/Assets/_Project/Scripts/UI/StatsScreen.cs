@@ -209,6 +209,7 @@ namespace SevenDays.UI
         private void Update()
         {
             if (_root == null || !_root.gameObject.activeSelf) return;
+            SevenDays.Core.AudioMix.StopMutedSources();   // pantalla de muerte/victoria: nada del juego vuelve a sonar (también sin MusicManager)
             float t = Time.unscaledTime - _shownAt;
             for (int i = 0; i < _sections.Count; i++) { float a = Mathf.Clamp01((t - i * Stagger) / FadeIn); if (_sections[i].alpha != a) _sections[i].alpha = a; }
             float ct = Mathf.Clamp01((t - 0.2f) / CountSeconds);

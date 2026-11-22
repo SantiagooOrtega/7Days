@@ -75,6 +75,7 @@ namespace SevenDays.Core
 
         private void Update()
         {
+            AudioMix.StopMutedSources();   // partida terminada: nada del juego vuelve a sonar
             var ph = Detect(out bool speaking);
             if (Time.unscaledTime >= _nextProbe)
             {

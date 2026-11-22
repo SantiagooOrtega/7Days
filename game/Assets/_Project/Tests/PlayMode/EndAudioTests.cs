@@ -35,6 +35,7 @@ namespace SevenDays.Tests.PlayMode
             foreach (var pl in GameObject.FindGameObjectsWithTag("Player")) UnityEngine.Object.Destroy(pl);
             var hud = GameObject.Find("HUD"); if (hud != null) UnityEngine.Object.Destroy(hud);
             T("SevenDays.Core.GameAudio").GetMethod("Restore").Invoke(null, null);
+            var mm = T("SevenDays.Core.MusicManager").GetProperty("Instance").GetValue(null) as Component; if (mm != null) UnityEngine.Object.Destroy(mm.gameObject);   // vive entre escenas: que la siguiente prueba lo cree de cero
             yield return null; yield return null;
         }
 

@@ -25,6 +25,7 @@ namespace SevenDays.Player
             _breath = gameObject.AddComponent<AudioSource>();
             _breath.playOnAwake = false; _breath.loop = true; _breath.spatialBlend = 0f; _breath.volume = 0f;
             _breath.clip = ProceduralAudio.Breath();
+            SevenDays.Core.AudioMix.Route(_breath, SevenDays.Core.AudioGroup.Ambient, 0.04f);   // en su grupo: el silencio de fin de partida también la para
             _breath.Play();
         }
 
@@ -33,7 +34,9 @@ namespace SevenDays.Player
 
         private void UpdateMedido()
         {
+            if (SevenDays.Core.AudioMix.GameplayMuted) { if (_breath != null && _breath.isPlaying) _breath.Stop(); return; }   // partida terminada: ni pasos ni respiración
             if (_camera == null || _camera.RunCam == null || _motor == null) return;
+            if (!_breath.isPlaying && _breath.clip != null) _breath.Play();
             var o = _camera.RunOutput;
             if (o.Stepped && _motor.IsGrounded)
             {
