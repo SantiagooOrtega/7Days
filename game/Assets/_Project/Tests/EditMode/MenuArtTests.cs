@@ -59,14 +59,16 @@ namespace SevenDays.Tests
         [Test]
         public void DetailedSkull_Red_SemiTransparent_DeepSockets_TeethGaps_BloodDrips_NoSymbols()
         {
-            SkullGradientIs(0f, 0x1A, 0x05, 0x04); SkullGradientIs(1f, 0xFF, 0x5A, 0x2A);
+            SkullGradientIs(0f, 0x1A, 0x00, 0x00); SkullGradientIs(1f, 0xFF, 0x3B, 0x1F);
             Assert.That(MenuArt.SkullBodyAlpha, Is.InRange(MenuArt.SkullMinAlpha, MenuArt.SkullMaxAlpha));
-            Assert.That(MenuArt.SkullMinAlpha, Is.EqualTo(0.55f)); Assert.That(MenuArt.SkullMaxAlpha, Is.EqualTo(0.65f));
+            Assert.That(MenuArt.SkullMinAlpha, Is.EqualTo(0.7f)); Assert.That(MenuArt.SkullMaxAlpha, Is.EqualTo(0.8f));
             int n = 256; var px = MenuArt.DetailedSkull(n, 13);
             CollectionAssert.AreEqual(px, MenuArt.DetailedSkull(n, 13), "cacheable");
             Assert.AreEqual(0, px[3], "esquina transparente");
             int maxA = 0, red = 0; for (int i = 0; i < n * n; i++) { maxA = System.Math.Max(maxA, px[i * 4 + 3]); if (px[i * 4 + 3] > 100 && px[i * 4] > px[i * 4 + 1] * 2) red++; }
-            Assert.LessOrEqual(maxA, (int)(255 * 0.65f) + 1, "semitransparente"); Assert.Greater(red, n * n / 5, "grande y roja");
+            Assert.LessOrEqual(maxA, (int)(255 * MenuArt.SkullMaxAlpha) + 1, "semitransparente");
+            // rojo sangre saturado: ningún píxel gris ni crema en el hueso (el verde y el azul muy por debajo del rojo)
+            for (int i = 0; i < n * n; i++) if (px[i * 4 + 3] > 100 && px[i * 4] > 60) Assert.Less(px[i * 4 + 1], px[i * 4] * 0.8f, "sin grises ni crema"); Assert.Greater(red, n * n / 5, "grande y roja");
             // cuencas más oscuras que la frente; dientes separados por huecos; sangre bajo los ojos
             Assert.Greater(MenuArt.SkullCavity(0.27f, 0.06f, out _), 0.8f, "cuenca profunda");
             Assert.AreEqual(0f, MenuArt.SkullCavity(0f, 0.45f, out _), 1e-4f, "frente lisa: sin números ni símbolos");

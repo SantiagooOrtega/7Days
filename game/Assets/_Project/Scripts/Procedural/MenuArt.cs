@@ -333,9 +333,9 @@ namespace SevenDays.Procedural
         }
 
         // ---------------------------------------------------------------- calavera roja del fondo del menú
-        private static readonly float[][] SkullRamp = { new[] { 0x1A / 255f, 0x05 / 255f, 0x04 / 255f }, new[] { 0x8E / 255f, 0x1B / 255f, 0x12 / 255f }, new[] { 0xB3 / 255f, 0x26 / 255f, 0x1A / 255f }, new[] { 1f, 0x5A / 255f, 0x2A / 255f } };
+        private static readonly float[][] SkullRamp = { new[] { 0x1A / 255f, 0f, 0f }, new[] { 0xA3 / 255f, 0x14 / 255f, 0x0F / 255f }, new[] { 0xC8 / 255f, 0x1E / 255f, 0x14 / 255f }, new[] { 1f, 0x3B / 255f, 0x1F / 255f } };   // rojo sangre: sin grises ni crema
         private static readonly float[] SkullRampAt = { 0f, 0.42f, 0.66f, 1f };
-        public static readonly float[] RimOrange = { 1f, 0x7A / 255f, 0x1F / 255f };
+        public static readonly float[] RimOrange = { 1f, 0x4A / 255f, 0x1A / 255f };   // borde rojo-anaranjado
 
         /// <summary>Mapa de degradado de la calavera: gris 0..1 → #1A0504 (sombras), #8E1B12 y #B3261A (medios), #FF5A2A (luces).</summary>
         public static void SkullGradient(float l, out float r, out float g, out float b)
@@ -347,7 +347,7 @@ namespace SevenDays.Procedural
 
         // ---------------------------------------------------------------- calavera detallada del menú (procedural, sin símbolos)
         public const int SkullSize = 1024;
-        public const float SkullMinAlpha = 0.55f, SkullMaxAlpha = 0.65f, SkullBodyAlpha = 0.6f;
+        public const float SkullMinAlpha = 0.7f, SkullMaxAlpha = 0.8f, SkullBodyAlpha = 0.76f;
 
         private static float Ell(float u, float v, float cx, float cy, float rx, float ry) { float x = (u - cx) / rx, y = (v - cy) / ry; return ((float)Math.Sqrt(x * x + y * y) - 1f) * Math.Min(rx, ry); }
         private static float Gauss(float u, float v, float cx, float cy, float rx, float ry) { float x = (u - cx) / rx, y = (v - cy) / ry; return (float)Math.Exp(-(x * x + y * y)); }
@@ -440,7 +440,7 @@ namespace SevenDays.Procedural
                 float x = Drips[i], y0 = Drips[i + 1], len = Drips[i + 2], w = Drips[i + 3];
                 float t = (y0 - v) / len; if (t < -0.02f || t > 1.25f) continue;
                 float wobble = 0.003f * (float)Math.Sin(v * 37f + i * 1.7f) + 0.002f * (float)Math.Sin(v * 91f + i);
-                float ww = t > 1f ? 0f : w * (0.55f + 0.45f * (1f - t)) * 1.3f;
+                float ww = t > 1f ? 0f : w * (0.55f + 0.45f * (1f - t)) * 1.6f;   // regueros más gruesos: se ven bien
                 float dx = u - x - wobble, cov = ww > 0f ? C01((ww - Math.Abs(dx)) / 0.004f) : 0f;
                 float by = y0 - len, bulb = C01((w * 1.35f - (float)Math.Sqrt(dx * dx + (v - by) * (v - by) * 1.3f)) / 0.004f);   // gota al final
                 float c = Math.Max(cov, bulb);
@@ -495,7 +495,7 @@ namespace SevenDays.Procedural
                     SkullGradient(lum, out float r, out float g, out float b);
                     // resplandor de fuego desde abajo en las caras que miran hacia abajo (más abajo, más fuerte)
                     float fz = fire * (0.35f + 0.65f * C01((0.2f - v) * 0.9f)) * (1f - c) * 0.55f;
-                    r += fz; g += fz * 0.36f; b += fz * 0.05f;
+                    r += fz; g += fz * 0.16f; b += fz * 0.04f;   // fuego rojo, no amarillo
                     // borde de luz naranja en la silueta
                     float rim = (1f - Smooth(0f, 0.028f, -sd)) * C01(0.35f + 0.65f * C01(-nx * 0.3f + ny * 0.9f + 0.4f));
                     r += (RimOrange[0] - r) * rim; g += (RimOrange[1] - g) * rim; b += (RimOrange[2] - b) * rim;
@@ -504,9 +504,10 @@ namespace SevenDays.Procedural
                     if (bl > 0f)
                     {
                         float shade = 0.55f + 0.45f * (1f - Math.Abs(side));
-                        float br = 0.23f + 0.33f * shade, bg = 0.012f + 0.03f * shade, bb = 0.01f + 0.02f * shade;
-                        float gloss = (float)Math.Pow(C01(1f - Math.Abs(side + 0.35f) * 3f), 6f) * 0.75f;
-                        br += gloss; bg += gloss * 0.55f; bb += gloss * 0.45f;
+                        // sangre más oscura que el hueso (se distingue sobre el rojo) con un brillo húmedo claro a un lado del reguero
+                        float br = 0.12f + 0.2f * shade, bg = 0.004f, bb = 0.004f;
+                        float gloss = (float)Math.Pow(C01(1f - Math.Abs(side + 0.35f) * 3f), 5f) * 0.95f;
+                        br += gloss; bg += gloss * 0.5f; bb += gloss * 0.42f;
                         r += (br - r) * bl; g += (bg - g) * bl; b += (bb - b) * bl; a = Math.Max(a, bl);
                     }
                     int o = i * 4; px[o] = B(r); px[o + 1] = B(g); px[o + 2] = B(b); px[o + 3] = B(a * SkullBodyAlpha);
