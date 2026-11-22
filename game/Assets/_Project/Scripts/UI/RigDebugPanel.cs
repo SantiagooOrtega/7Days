@@ -33,7 +33,7 @@ namespace SevenDays.UI
             // con el ciclo F7 activo, el panel mide y dibuja sobre el soldado de la demostración
             _rig = RigDemoCycle.Current != null && RigDemoCycle.Current.Rig != null ? RigDemoCycle.Current.Rig : _playerRig;
             var k = Keyboard.current;
-            if (k != null && k.f6Key.wasPressedThisFrame)
+            if (k != null && k.f6Key.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled)
             {
                 _open = !_open;
                 Cursor.lockState = _open ? CursorLockMode.None : CursorLockMode.Locked;

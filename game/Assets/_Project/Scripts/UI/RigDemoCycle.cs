@@ -66,10 +66,10 @@ namespace SevenDays.UI
         private void Update()
         {
             var k = Keyboard.current;
-            if (k != null && k.f7Key.wasPressedThisFrame) { if (_legs == null) Begin(); else End(); }
+            if (k != null && k.f7Key.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled) { if (_legs == null) Begin(); else End(); }
             if (_legs == null) return;
-            if (k != null && k.rightBracketKey.wasPressedThisFrame) Next(1);
-            if (k != null && k.leftBracketKey.wasPressedThisFrame) Next(-1);
+            if (k != null && k.rightBracketKey.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled) Next(1);
+            if (k != null && k.leftBracketKey.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled) Next(-1);
 
             var seg = _segments[_index];
             float dt = Time.deltaTime;

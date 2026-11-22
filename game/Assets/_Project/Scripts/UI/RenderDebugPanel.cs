@@ -45,7 +45,7 @@ namespace SevenDays.UI
         private void UpdateMedido()
         {
             var k = Keyboard.current;
-            if (k != null && k.f6Key.wasPressedThisFrame) _open = !_open;
+            if (k != null && k.f6Key.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled) _open = !_open;
             FrameTimingManager.CaptureFrameTimings();
             if (FrameTimingManager.GetLatestTimings(1, _timing) > 0)
             {

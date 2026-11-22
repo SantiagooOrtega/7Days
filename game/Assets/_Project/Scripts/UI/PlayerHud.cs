@@ -33,7 +33,9 @@ namespace SevenDays.UI
                     "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
                     "C cobertura · A/D deslizarse · en cobertura: clic der. = asomarse y disparar, clic izq. sin apuntar = a ciegas, Q cambia el lado · Esc soltar ratón\n" +
                     "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
-                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: saltar fase del día · Enter: empezar oleada · F3 FPS · Shift+F3 ambiente · F4 métricas · F8 VIGÍA · F5 ajustes en vivo · Esc ajustes · F1 ayuda";
+                    "Enter: empezar la oleada · F4 panel del director · Esc pausa · F1 ayuda";
+        /// <summary>Atajos de prueba: solo se listan en el editor o en una Development Build (DebugKeys).</summary>
+        public const string DebugHelpText = "Pruebas: T/Y daño/curación · U subir 6 m · L drop · N saltar fase · Z zombi · V oleada · B jefe · M mapa · F3 FPS · Shift+F3 ambiente · F5 ajustes en vivo · F6 rendimiento · F8 VIGÍA";
         private float _helpHideAt = -1f;
         /// <summary>La ayuda larga de controles se oculta sola tras estos segundos (F1 la vuelve a mostrar y ya no se oculta).</summary>
         public const float HelpSeconds = 10f;
@@ -64,7 +66,7 @@ namespace SevenDays.UI
         {
             if (_helpHideAt < 0f) _helpHideAt = Time.unscaledTime + HelpSeconds;
             var kf = UnityEngine.InputSystem.Keyboard.current;
-            if (kf != null && kf.f3Key.wasPressedThisFrame && !kf.shiftKey.isPressed) ShowFps = !ShowFps;
+            if (kf != null && kf.f3Key.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled && !kf.shiftKey.isPressed) ShowFps = !ShowFps;
             if (GameInput.HelpPressed) { _showHelp = !_showHelp; _helpPinned = true; }
             else if (_showHelp && !_helpPinned && Time.unscaledTime > _helpHideAt) _showHelp = false;   // el texto largo de IMGUI cuesta: fuera tras 10 s
             _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime), 0.05f);
@@ -165,7 +167,7 @@ namespace SevenDays.UI
             if (_showHelp)
             {
                 // caja medida: el texto entero, con fondo, y los avisos del centro se colocan debajo (antes se cortaba y lo pisaban)
-                if (_help == null) { _help = new GUIStyle(_label) { fontSize = 20, wordWrap = true }; _helpContent.text = HelpText; _helpHeight = _help.CalcHeight(_helpContent, HelpWidth); }
+                if (_help == null) { _help = new GUIStyle(_label) { fontSize = 20, wordWrap = true }; _helpContent.text = SevenDays.Core.DebugKeys.Enabled ? HelpText + "\n" + DebugHelpText : HelpText; _helpHeight = _help.CalcHeight(_helpContent, HelpWidth); }
                 Fill(new Rect(22, 58, HelpWidth + 16, _helpHeight + 8), new Color(0f, 0f, 0f, 0.45f));
                 GUI.Label(new Rect(30, 62, HelpWidth, _helpHeight), _helpContent, _help);
                 _helpBottom = 62f + _helpHeight;

@@ -50,7 +50,7 @@ namespace SevenDays.Core
         public static bool HelpPressed => Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame;
         public static bool ShoulderSwapPressed => Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame;
         public static bool FireModePressed => Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame;
-        public static bool DebugPanelPressed => Keyboard.current != null && Keyboard.current.f5Key.wasPressedThisFrame;
+        public static bool DebugPanelPressed => DebugKeys.Enabled && Keyboard.current != null && Keyboard.current.f5Key.wasPressedThisFrame;
         /// <summary>Mientras se muestra la pantalla de muerte/victoria, Esc no abre los ajustes (no se solapan).</summary>
         public static bool EscapeBlocked;
         public static bool EscapePressed => !EscapeBlocked && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;

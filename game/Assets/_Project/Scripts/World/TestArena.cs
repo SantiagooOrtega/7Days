@@ -159,7 +159,7 @@ namespace SevenDays.World
         {
             // Atajos de depuración: T = recibir 20 de daño, Y = curarse, U = subir 6 m (probar la caída).
             var k = UnityEngine.InputSystem.Keyboard.current;
-            if (k == null || _playerHealth == null) return;
+            if (k == null || _playerHealth == null || !DebugKeys.Enabled) return;   // atajos de prueba: solo en el editor o en una Development Build
             if (k.tKey.wasPressedThisFrame)
                 _playerHealth.TakeDamage(new DamageInfo { Amount = 20f, Point = transform.position });
             if (k.yKey.wasPressedThisFrame) _playerHealth.Heal(50f);

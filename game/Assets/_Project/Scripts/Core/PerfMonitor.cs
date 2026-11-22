@@ -121,7 +121,7 @@ namespace SevenDays.Core
         private void Update()
         {
             var k = Keyboard.current;
-            if (k != null && k.f6Key.wasPressedThisFrame) _open = !_open;
+            if (k != null && k.f6Key.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled) _open = !_open;
             float ms = Time.unscaledDeltaTime * 1000f;
             if (_filled == History) _hist[Bin(_frames[_head])]--;   // sale el más viejo
             _frames[_head] = ms; _hist[Bin(ms)]++; _head = (_head + 1) % History; if (_filled < History) _filled++;

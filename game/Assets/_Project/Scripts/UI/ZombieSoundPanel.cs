@@ -21,7 +21,7 @@ namespace SevenDays.UI
         private void Update()
         {
             var k = Keyboard.current;
-            if (k != null && k.f6Key.wasPressedThisFrame)
+            if (k != null && k.f6Key.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled)
             {
                 _open = !_open;
                 if (_open) foreach (string t in ZombieAnatomies.Types) ZombieSoundBank.Prewarm(t);

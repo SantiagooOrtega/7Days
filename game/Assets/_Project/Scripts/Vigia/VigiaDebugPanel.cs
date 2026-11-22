@@ -21,7 +21,7 @@ namespace SevenDays.Vigia
         private void Update()
         {
             var k = Keyboard.current;
-            if (k != null && k.f8Key.wasPressedThisFrame) _show = !_show;
+            if (k != null && k.f8Key.wasPressedThisFrame && SevenDays.Core.DebugKeys.Enabled) _show = !_show;
         }
 
         /// <summary>Dice una frase sin pasar por los enfriamientos (vacía la cola antes).</summary>
