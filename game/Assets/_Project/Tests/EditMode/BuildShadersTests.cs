@@ -60,6 +60,7 @@ namespace SevenDays.Tests
         public void FogAndPostProcessing_AreNotStripped()
         {
             var gs = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0]);
+            Assert.AreEqual(2, gs.FindProperty("m_InstancingStripping").intValue, "instancing: se conservan sus variantes (perímetro, vegetación y árboles se dibujan con GPU instancing y materiales creados por código; recortadas, no salían en la build)");
             Assert.AreEqual(1, gs.FindProperty("m_FogStripping").intValue, "niebla: modo personalizado (el juego la enciende por código; en automático se recortaba)");
             Assert.IsTrue(gs.FindProperty("m_FogKeepExp2").boolValue, "se conserva la niebla exponencial al cuadrado (la que usa el juego)");
             string urp = File.ReadAllText(Path.Combine(Application.dataPath, "Settings/UniversalRenderPipelineGlobalSettings.asset"));
