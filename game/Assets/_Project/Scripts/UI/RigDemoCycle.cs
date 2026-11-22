@@ -217,6 +217,8 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (_legs == null) return;
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 14, normal = { textColor = Color.white } };
             var seg = _segments[_index];

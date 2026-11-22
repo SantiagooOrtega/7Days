@@ -39,6 +39,8 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (!_open || _camera == null || _shooting == null) return;
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 13, normal = { textColor = Color.white } };
             _head ??= new GUIStyle(_label) { fontSize = 15, fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.85f, 0.4f) } };

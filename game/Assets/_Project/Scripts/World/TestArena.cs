@@ -148,6 +148,8 @@ namespace SevenDays.World
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (!_loading || SevenDays.Intro.IntroPlayer.Active) return;
             var style = new GUIStyle(GUI.skin.label) { fontSize = 32, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
             GUI.Label(new Rect(0, Screen.height / 2f - 30, Screen.width, 60), "Generando texturas...", style);

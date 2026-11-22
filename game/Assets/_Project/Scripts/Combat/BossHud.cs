@@ -38,7 +38,7 @@ namespace SevenDays.Combat
             if (_boss != null && _boss.Health.IsDead && _alpha <= 0.01f) _boss = null;
         }
 
-        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+        private void OnGUI() { if (SevenDays.Core.HudGate.Hidden) return; SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
 
 
         private void OnGUIMedido()

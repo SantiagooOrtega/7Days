@@ -18,6 +18,8 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             if (_camera == null || Event.current.type != EventType.Repaint) return;
             float a = Mathf.InverseLerp(0.75f, 1f, _camera.FirstPersonBlend);

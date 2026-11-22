@@ -45,6 +45,8 @@ namespace SevenDays.Vigia
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (!_show) return;
             var v = VigiaVoice.Instance;
             if (v == null) return;

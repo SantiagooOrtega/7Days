@@ -394,6 +394,8 @@ namespace SevenDays.World
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (Cycle == null) return;
             if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: tampoco "DÍA X DE 7" (se solapaba con el título)
             if (_top == null)

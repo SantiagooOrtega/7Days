@@ -106,7 +106,7 @@ namespace SevenDays.Combat
             _nextPopup = (_nextPopup + 1) % MaxPopups;
         }
 
-        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+        private void OnGUI() { if (SevenDays.Core.HudGate.Hidden) return; SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
 
 
         private void OnGUIMedido()

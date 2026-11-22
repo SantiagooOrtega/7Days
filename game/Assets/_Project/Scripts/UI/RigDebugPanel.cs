@@ -50,6 +50,8 @@ namespace SevenDays.UI
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (_rig == null) return;
             if (_bones && Event.current.type == EventType.Repaint) DrawBones();
             if (_ground && Event.current.type == EventType.Repaint) DrawGround();

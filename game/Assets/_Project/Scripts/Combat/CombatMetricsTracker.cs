@@ -120,7 +120,7 @@ namespace SevenDays.Combat
             if (k != null && k.f4Key.wasPressedThisFrame) _showPanel = !_showPanel;
         }
 
-        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+        private void OnGUI() { if (SevenDays.Core.HudGate.Hidden) return; SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.Otros); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
 
 
         private void OnGUIMedido()

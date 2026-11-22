@@ -95,6 +95,8 @@ namespace SevenDays.Vigia
         // ---------------------------------------------------------------- subtítulos
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (SevenDays.UI.StatsScreen.Blocking) return;   // pantalla de muerte/victoria: sin HUD de juego
             if (!VigiaSettings.Subtitles || VigiaSettings.Mode == VigiaMode.Apagada) return;
             float t = Time.unscaledTime;

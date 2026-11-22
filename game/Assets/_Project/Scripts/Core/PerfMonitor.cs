@@ -182,6 +182,8 @@ namespace SevenDays.Core
 
         private void OnGUI()
         {
+            if (SevenDays.Core.HudGate.Hidden) return;   // intro o epílogo en pantalla: solo la lámina
+           
             if (!_open || (Event.current.type != EventType.Repaint && Event.current.type != EventType.Layout)) return;
             PerfProbe.Begin(PerfSection.UI);
             _label ??= new GUIStyle(GUI.skin.label) { fontSize = 13, normal = { textColor = Color.white } };
