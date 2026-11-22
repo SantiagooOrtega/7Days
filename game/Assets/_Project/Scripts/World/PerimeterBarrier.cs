@@ -47,11 +47,21 @@ namespace SevenDays.World
             return b;
         }
 
-        /// <summary>Los muros / límites del borde siguen como collider, sin dibujarse.</summary>
+        /// <summary>
+        /// Los muros / límites del borde siguen como collider, sin dibujarse. Los cascotes que se apoyaban encima ("crumbles") se quitan: sin el muro visible
+        /// quedaban flotando a 4-5.6 m sobre la trinchera.
+        /// </summary>
         private static void HideWalls(Transform root, MapData map)
         {
             foreach (var p in map.props)
             {
+                if (p.kind == "crumbles")
+                {
+                    var kill = new List<GameObject>();
+                    foreach (Transform c in root) if (c.name.StartsWith(p.name + " ")) kill.Add(c.gameObject);
+                    foreach (var g in kill) { if (Application.isPlaying) Destroy(g); else DestroyImmediate(g); }
+                    continue;
+                }
                 if ((p.kind != "wall" && p.kind != "boundary") || Mathf.Max(Mathf.Abs(p.pos[0]), Mathf.Abs(p.pos[2])) < map.halfSize - 0.5f) continue;
                 var t = root.Find(p.name);
                 if (t == null) foreach (Transform c in root) if (c.name == p.name) { t = c; break; }

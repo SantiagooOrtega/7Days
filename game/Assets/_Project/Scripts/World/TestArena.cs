@@ -93,6 +93,9 @@ namespace SevenDays.World
             Debug.Log(_lootManager.Describe()); // contenedores buscables y objetos sueltos (necesita la casa y los coches ya construidos)
             Physics.SyncTransforms();
             ColliderAudit.Run(_levelRoot);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            FloatingAudit.Run(_levelRoot);   // piezas flotantes sin soporte visible: debe dar 0
+#endif
 
             _zombies = ZombieManager.Create(transform, ZombieIO.Load());
             _zombies.BakeNavMesh(); // después de construir el nivel y de la auditoría: usa los colliders ya definitivos

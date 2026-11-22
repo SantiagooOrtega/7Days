@@ -38,9 +38,13 @@ namespace SevenDays.World
                 for (int k = 0; k < extra; k++)
                 {
                     float eh = 2f + R() * 7f;
-                    var off = new Vector3((R() - 0.5f) * w * 0.7f, 0f, (R() - 0.5f) * d * 0.7f);
+                    // la azotea rota queda DENTRO de la planta del edificio: tamaño y desplazamiento en los ejes del edificio (girados con él) y sin giro propio
+                    // (antes el desplazamiento iba en ejes del mundo y con ±12° de giro: parte del bloque quedaba fuera, colgando en el aire)
                     var size = new Vector3(w * (0.3f + R() * 0.3f), eh, d * (0.3f + R() * 0.3f));
-                    AddBox(parent, "Ruin Top " + i + "_" + k, c + off + Vector3.up * (h + eh / 2f - 0.5f), size, yaw + (R() - 0.5f) * 25f, mat);
+                    SevenDays.Procedural.SkylineMath.TopOffset(w, d, size.x, size.z, R(), R(), out float ox, out float oz);
+                    var off = new Vector3(ox, 0f, oz);
+                    var rot = Quaternion.Euler(0f, yaw, 0f);
+                    AddBox(parent, "Ruin Top " + i + "_" + k, c + rot * off + Vector3.up * (h + eh / 2f - 0.5f), size, yaw, mat);
                 }
             }
         }

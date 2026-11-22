@@ -193,7 +193,8 @@ namespace SevenDays.Procedural
             for (int i = -2; i <= 2; i++) l.Add(P("pillar", "Pillar " + i, i * 9f, 2.75f, 23f, 1.2f, 5.5f, 1.2f, color: Rgb(0.45f, 0.28f, 0.22f), surface: "wall"));
             for (int i = -2; i < 2; i++) l.Add(P("beam", "Beam " + i, i * 9f + 4.5f, 5.6f, 23f, 8.4f, 0.3f, 0.4f, color: pipe, surface: "metal", roll: i == 0 ? -14f : 0f));
             // techo de la nave: acaba a 4 m del límite (antes llegaba a z 29.75 y flotaba sobre la trinchera)
-            for (int i = -1; i <= 1; i++) l.Add(P("roof", "Roof " + i, i * 9f, 5.85f, 24.5f, 8f, 0.15f, 3f, color: pipe, surface: "metal"));
+            for (int i = -1; i <= 1; i++) l.Add(P("roof", "Roof " + i, i * 9f, 5.85f, 23f, 8f, 0.15f, 3f,   // centrada sobre las vigas (z = 23): antes volaba 2.8 m hacia atrás sin apoyo
+                 color: pipe, surface: "metal"));
             // a 3.6 m del límite y en ruinas (2.4 m): antes asomaba 4 m por encima de la trinchera del norte
             l.Add(P("brickwall", "Back Wall A", -13f, 1.2f, 26.4f, 11f, 2.4f, 0.8f, color: Rgb(0.45f, 0.28f, 0.22f), surface: "wall"));
             l.Add(P("brickwall", "Back Wall B", 9f, 1.2f, 26.4f, 8f, 2.4f, 0.8f, color: Rgb(0.45f, 0.28f, 0.22f), surface: "wall"));
