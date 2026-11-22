@@ -21,6 +21,19 @@ namespace SevenDays.UI
         private PlayerHealing _healing;
         private float _hitUntil;
         private bool _showHelp = true, _helpPinned;
+        /// <summary>Línea de FPS y calidad: oculta por defecto en la build; F3 la muestra u oculta.</summary>
+        public static bool ShowFps;
+        private GUIStyle _help;
+        private readonly GUIContent _helpContent = new GUIContent();
+        private float _helpHeight, _helpBottom;
+        public const float HelpWidth = 820f;
+        public const string HelpText =
+                    "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar · Q cambiar de hombro\n" +
+                    "Clic der. apuntar · Clic izq. disparar/golpear · R recargar · X modo de disparo · 1-5/rueda cambiar arma\n" +
+                    "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
+                    "C cobertura · A/D deslizarse · en cobertura: clic der. = asomarse y disparar, clic izq. sin apuntar = a ciegas, Q cambia el lado · Esc soltar ratón\n" +
+                    "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
+                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: saltar fase del día · Enter: empezar oleada · F3 FPS · Shift+F3 ambiente · F4 métricas · F8 VIGÍA · F5 ajustes en vivo · Esc ajustes · F1 ayuda";
         private float _helpHideAt = -1f;
         /// <summary>La ayuda larga de controles se oculta sola tras estos segundos (F1 la vuelve a mostrar y ya no se oculta).</summary>
         public const float HelpSeconds = 10f;
@@ -50,6 +63,8 @@ namespace SevenDays.UI
         private void UpdateMedido()
         {
             if (_helpHideAt < 0f) _helpHideAt = Time.unscaledTime + HelpSeconds;
+            var kf = UnityEngine.InputSystem.Keyboard.current;
+            if (kf != null && kf.f3Key.wasPressedThisFrame && !kf.shiftKey.isPressed) ShowFps = !ShowFps;
             if (GameInput.HelpPressed) { _showHelp = !_showHelp; _helpPinned = true; }
             else if (_showHelp && !_helpPinned && Time.unscaledTime > _helpHideAt) _showHelp = false;   // el texto largo de IMGUI cuesta: fuera tras 10 s
             _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime), 0.05f);
@@ -57,7 +72,7 @@ namespace SevenDays.UI
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
-        private void OnGUI() { SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
+        private void OnGUI() { if (SevenDays.Core.HudGate.Hidden) return; SevenDays.Core.PerfProbe.Begin(SevenDays.Core.PerfSection.UI); OnGUIMedido(); SevenDays.Core.PerfProbe.End(); }
 
 
         private void OnGUIMedido()
@@ -140,21 +155,20 @@ namespace SevenDays.UI
                 _fpsText = "FPS " + Mathf.RoundToInt(_fps) + "  (" + (1000f / _fps).ToString("0.0") + " ms)  ambiente " + (3 - SevenDays.Look.AtmosphereBudget.Level) + "/3" +
                     (qd != null ? "  calidad " + SevenDays.Procedural.QualityProfile.For(qd.Level).Name + " · escala " + qd.RenderScale.ToString("0.00") : "");
             }
-            GUI.Label(new Rect(w - 620, 20, 590, 40), _fpsText, _right);
+            if (ShowFps) GUI.Label(new Rect(w - 620, 20, 590, 40), _fpsText, _right);
             GUI.color = prevColor;
 
             // Cuenta
             _whoText ??= "Jugador: " + (Session.IsLoggedIn ? Session.User.username : "(sin sesión)");
             GUI.Label(new Rect(30, 20, 700, 40), _whoText, _label);
+            _helpBottom = 0f;
             if (_showHelp)
             {
-                GUI.Label(new Rect(30, 60, 900, 260),
-                    "WASD mover · Shift correr · Ctrl agacharse · Ratón mirar · Q cambiar de hombro\n" +
-                    "Clic der. apuntar · Clic izq. disparar/golpear · R recargar · X modo de disparo · 1-5/rueda cambiar arma\n" +
-                    "E recoger arma · mantén E para buscar en cajas, coches, muebles y escombros · H botiquín · B venda\n" +
-                    "C cobertura · A/D deslizarse · en cobertura: clic der. = asomarse y disparar, clic izq. sin apuntar = a ciegas, Q cambia el lado · Esc soltar ratón\n" +
-                    "Espacio: saltar · pasa cajas, muros bajos y coches (corriendo o con Espacio; desde la cobertura, al otro lado)\n" +
-                    "T/Y: probar daño/curación · U: subir 6 m · L: drop de prueba · N: saltar fase del día · Enter: empezar oleada · F3 ambiente · F4 métricas · F8 VIGÍA · F5 ajustes en vivo · Esc ajustes · F1 ayuda", _label);
+                // caja medida: el texto entero, con fondo, y los avisos del centro se colocan debajo (antes se cortaba y lo pisaban)
+                if (_help == null) { _help = new GUIStyle(_label) { fontSize = 20, wordWrap = true }; _helpContent.text = HelpText; _helpHeight = _help.CalcHeight(_helpContent, HelpWidth); }
+                Fill(new Rect(22, 58, HelpWidth + 16, _helpHeight + 8), new Color(0f, 0f, 0f, 0.45f));
+                GUI.Label(new Rect(30, 62, HelpWidth, _helpHeight), _helpContent, _help);
+                _helpBottom = 62f + _helpHeight;
             }
 
             if (SevenDays.World.FireManager.PlayerBurning)
@@ -230,7 +244,7 @@ namespace SevenDays.UI
             {
                 Color prev = GUI.color;
                 GUI.color = list[i].Color;
-                GUI.Label(new Rect(0, 110 + i * 38, w, 40), list[i].Text, _center28);
+                GUI.Label(new Rect(0, Mathf.Max(110f, _helpBottom + 12f) + i * 38, w, 40), list[i].Text, _center28);
                 GUI.color = prev;
             }
         }

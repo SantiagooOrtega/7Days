@@ -102,7 +102,8 @@ namespace SevenDays.Look
         private void Update()
         {
             _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(0.0001f, Time.unscaledDeltaTime), 0.08f);
-            if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.f3Key.wasPressedThisFrame)
+            var kb3 = UnityEngine.InputSystem.Keyboard.current;
+            if (kb3 != null && kb3.f3Key.wasPressedThisFrame && kb3.shiftKey.isPressed)   // Shift+F3 (F3 solo muestra u oculta la línea de FPS)
             {
                 _gov.SetLevel((_gov.Level + 1) % (_gov.MaxLevel + 1));
                 AtmosphereBudget.SetLevel(_gov.Level);

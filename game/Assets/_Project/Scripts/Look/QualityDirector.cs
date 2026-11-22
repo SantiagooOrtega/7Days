@@ -104,7 +104,7 @@ namespace SevenDays.Look
             if (FrameTimingManager.GetLatestTimings(1, _timing) > 0) GpuMs = Mathf.Lerp(GpuMs, (float)_timing[0].gpuFrameTime, 0.2f);
 
             var k = UnityEngine.InputSystem.Keyboard.current;
-            if (k != null && k.f3Key.wasPressedThisFrame) { _gov.SetLevel((_gov.Level + 1) % (_gov.MaxLevel + 1)); Apply(); return; }
+            if (k != null && k.f3Key.wasPressedThisFrame && k.shiftKey.isPressed) { _gov.SetLevel((_gov.Level + 1) % (_gov.MaxLevel + 1)); Apply(); return; }
 
             bool changed = false;
             if (DynamicResolution && _clone != null && _dyn.Update(dt, GpuMs, dt * 1000f)) { _clone.renderScale = _dyn.Scale; }
