@@ -55,3 +55,33 @@ Las pruebas están en `game/Assets/_Project/Tests/` (EditMode, EditModeVisual y 
 
 **Regla del proyecto:** la lógica que se puede probar va en `Procedural/` como C# puro; los `MonoBehaviour`
 solo la conectan con Unity. Así se puede probar el director, los días o el daño sin abrir una escena.
+
+## Qué pasa en una partida, paso a paso
+
+1. **Inicio de sesión** (`Net/AuthService`): `POST /api/auth/login` o `/register` devuelve un token de acceso
+   (JWT de 15 min) y un refresh token. Se guardan **solo en memoria** (clase `Session`), nunca en disco.
+   «Modo prueba» se salta este paso.
+2. **Preparación:** se elige personaje y mapa. `MapIO` lee `Resources/Maps/{id}.json`, lo valida y construye
+   el nivel (casa, coberturas, puntos de aparición, botín, ambiente).
+3. **Al empezar**, si hay sesión, `GET /api/progress` trae las estadísticas acumuladas de días anteriores para
+   que el director no empiece de cero.
+4. **Cada día** (`DayLoop` + `DayCycle`): preparación → oleada → jefe (días 3, 5 y 7) → resumen. Mientras se
+   juega, `CombatMetricsTracker` cuenta disparos, aciertos, bajas, daño y tiempo en cobertura.
+5. **Al terminar el día**, la nota de 0 a 100 (`PerformanceScore`) decide la dificultad del día siguiente
+   (`DirectorAdapt`), y con sesión se sube el progreso con `PUT /api/progress`.
+6. **Al terminar la partida** (victoria o derrota) se calcula la puntuación del ranking, se guarda en el
+   perfil local (`perfil.json` en la carpeta de datos de la app) y, con sesión, se envía a `POST /api/rankings`.
+7. Si un endpoint responde 401 porque el token caducó, `ApiClient` lo renueva una vez con
+   `POST /api/auth/refresh` y repite la petición.
+
+## Qué se guarda y dónde
+
+| Dato | Dónde | Notas |
+|------|-------|-------|
+| Usuario y contraseña | tabla `users` | contraseña con hash argon2; nunca sale en las respuestas |
+| Sesiones | tabla `refresh_tokens` | solo el hash SHA-256 del token; reutilizar uno viejo revoca la sesión |
+| Día actual y estadísticas | tabla `game_progress` | uno por usuario; lo lee el director |
+| Partidas terminadas | tabla `rankings` y `perfil.json` local | el puntaje lo calcula el cliente (suficiente para la demo) |
+| Opciones (volumen, calidad, subtítulos...) | `PlayerPrefs` de Unity | en la Mac, por usuario del sistema |
+| Mapas, zombis, armas, botín | JSON y valores por defecto en el código | `generated_content` existe pero la v1.0 no la usa |
+| Secretos del backend | `backend/.env` (copia de `.env.example`) | no se sube a git |
