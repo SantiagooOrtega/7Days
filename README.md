@@ -56,6 +56,8 @@ Configuración de una sola vez y pruebas manuales: [`docs/UNITY_SETUP.md`](docs/
 | Moverse / correr / agacharse / saltar | WASD / Shift / Ctrl / Espacio |
 | Apuntar / disparar / modo de disparo | Clic derecho / clic izquierdo / X |
 | Recargar / cambiar de arma / soltar arma | R / 1-5 o rueda del ratón / G |
+| Rueda de armas | Mantener Tab (con dos armas o más) |
+| Granada | Mantener F para ver el arco, soltar para lanzar |
 | Cobertura | C junto a una caja o un muro bajo; A/D te deslizas; Q cambia de hombro o de lado |
 | Recoger / buscar | E / mantener E en cajas, coches, muebles y escombros |
 | Botiquín / venda | H / B |
