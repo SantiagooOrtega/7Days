@@ -1,5 +1,9 @@
 # Assets gratuitos
 
+> **Estado en la versión 1.0:** no se importó ningún asset de esta lista. Personajes, zombis, armas, texturas,
+> animación y sonidos se generan por código (ver `docs/CREDITS.md`). Esta guía queda como referencia por si
+> alguien quiere sustituir algo por un asset gratuito; si lo hace, debe anotar fuente y licencia en `CREDITS.md`.
+
 Regla: todo debe ser gratis y con licencia que permita uso en un proyecto universitario. Anota la fuente y licencia
 de cada cosa que importes en `docs/CREDITS.md`. Los nombres exactos de los packs pueden cambiar en los sitios:
 si uno no aparece, busca por la categoría indicada. Descarga solo lo que se pida en cada fase.
