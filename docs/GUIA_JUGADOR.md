@@ -141,3 +141,20 @@ siempre, los jefes).
   rebota en paredes y suelo.
 - Daño fuerte en 6 m: un zombi común muere seguro a 4.5 m o menos. Contra los jefes casi no sirve.
 - **Cuidado:** a menos de 4 m también te daña a ti. Rompe las coberturas ligeras cercanas.
+
+## Zombis y cómo vencerlos
+
+| Zombi | Desde el día | Vida | Cómo es | Consejo |
+|-------|--------------|------|---------|---------|
+| **Zombi** (común) | 1 | 100 | equilibrado | 2 tiros de pistola a la cabeza |
+| **Corredor** | 2 | 55 | muy rápido (más del doble que el común) y frágil | no corras de él: apunta, que con poco cae |
+| **Lanzador** | 3 | 80 | se queda a unos 12 m y te lanza cosas | mátalo primero; si te tira en arco, cambia de sitio |
+| **Explosivo** | 4 | 70 | al llegar a 3 m se para, se hincha y explota (radio 3.6 m) | dispárale de lejos; si ya parpadea, aléjate a más de 5.5 m y la mecha se apaga |
+| **Blindado** | 4 | 160 | el torso casi no recibe daño (×0.35) | apunta siempre a la cabeza |
+| **Tanque** | 5 | 400 | lento, resiste el 35 % del daño y no cabe por las puertas | revólver, fusil o francotirador; la pistola y el subfusil casi no le hacen nada |
+
+- El **explosivo** también explota si lo matas a tu lado, y daña a los zombis de alrededor: úsalo a tu favor
+  cuando está en medio de un grupo.
+- El **tanque** no entra a las casas: si estás dentro, golpea los muros desde fuera (menos daño) y luego
+  rodea la casa buscándote. Aprovecha para dispararle por una ventana.
+- Cada día nuevo, el HUD avisa con «Nuevo zombi: …» cuando aparece un tipo por primera vez.
