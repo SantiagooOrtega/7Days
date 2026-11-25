@@ -32,3 +32,15 @@ Si algo falla, anótalo con la plantilla del final.
       «Volver» regresa al menú.
 - [ ] **Créditos** muestra los nombres del equipo (hoy salen de `Resources/creditos.txt`).
 - [ ] **Jugar** abre la Preparación: se elige personaje y mapa, y **Empezar** arranca la partida.
+
+## 2. Intro en cómic y epílogo
+
+- [ ] Al pulsar **Empezar** en una partida nueva sale la intro con las 8 láminas, en orden.
+- [ ] Clic, Espacio, Enter y → avanzan; ← vuelve a la lámina anterior.
+- [ ] En las láminas 6, 7 y 8 se oye la voz de VIGÍA con subtítulos, y coinciden con el texto dibujado.
+- [ ] El botón **SALTAR** y la tecla Esc saltan la intro y empieza el día 1. Ese Esc **no** abre la pausa.
+- [ ] Al **reintentar** un día o al **continuar** una partida, la intro no sale.
+- [ ] Esc > Opciones > «Ver la intro otra vez» la vuelve a mostrar y se puede saltar.
+- [ ] Al ganar el día 7 sale el epílogo (`final_01`) recorriendo sus 3 viñetas, con la frase de VIGÍA, y
+      después la pantalla de victoria. Para probarlo rápido en el editor: N para saltar fases hasta el día 7.
+- [ ] Las láminas se ven nítidas a pantalla completa (sin estirarse ni cortarse el texto).
