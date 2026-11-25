@@ -31,9 +31,9 @@ la Planta 7, que además ajusta la dificultad según cómo juegues.
 **Backend** (Node 22 LTS recomendado):
 
 ```bash
+cp .env.example backend/.env   # y pon en JWT_ACCESS_SECRET el resultado de: openssl rand -hex 32
 cd backend
 npm install
-# crea backend/.env con PORT, DATABASE_URL y JWT_ACCESS_SECRET (ver docs/DEMO.md)
 npm run db:push
 npm run dev          # http://localhost:3001
 npm test             # pruebas del backend
