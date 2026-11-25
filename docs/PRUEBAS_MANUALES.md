@@ -15,8 +15,9 @@ Si algo falla, anótalo con la plantilla del final.
 ## 1. Inicio, sesión y menú
 
 - [ ] Al dar Play sale la pantalla de inicio con «PULSA ENTER PARA EMPEZAR» y el aviso de VIGÍA.
-- [ ] Enter lleva a «Iniciar sesión» con los campos EMAIL y contraseña; Tab pasa de un campo a otro.
-- [ ] **Crear cuenta** con un email nuevo: entra al menú principal.
+- [ ] Enter lleva a «Iniciar sesión» con los campos EMAIL y CONTRASEÑA (8+); Tab pasa de un campo a otro.
+- [ ] **Crear cuenta** añade el campo USUARIO (3-20). Con un email nuevo, «Registrarme» entra al menú principal.
+- [ ] Usuario de 2 letras o contraseña de menos de 8: sale un error y no se crea la cuenta.
 - [ ] Crear otra cuenta con el **mismo email**: sale un error claro y no se cuelga.
 - [ ] **Entrar** con una contraseña incorrecta: sale un error y se puede volver a intentar.
 - [ ] **Entrar** con la cuenta buena: llega al menú principal.
