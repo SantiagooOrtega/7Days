@@ -64,3 +64,25 @@ Si algo falla, anótalo con la plantilla del final.
       llena» y el objeto se queda en el suelo.
 - [ ] H y B curan con su barra; si un zombi te golpea durante la barra, se cancela y no se gasta el objeto.
 - [ ] Con la vida completa, H avisa y no gasta nada.
+
+## 4. Días, jefes, pausa y final
+
+- [ ] Día 1: sale la preparación con su cuenta atrás de 30 s; Enter la salta y aparece «¡OLEADA 1!».
+- [ ] Los zombis salen por los bordes del mapa, nunca encima del jugador.
+- [ ] Al limpiar la oleada sale «OLEADA SUPERADA», un resumen pequeño que no bloquea y a los 3 s el día 2.
+- [ ] Al empezar el día 2 se recupera vida y sale «Nuevo zombi: Corredor».
+- [ ] F4 abre el panel del director con la nota del día y por qué cambió la dificultad.
+- [ ] Día 3 (en el editor, N para saltar fases): «Hoy viene un JEFE» y, a mitad de la oleada, el **Bruto
+      Titán** con su barra grande. Si su carga choca con un muro, queda aturdido.
+- [ ] Día 5: el **Lanzador Colosal** rompe las coberturas donde caen sus lanzamientos, y vuelven al día
+      siguiente.
+- [ ] Día 7: **El Devorador** avisa «¡ONDA EXPANSIVA! ¡SALTA!»; saltando no hace daño. Su núcleo naranja
+      se abre a ratos y recibe mucho más daño.
+- [ ] Esc abre la pausa: Reanudar, Opciones, Reiniciar día, Volver al menú principal y Salir del juego.
+- [ ] En Opciones de la pausa se cambian sensibilidad, calidad, volúmenes, música, subtítulos y tamaño de
+      texto, y los cambios se mantienen al volver a abrir el juego.
+- [ ] Morir: sale «HAS CAÍDO — DÍA N» con estadísticas. Enter reintenta ese día, Esc vuelve al menú y Tab
+      abre la tabla por día.
+- [ ] Ganar el día 7: epílogo y luego la pantalla de victoria con las insignias.
+- [ ] Tras la partida, el Perfil y el Ranking muestran la partida nueva.
+- [ ] Salir a mitad de partida y volver: **Continuar** retoma el día guardado en el mismo mapa.
