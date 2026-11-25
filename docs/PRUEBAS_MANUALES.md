@@ -86,3 +86,27 @@ Si algo falla, anótalo con la plantilla del final.
 - [ ] Ganar el día 7: epílogo y luego la pantalla de victoria con las insignias.
 - [ ] Tras la partida, el Perfil y el Ranking muestran la partida nueva.
 - [ ] Salir a mitad de partida y volver: **Continuar** retoma el día guardado en el mismo mapa.
+
+## 5. Backend, sin conexión y rendimiento
+
+- [ ] `npm test` en `backend/`: las 22 pruebas en verde.
+- [ ] `curl http://localhost:3001/health` responde `{"status":"ok"}`.
+- [ ] Con el backend **apagado**, «Entrar» da un error claro y «Modo prueba (sin sesión)» deja jugar.
+- [ ] Apagar el backend a mitad de partida no cuelga el juego; al terminar, la partida se guarda en el
+      Perfil local.
+- [ ] Más de 15 minutos con la sesión abierta (el token dura 15 min): el ranking se sigue subiendo al
+      terminar la partida.
+- [ ] Con dos cuentas distintas, el Ranking muestra a las dos con su nombre de usuario.
+- [ ] En el editor, F3 muestra los FPS: unos 60 durante una oleada grande (día 5 o más) en la Mac de la demo.
+- [ ] En la app de la versión 1.0, las teclas de prueba (N, B, Z, V, M, L, T, Y, F3) **no** hacen nada.
+
+## Plantilla para reportar un fallo
+
+```
+Qué pasó:
+Qué esperaba:
+Pasos para repetirlo: 1. ... 2. ... 3. ...
+Dónde: editor / app v1.0 · mapa · día · personaje
+Captura o video corto (fuera del repo):
+Mensaje de la Console (si hay):
+```
