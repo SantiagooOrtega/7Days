@@ -37,7 +37,8 @@ juego (láminas, frases de VIGÍA, nombres de enemigos) y para la presentación.
 ## La intro en cómic (v1.0)
 
 Sale al empezar cada partida nueva (Jugar > Empezar); no sale al reintentar ni al continuar. Clic,
-Espacio, Enter o → avanzan; ← retrocede; Esc o el botón «SALTAR» la omiten.
+Espacio, Enter o → avanzan; ← retrocede; Esc o el botón «SALTAR» la omiten. Para verla otra vez a mitad de
+partida: Esc > Opciones > «Ver la intro otra vez».
 
 - Las láminas están en `game/Assets/_Project/Intro/Resources/` (`intro_01.png` a `intro_08.png`) y traen
   el texto dibujado.
