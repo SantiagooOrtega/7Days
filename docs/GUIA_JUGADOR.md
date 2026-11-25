@@ -85,3 +85,35 @@ La cobertura no lo resuelve todo:
   puntuación.
 - El jefe del día 5 **destruye coberturas**, y las granadas y explosivos rompen las ligeras (cajas, barriles,
   tablones). Las rotas vuelven entre oleadas.
+
+## Armas y munición
+
+Empiezas con la **pistola** (6 balas en el cargador y 30 de reserva) y la **barra metálica**. Puedes llevar
+hasta 5 armas. Las demás se encuentran buscando en el mapa o las sueltan los zombis (las mejores, casi
+siempre, los jefes).
+
+| Arma | Rareza | Daño | Cargador | Munición | Para qué sirve |
+|------|--------|------|----------|----------|----------------|
+| Pistola | común | 18 | 12 | pistola | 2 tiros a la cabeza matan a un zombi común |
+| Revólver | poco común | 48 | 6 | pistola | potente y lento; atraviesa algo de armadura |
+| Subfusil | poco común | 12 | 30 | pistola | automático; bueno contra corredores, malo contra tanques |
+| Escopeta | poco común | 12 × 8 perdigones | 6 | escopeta | solo de cerca: a 3 m mata en 1-2 tiros |
+| Fusil de asalto | rara | 36 | 30 | rifle | automático; 2-3 tiros al cuerpo por zombi común |
+| Rifle de francotirador | épica | 90 | 5 | rifle | 1 tiro a la cabeza; sin caída de daño |
+| Barra metálica | común | 38 | — | — | cuerpo a cuerpo, sin gastar balas |
+
+- **Colores de rareza:** gris (común), verde (poco común), azul (rara) y morado (épica).
+- Hay **tres reservas** de munición, compartidas por las armas del mismo tipo: pistola (máx. 132),
+  escopeta (máx. 50) y rifle (máx. 225). Con la reserva llena, la munición de ese tipo se queda en el suelo.
+- Si recoges un arma que ya tienes, se convierte en munición.
+- **La cabeza** recibe ×2.5 de daño (más en algunas armas). Contra blindados es casi obligatorio.
+- Si te quedas 60 s sin balas de un tipo, VIGÍA deja un paquete doble cerca de ti.
+
+## Botín
+
+- **Buscar:** mantén **E** de 1 a 2 s en muebles, maleteros de coches, escombros, arbustos y cajas de
+  suministros. Las cajas lejanas y expuestas tienen mejor botín.
+- **Drops:** algunos zombis sueltan algo al morir; el jefe siempre suelta algo raro o mejor, con una columna
+  de luz.
+- Los suministros cercanos se marcan con un icono y con flechas en el borde de la pantalla. La munición y
+  los botiquines se recogen solos al pasar por encima.
