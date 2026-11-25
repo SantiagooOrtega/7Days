@@ -14,15 +14,16 @@ Todo corre en local, sin internet.
 
 ### 1. Backend (para iniciar sesión y el ranking)
 
-La primera vez, crea `backend/.env` (no se sube a git; el repo todavía no trae un `.env.example`):
+La primera vez, copia la plantilla `.env.example` (está en la raíz del repo) a `backend/.env` y rellena el
+secreto. `backend/.env` no se sube a git.
 
-```
-PORT=3001
-DATABASE_URL="file:./dev.db"
-JWT_ACCESS_SECRET=pega-aqui-una-cadena-aleatoria-de-64-caracteres
+```bash
+cp .env.example backend/.env
+openssl rand -hex 32        # copia el resultado en JWT_ACCESS_SECRET dentro de backend/.env
 ```
 
-`JWT_ACCESS_SECRET` debe tener al menos 32 caracteres. Para generar uno: `openssl rand -hex 32`.
+La plantilla ya trae `PORT=3001` y `DATABASE_URL=file:./dev.db`. `JWT_ACCESS_SECRET` debe tener al menos 32
+caracteres: si falta, el backend no arranca y avisa con «Configuración inválida en .env».
 
 Luego, en una terminal que se queda abierta toda la demo:
 
@@ -50,7 +51,7 @@ ranking se guarda solo en la Mac.
 |--------|-------------|-------------|
 | 0:00 – 0:20 | Pantalla de inicio: «PULSA ENTER PARA EMPEZAR» | «7 DÍAS es un shooter de supervivencia en tercera persona: hay que aguantar 7 días, una oleada por día, con jefes los días 3, 5 y 7.» |
 | 0:20 – 0:50 | Enter > **Entrar** con la cuenta de la demo > menú principal | «Las cuentas viven en nuestro backend: Node, Express y Prisma con SQLite. Contraseñas con argon2, token JWT de 15 minutos y refresh token rotativo.» |
-| 0:50 – 1:10 | **Jugar** > elegir personaje y mapa > **Empezar** | «Hay dos mapas: Calle en ruinas y Bosque oscuro. Son datos en JSON, los mismos que guarda el backend en su tabla de mapas.» |
+| 0:50 – 1:10 | **Jugar** > elegir personaje y mapa > **Empezar** | «Hay dos mapas: Calle en ruinas y Bosque oscuro. No son escenas: son archivos JSON que el juego convierte en el nivel al empezar, y el backend tiene el mismo esquema para validarlos.» |
 | 1:10 – 1:50 | Intro: láminas 1, 2 y 6 (→ para avanzar), luego **SALTAR** | «La historia: la Planta 7 de NEXA explota, la ceniza convierte al pueblo y el ejército cierra el valle. VIGÍA, la IA de la planta, guía a Sam por radio.» |
 | 1:50 – 2:50 | Día 1: Enter empieza la oleada. Apuntar (clic derecho), disparar, recargar (R), cubrirse (C) y asomarse | «Cámara sobre el hombro y cobertura: los lanzadores tiran proyectiles directos que la cobertura bloquea, y en arco que no.» |
 | 2:50 – 3:30 | **F4**: panel del director. **N** (editor) para pasar de fase hasta el día siguiente | «VIGÍA también es el director: una función pura convierte tu rendimiento en dificultad, con pruebas automáticas. Aquí se ve por qué subió o bajó.» |
@@ -69,6 +70,8 @@ jefes con palabras.
 | F4 | Panel del director (rendimiento y ajuste de dificultad) | Sí |
 | F1 | Muestra u oculta la ayuda de controles | Sí |
 | Esc | Menú de pausa: Reanudar, Opciones, Reiniciar día, Volver al menú principal, Salir del juego | Sí |
+| F (mantener y soltar) | Granada: muestra el arco y la lanza al soltar. Se empieza con 2 | Sí |
+| Tab (mantener) | Rueda de armas (con dos armas o más) | Sí |
 | N | Salta la fase actual (preparación > oleada > resumen > día siguiente) | No, solo editor |
 | B | Jefe de prueba 20 m delante. Ojo: B también usa una venda si tienes | No, solo editor |
 | Z / V | Un zombi de prueba / una mini oleada de 8 | No, solo editor |
@@ -81,7 +84,7 @@ jefes con palabras.
 
 | Problema | Qué hacer |
 |----------|-----------|
-| El backend no arranca | Revisa `backend/.env` y que el puerto 3001 esté libre. Si no hay tiempo: «Modo prueba (sin sesión)». |
+| El backend no arranca | Revisa que exista `backend/.env` (copia de `.env.example`) con `JWT_ACCESS_SECRET` relleno, y que el puerto 3001 esté libre. Si no hay tiempo: «Modo prueba (sin sesión)». |
 | Error en Prisma o argon2 al instalar | Usa Node 22 LTS en vez de Node 25. |
 | Unity no abre o tarda demasiado | Usa la app de la versión 1.0 (ver la tabla de arriba). |
 | Van lentos los FPS | Esc > Opciones > Calidad: baja un nivel. Cierra otras ventanas. |

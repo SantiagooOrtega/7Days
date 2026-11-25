@@ -26,7 +26,8 @@ la Planta 7, que además ajusta la dificultad según cómo juegues.
 - **VIGÍA:** voz por radio con subtítulos, comentarios de combate, intro en cómic y epílogo.
 - **Menú completo:** inicio de sesión, selección de personaje y mapa, ranking, perfil, opciones, créditos
   y menú de pausa.
-- **Backend propio:** cuentas con JWT, progreso, ranking y mapas.
+- **Backend propio:** cuentas con JWT, progreso guardado y ranking. Los mapas son JSON dentro del juego; el
+  backend tiene su esquema para validarlos (servirlos desde la base de datos quedó pendiente).
 - **Arte procedural:** personajes, zombis, armas, texturas, animación y sonidos se generan por código. Las
   excepciones (láminas del cómic y música) están en [`docs/CREDITS.md`](docs/CREDITS.md).
 
@@ -35,9 +36,9 @@ la Planta 7, que además ajusta la dificultad según cómo juegues.
 **Backend** (Node 22 LTS recomendado):
 
 ```bash
+cp .env.example backend/.env   # y pon en JWT_ACCESS_SECRET el resultado de: openssl rand -hex 32
 cd backend
 npm install
-# crea backend/.env con PORT, DATABASE_URL y JWT_ACCESS_SECRET (ver docs/DEMO.md)
 npm run db:push
 npm run dev          # http://localhost:3001
 npm test             # pruebas del backend
@@ -60,6 +61,8 @@ Configuración de una sola vez y pruebas manuales: [`docs/UNITY_SETUP.md`](docs/
 | Moverse / correr / agacharse / saltar | WASD / Shift / Ctrl / Espacio |
 | Apuntar / disparar / modo de disparo | Clic derecho / clic izquierdo / X |
 | Recargar / cambiar de arma / soltar arma | R / 1-5 o rueda del ratón / G |
+| Rueda de armas | Mantener Tab (con dos armas o más) |
+| Granada | Mantener F para ver el arco, soltar para lanzar |
 | Cobertura | C junto a una caja o un muro bajo; A/D te deslizas; Q cambia de hombro o de lado |
 | Recoger / buscar | E / mantener E en cajas, coches, muebles y escombros |
 | Botiquín / venda | H / B |
@@ -80,8 +83,14 @@ Los atajos de prueba (saltar fase, jefe de prueba...) solo funcionan en el edito
 
 ## Documentación
 
+- [`docs/GUIA_JUGADOR.md`](docs/GUIA_JUGADOR.md): cómo se juega, armas, zombis, jefes y puntuación.
 - [`docs/HISTORIA.md`](docs/HISTORIA.md): mundo, personajes, intro en cómic, epílogo y bestiario.
 - [`docs/DEMO.md`](docs/DEMO.md): guion de la demo de 5 minutos.
+- [`docs/PRESENTACION.md`](docs/PRESENTACION.md): diapositivas y preguntas probables.
+- [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md): piezas del sistema, flujo de una partida y qué se guarda.
+- [`docs/PRUEBAS_MANUALES.md`](docs/PRUEBAS_MANUALES.md): lista para probar el juego a mano.
+- [`docs/CONTRIBUIR.md`](docs/CONTRIBUIR.md): ramas, commits y reglas para colaborar.
+- [`docs/GLOSARIO.md`](docs/GLOSARIO.md): términos del juego y de la técnica.
 - [`docs/PLAN.md`](docs/PLAN.md): fases y arquitectura.
 - [`docs/API.md`](docs/API.md): endpoints del backend.
 - [`docs/BOSSES.md`](docs/BOSSES.md) y [`docs/BALANCE.md`](docs/BALANCE.md): jefes y balance.

@@ -57,5 +57,5 @@ cp ../.env.example .env        # y pon en JWT_ACCESS_SECRET el resultado de: ope
 npx prisma generate
 npm run db:push                # crea prisma/dev.db
 npm run dev                    # http://localhost:3001
-npm test                       # 20 pruebas
+npm test                       # 22 pruebas (20 de la API y 2 del esquema de mapas)
 ```
