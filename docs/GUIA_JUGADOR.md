@@ -46,3 +46,42 @@ balance de los 7 días sirva para todos.
 
 - **Calle en ruinas:** calle industrial con una casa central de dos pisos (escalera interior y balcón).
 - **Bosque oscuro:** noche con niebla densa, troncos y rocas como cobertura y una cabaña como refugio.
+
+## Controles
+
+| Acción | Tecla |
+|--------|-------|
+| Moverse / correr / agacharse / saltar | WASD / Shift / Ctrl / Espacio |
+| Apuntar / disparar o golpear / modo de disparo | Clic derecho / clic izquierdo / X |
+| Recargar / cambiar de arma / rueda de armas | R / 1-5 o rueda del ratón / mantener Tab |
+| Soltar el arma activa | G |
+| Granada | Mantener F (se ve el arco y dónde cae) y soltar |
+| Recoger / buscar | E / mantener E en cajas, coches, muebles y escombros |
+| Botiquín / venda | H / B |
+| Cobertura / deslizarse / cambiar de hombro o de lado | C / A y D / Q |
+| Empezar la oleada (en la preparación) | Enter |
+| Panel del director / ayuda / pausa | F4 / F1 / Esc |
+
+Espacio también sirve para **pasar por encima** de cajas, muros bajos y coches (corriendo o desde la
+cobertura, al otro lado).
+
+## La cobertura
+
+Pulsa **C** junto a una caja, un muro bajo, un tronco o una roca. Arriba aparece tu estado:
+
+- **CUBIERTO:** el muro te protege. Es el momento de recargar.
+- **ASOMADO** (mantén clic derecho): te levantas o te inclinas por el lado de tu hombro (Q lo cambia) y
+  disparas con normalidad, pero quedas expuesto.
+- **A CIEGAS** (clic izquierdo sin apuntar): disparas sin asomarte, con mucha dispersión y el **60 % del
+  daño**. Sirve para frenar a uno que se acerca, no para matar de lejos.
+
+La cobertura no lo resuelve todo:
+
+- El **lanzador** tira un proyectil directo que la cobertura bloquea. Pero si llevas más de 1 s escondido,
+  cambia a un **tiro en arco** que cae donde estás: verás una **marca roja en el suelo** antes del impacto.
+  Muévete.
+- Si te quedas mucho tiempo quieto en la misma cobertura, los lanzadores **te rodean** por un lado.
+- El director premia usarla entre el 10 % y el 60 % del tiempo. Pasar el día entero escondido baja tu
+  puntuación.
+- El jefe del día 5 **destruye coberturas**, y las granadas y explosivos rompen las ligeras (cajas, barriles,
+  tablones). Las rotas vuelven entre oleadas.
