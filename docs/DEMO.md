@@ -51,7 +51,7 @@ ranking se guarda solo en la Mac.
 |--------|-------------|-------------|
 | 0:00 – 0:20 | Pantalla de inicio: «PULSA ENTER PARA EMPEZAR» | «7 DÍAS es un shooter de supervivencia en tercera persona: hay que aguantar 7 días, una oleada por día, con jefes los días 3, 5 y 7.» |
 | 0:20 – 0:50 | Enter > **Entrar** con la cuenta de la demo > menú principal | «Las cuentas viven en nuestro backend: Node, Express y Prisma con SQLite. Contraseñas con argon2, token JWT de 15 minutos y refresh token rotativo.» |
-| 0:50 – 1:10 | **Jugar** > elegir personaje y mapa > **Empezar** | «Hay dos mapas: Calle en ruinas y Bosque oscuro. Son datos en JSON, los mismos que guarda el backend en su tabla de mapas.» |
+| 0:50 – 1:10 | **Jugar** > elegir personaje y mapa > **Empezar** | «Hay dos mapas: Calle en ruinas y Bosque oscuro. No son escenas: son archivos JSON que el juego convierte en el nivel al empezar, y el backend tiene el mismo esquema para validarlos.» |
 | 1:10 – 1:50 | Intro: láminas 1, 2 y 6 (→ para avanzar), luego **SALTAR** | «La historia: la Planta 7 de NEXA explota, la ceniza convierte al pueblo y el ejército cierra el valle. VIGÍA, la IA de la planta, guía a Sam por radio.» |
 | 1:50 – 2:50 | Día 1: Enter empieza la oleada. Apuntar (clic derecho), disparar, recargar (R), cubrirse (C) y asomarse | «Cámara sobre el hombro y cobertura: los lanzadores tiran proyectiles directos que la cobertura bloquea, y en arco que no.» |
 | 2:50 – 3:30 | **F4**: panel del director. **N** (editor) para pasar de fase hasta el día siguiente | «VIGÍA también es el director: una función pura convierte tu rendimiento en dificultad, con pruebas automáticas. Aquí se ve por qué subió o bajó.» |
