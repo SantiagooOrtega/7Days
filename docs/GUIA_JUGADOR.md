@@ -117,3 +117,27 @@ siempre, los jefes).
   de luz.
 - Los suministros cercanos se marcan con un icono y con flechas en el borde de la pantalla. La munición y
   los botiquines se recogen solos al pasar por encima.
+
+## Curación
+
+| Objeto | Cura | Tarda | Máx. que llevas |
+|--------|------|-------|-----------------|
+| Venda (**B**) | 15 | 1.2 s | 5 |
+| Botiquín pequeño | 30 | 2.5 s | 3 |
+| Botiquín mediano | 60 | 4 s | 2 |
+| Botiquín grande | 100 | 6 s | 1 |
+
+- **H** usa el botiquín que mejor encaja con la vida que te falta; **B** usa una venda.
+- Sale una barra: si **recibes daño** antes de que termine, se cancela y **no se gasta** el botiquín.
+  Cúrate detrás de una cobertura o lejos de los zombis.
+- El Médico cura un 30 % más con todo.
+- Entre días recuperas el 30 % de la vida máxima sin gastar nada.
+
+## Granadas
+
+- Empiezas con **2** y puedes llevar **6**. Hay 2 sueltas por el mapa al empezar y 1 más cada día; algunos
+  zombis las sueltan (el jefe, siempre 2).
+- **Mantén F** para ver el arco y la marca de impacto; **suelta** para lanzarla. Explota a los 2.5 s y
+  rebota en paredes y suelo.
+- Daño fuerte en 6 m: un zombi común muere seguro a 4.5 m o menos. Contra los jefes casi no sirve.
+- **Cuidado:** a menos de 4 m también te daña a ti. Rompe las coberturas ligeras cercanas.
