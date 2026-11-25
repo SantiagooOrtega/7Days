@@ -44,3 +44,23 @@ Si algo falla, anótalo con la plantilla del final.
 - [ ] Al ganar el día 7 sale el epílogo (`final_01`) recorriendo sus 3 viñetas, con la frase de VIGÍA, y
       después la pantalla de victoria. Para probarlo rápido en el editor: N para saltar fases hasta el día 7.
 - [ ] Las láminas se ven nítidas a pantalla completa (sin estirarse ni cortarse el texto).
+
+## 3. Combate, cobertura y botín
+
+- [ ] Clic derecho apunta (la cámara se acerca sobre el hombro) y Q cambia de hombro.
+- [ ] Clic izquierdo dispara; R recarga; X cambia el modo de disparo en las armas automáticas.
+- [ ] 1-5, la rueda del ratón y mantener Tab cambian de arma; G suelta la activa.
+- [ ] Un zombi común muere con 2 tiros de pistola a la cabeza; la cabeza desaparece con el headshot.
+- [ ] Con la barra metálica, clic izquierdo golpea cuerpo a cuerpo y no gasta balas.
+- [ ] C junto a una caja o un muro bajo: arriba sale **CUBIERTO**. A/D desliza a lo largo de la cobertura.
+- [ ] En cobertura, clic derecho → **ASOMADO** y el disparo pasa por encima o por el lado (no choca con el
+      muro).
+- [ ] En cobertura, clic izquierdo sin apuntar → **A CIEGAS**.
+- [ ] Espacio pasa por encima de una caja o de un muro bajo.
+- [ ] Mantener F muestra el arco de la granada; al soltar, explota a los 2.5 s y daña a los zombis
+      cercanos. El contador del HUD baja.
+- [ ] Mantener E en un mueble, un coche o una caja: sale la barra de búsqueda y luego el objeto.
+- [ ] La munición y los botiquines se recogen al pasar por encima; con la reserva llena sale «Munición
+      llena» y el objeto se queda en el suelo.
+- [ ] H y B curan con su barra; si un zombi te golpea durante la barra, se cancela y no se gasta el objeto.
+- [ ] Con la vida completa, H avisa y no gasta nada.
