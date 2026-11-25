@@ -79,8 +79,14 @@ Los atajos de prueba (saltar fase, jefe de prueba...) solo funcionan en el edito
 
 ## Documentación
 
+- [`docs/GUIA_JUGADOR.md`](docs/GUIA_JUGADOR.md): cómo se juega, armas, zombis, jefes y puntuación.
 - [`docs/HISTORIA.md`](docs/HISTORIA.md): mundo, personajes, intro en cómic, epílogo y bestiario.
 - [`docs/DEMO.md`](docs/DEMO.md): guion de la demo de 5 minutos.
+- [`docs/PRESENTACION.md`](docs/PRESENTACION.md): diapositivas y preguntas probables.
+- [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md): piezas del sistema, flujo de una partida y qué se guarda.
+- [`docs/PRUEBAS_MANUALES.md`](docs/PRUEBAS_MANUALES.md): lista para probar el juego a mano.
+- [`docs/CONTRIBUIR.md`](docs/CONTRIBUIR.md): ramas, commits y reglas para colaborar.
+- [`docs/GLOSARIO.md`](docs/GLOSARIO.md): términos del juego y de la técnica.
 - [`docs/PLAN.md`](docs/PLAN.md): fases y arquitectura.
 - [`docs/API.md`](docs/API.md): endpoints del backend.
 - [`docs/BOSSES.md`](docs/BOSSES.md) y [`docs/BALANCE.md`](docs/BALANCE.md): jefes y balance.
