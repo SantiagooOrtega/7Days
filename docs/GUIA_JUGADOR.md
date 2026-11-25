@@ -158,3 +158,19 @@ siempre, los jefes).
 - El **tanque** no entra a las casas: si estás dentro, golpea los muros desde fuera (menos daño) y luego
   rodea la casa buscándote. Aprovecha para dispararle por una ventana.
 - Cada día nuevo, el HUD avisa con «Nuevo zombi: …» cuando aparece un tipo por primera vez.
+
+## Jefes
+
+Aparecen cuando ha caído la mitad de la oleada de su día, con una barra grande arriba. Antes de cada ataque
+**avisan**: alzan los brazos, sale una marca roja en el suelo, suena un tono y la barra muestra el nombre del
+ataque. Al bajar del 50 % y del 25 % de vida entran en **furia**: más rápidos y atacan más a menudo.
+
+| Día | Jefe | Vida | Qué hace | Cómo vencerlo |
+|-----|------|------|----------|---------------|
+| 3 | **Bruto Titán** | 1500 | carga en línea recta y golpea el suelo | ponte delante de un muro o una cobertura pesada y esquiva la carga en el último momento: si choca, queda **aturdido 2.5 s** y recibe ×1.5 de daño |
+| 5 | **Lanzador Colosal** | 2400 | lanza objetos enormes en arco que **destruyen las coberturas**, llama a corredores y golpea el suelo | no te quedes en una cobertura: muévete al ver la marca roja y limpia a los corredores primero |
+| 7 | **El Devorador** | 3000 | onda expansiva, oleadas de zombis y golpe en área | **salta** (Espacio) cuando grite «¡ONDA EXPANSIVA! ¡SALTA!»; dispara al **núcleo naranja del pecho** (×4) cuando se abren sus costillas: pasa 4 s de cada 14 y justo después de la onda |
+
+- Los disparos casi no los frenan ni los empujan.
+- Las granadas les hacen muy poco daño: guárdalas para los zombis que los acompañan.
+- Al morir sueltan siempre un arma o un objeto raro o mejor.
