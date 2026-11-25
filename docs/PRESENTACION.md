@@ -27,3 +27,18 @@ de la versión 1.0.
 - Las capturas se sacan del editor con Play Maximized (ver `docs/DEMO.md`). Las imágenes de la presentación no
   se suben al repo si pasan de 2 MB.
 - Ensayar con reloj: diapositivas 1-11 en unos 10 minutos y la demo en 5.
+
+## Preguntas probables y cómo responderlas
+
+| Pregunta | Respuesta corta |
+|----------|-----------------|
+| ¿Dónde está la inteligencia artificial del juego? | En el director (VIGÍA): C# puro, sin internet. Mide cómo juegas y ajusta el día siguiente con reglas explicables y probadas, no con una caja negra. El panel F4 muestra el porqué. |
+| ¿Usaron IA generativa? | El plan incluía un script offline con Gemini para generar variantes, pero en la v1.0 no está: el contenido sale de los valores por defecto y de JSON. Las láminas del cómic se hicieron con IA de imágenes a partir de un guion propio (`docs/CREDITS.md`). |
+| ¿Por qué todo procedural? | Para no depender de assets de pago y que el arte sea original. También obliga a que el rendimiento esté controlado desde el código. |
+| ¿Qué pasa si se cae el servidor? | El juego sigue: «Modo prueba» y el perfil local. Si el token caduca durante la partida, el cliente lo renueva solo. |
+| ¿Se puede hacer trampa en el ranking? | Sí, el puntaje lo calcula el cliente. Para la demo es suficiente; la solución sería que el servidor reciba los eventos de la partida y calcule el puntaje él mismo. |
+| ¿Cómo guardan las contraseñas? | Con argon2 (hash lento y con sal). El hash nunca sale en las respuestas. |
+| ¿Por qué SQLite? | Es un archivo, fácil de llevar a una demo local. El esquema de Prisma es compatible con PostgreSQL: se cambia el proveedor y la `DATABASE_URL`. |
+| ¿Cómo sabemos que el director funciona? | La nota y el ajuste son funciones puras con pruebas EditMode: dado un rendimiento, el resultado es siempre el mismo y nunca se sale de ±25 %. |
+| ¿Por qué una sola escena? | El menú, la intro y los mapas se construyen por código y los mapas son datos (JSON). Así no hay escenas que mantener ni conflictos al unir ramas. |
+| ¿Qué fue lo más difícil? | Que lo responda quien trabajó en esa parte, con un ejemplo concreto. |
