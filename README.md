@@ -12,6 +12,10 @@ la Planta 7, que además ajusta la dificultad según cómo juegues.
 
 [Descargar 7Days v1.0](https://github.com/SantiagooOrtega/7Days/releases/tag/v1.0) — solo para macOS. La primera vez, abre la app con clic derecho sobre 7Days > Abrir (no está firmada).
 
+## Video explicativo
+
+[Ver el video explicativo](https://drive.google.com/file/d/1U9rBeNI8plXCDgf9w4k2A67D5MEfpvmp/view?usp=sharing) — hecho por Santiago Ortega Bolaños.
+
 ## Qué tiene
 
 - **Shooter en tercera persona:** cámara sobre el hombro, apuntado, recarga y cobertura para asomarse y
