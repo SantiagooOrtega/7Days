@@ -14,15 +14,16 @@ Todo corre en local, sin internet.
 
 ### 1. Backend (para iniciar sesión y el ranking)
 
-La primera vez, crea `backend/.env` (no se sube a git; el repo todavía no trae un `.env.example`):
+La primera vez, copia la plantilla `.env.example` (está en la raíz del repo) a `backend/.env` y rellena el
+secreto. `backend/.env` no se sube a git.
 
-```
-PORT=3001
-DATABASE_URL="file:./dev.db"
-JWT_ACCESS_SECRET=pega-aqui-una-cadena-aleatoria-de-64-caracteres
+```bash
+cp .env.example backend/.env
+openssl rand -hex 32        # copia el resultado en JWT_ACCESS_SECRET dentro de backend/.env
 ```
 
-`JWT_ACCESS_SECRET` debe tener al menos 32 caracteres. Para generar uno: `openssl rand -hex 32`.
+La plantilla ya trae `PORT=3001` y `DATABASE_URL=file:./dev.db`. `JWT_ACCESS_SECRET` debe tener al menos 32
+caracteres: si falta, el backend no arranca y avisa con «Configuración inválida en .env».
 
 Luego, en una terminal que se queda abierta toda la demo:
 
@@ -81,7 +82,7 @@ jefes con palabras.
 
 | Problema | Qué hacer |
 |----------|-----------|
-| El backend no arranca | Revisa `backend/.env` y que el puerto 3001 esté libre. Si no hay tiempo: «Modo prueba (sin sesión)». |
+| El backend no arranca | Revisa que exista `backend/.env` (copia de `.env.example`) con `JWT_ACCESS_SECRET` relleno, y que el puerto 3001 esté libre. Si no hay tiempo: «Modo prueba (sin sesión)». |
 | Error en Prisma o argon2 al instalar | Usa Node 22 LTS en vez de Node 25. |
 | Unity no abre o tarda demasiado | Usa la app de la versión 1.0 (ver la tabla de arriba). |
 | Van lentos los FPS | Esc > Opciones > Calidad: baja un nivel. Cierra otras ventanas. |
