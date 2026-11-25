@@ -22,7 +22,8 @@ la Planta 7, que además ajusta la dificultad según cómo juegues.
 - **VIGÍA:** voz por radio con subtítulos, comentarios de combate, intro en cómic y epílogo.
 - **Menú completo:** inicio de sesión, selección de personaje y mapa, ranking, perfil, opciones, créditos
   y menú de pausa.
-- **Backend propio:** cuentas con JWT, progreso, ranking y mapas.
+- **Backend propio:** cuentas con JWT, progreso guardado y ranking. Los mapas son JSON dentro del juego; el
+  backend tiene su esquema para validarlos (servirlos desde la base de datos quedó pendiente).
 - **Arte procedural:** personajes, zombis, armas, texturas, animación y sonidos se generan por código. Las
   excepciones (láminas del cómic y música) están en [`docs/CREDITS.md`](docs/CREDITS.md).
 
