@@ -11,14 +11,14 @@ Todo el sistema está en datos (JSON) para que el backend y Gemini (offline, `np
 | `smg` | Subfusil | pistola | poco común | 12 | 850 rpm | 30 | automático, dispersión alta |
 | `shotgun` | Escopeta | escopeta | poco común | 12 x 8 perdigones | 70 rpm | 6 | alcance corto |
 | `assault_rifle` | Fusil de asalto | rifle | rara | 36 | 520 rpm | 30 | automático |
-| `sniper` | Rifle de francotirador | rifle | épica | 90 | 55 rpm | 5 | alcance 260 m, casi sin dispersión al apuntar |
+| `sniper` | Rifle de francotirador | rifle | épica | 90 | 55 rpm | 5 | alcance 400 m sin caída de daño, casi sin dispersión al apuntar |
 | `bar` | Barra metálica | — | común | 38 | 100 rpm | — | cuerpo a cuerpo (alcance 2.1 m) |
 
 - Los ScriptableObjects (`WeaponAsset`) están en `Assets/_Project/Resources/Weapons`. **Se crean solos** la primera vez que Unity compila; también desde el menú **7Days > Crear armas por defecto (ScriptableObjects)**. Se editan en el Inspector: daño, cadencia, cargador, recoil, dispersión (sin apuntar y apuntando), alcance, rareza y tipo de munición. Lo que falte sale de los valores por defecto.
 - Colores de rareza: común gris, poco común verde, rara azul, épica morada (nombre del arma en el HUD y brillo del drop).
 
 ## Munición por tipo y reservas máximas
-Tres reservas separadas, compartidas por las armas del mismo tipo: **pistola** (pistola, revólver, subfusil) máx. 48, **escopeta** máx. 20, **rifle** (fusil, francotirador) máx. 90 (`ammoLimits`).
+Tres reservas separadas, compartidas por las armas del mismo tipo: **pistola** (pistola, revólver, subfusil) máx. 132, **escopeta** máx. 50, **rifle** (fusil, francotirador) máx. 225 (`ammoLimits`; antes 48 / 20 / 90, ver "Munición generosa" en `docs/BALANCE.md`).
 **Munición llena:** si una reserva está llena, recoger munición de ese tipo muestra "Munición llena" y el objeto **no se consume**. Lo mismo con vendas y botiquines (tope por tipo) y con las armas (máx. 5; si ya tienes el arma, se convierte en media cargador de munición, y si esa reserva está llena tampoco se consume).
 
 ## Botiquines (barra de curación cancelable)
@@ -36,8 +36,8 @@ Tres reservas separadas, compartidas por las armas del mismo tipo: **pistola** (
 2. **Al matar zombies** (`DropSystem.OnZombieKilled("tipo", posición)`, lo llamará el sistema de zombies de la Fase 3): común 6%, corredor 12%, bruto 22%, lanzador 25% (tabla de especiales) y el **jefe siempre**, con algo **raro o mejor** (`minRarity`).
 
 ## Escasez calibrada
-- **Inicio:** pistola con 6 balas en el cargador y 6 de reserva, más la barra.
-- **Tope de objetos en el suelo** (`maxActivePickups` = 24: puntos + drops) y **máximo de drops por día** (`maxDropsPerDay` = 8).
+- **Inicio:** pistola con 6 balas en el cargador y 30 de reserva (antes 6), más la barra.
+- **Tope de objetos en el suelo** (`maxActivePickups` = 32: puntos + drops) y **máximo de drops por día** (`maxDropsPerDay` = 16).
 - **Sin respawn infinito:** los puntos `once` nunca reaparecen; los demás reaparecen como mucho `maxRespawnsPerPoint` (1) veces, y solo una fracción pequeña de lo vaciado por día (`respawnFractionPerDay` = 25%), que el director puede escalar o apagar (`LootDirectorState.RespawnScale`).
 - **Valores esperados** de toda la partida (mapa + drops de 7 días; probado en `LootTests`): pistola ≈ 67 balas, escopeta ≈ 14, rifle ≈ 33, curación ≈ 490 HP, ≈ 5 armas nuevas (≈ 1.5 raras, ≈ 0.7 épicas, casi todas del jefe).
 - Los drops y los pickups usan un **pool**, con un **aro y una luz suave** del color de su rareza (solo las 8 luces más cercanas están encendidas) y avisos en el HUD al recoger.
@@ -45,9 +45,9 @@ Tres reservas separadas, compartidas por las armas del mismo tipo: **pistola** (
 ## Formato JSON (`Resources/Loot/loot.json`; menú **7Days > Exportar botín (JSON)**)
 ```json
 {
-  "startWeapons": ["pistol", "bar"], "startMagazine": 6, "startReserve": 6,
-  "ammoLimits": { "pistol": 48, "shotgun": 20, "rifle": 90 },
-  "maxActivePickups": 24, "maxDropsPerDay": 8, "respawnFractionPerDay": 0.25, "maxRespawnsPerPoint": 1,
+  "startWeapons": ["pistol", "bar"], "startMagazine": 6, "startReserve": 30,
+  "ammoLimits": { "pistol": 132, "shotgun": 50, "rifle": 225 },
+  "maxActivePickups": 32, "maxDropsPerDay": 16, "respawnFractionPerDay": 0.25, "maxRespawnsPerPoint": 1,
   "tables": [ { "id": "mid", "entries": [ { "kind": "ammo", "id": "pistol", "amount": 7, "weight": 3 }, { "kind": "weapon", "id": "revolver", "amount": 1, "weight": 1 } ] } ],
   "drops":  [ { "zombie": "boss", "chance": 1, "table": "drop_boss", "guaranteed": true, "minRarity": 2 } ],
   "points": [ { "id": "far_crate_a", "x": -26, "z": -26, "container": "crate", "table": "high", "risk": 2, "searchSeconds": 2, "once": true } ]
