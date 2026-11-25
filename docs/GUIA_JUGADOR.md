@@ -174,3 +174,45 @@ ataque. Al bajar del 50 % y del 25 % de vida entran en **furia**: más rápidos 
 - Los disparos casi no los frenan ni los empujan.
 - Las granadas les hacen muy poco daño: guárdalas para los zombis que los acompañan.
 - Al morir sueltan siempre un arma o un objeto raro o mejor.
+
+## Puntuación del día (la que usa el director)
+
+Al terminar cada día, VIGÍA te pone una nota de 0 a 100. **50 es lo esperado.** Entre 45 y 55 la dificultad
+no cambia; por encima sube y por debajo baja. Si mueres, la nota del día queda en 20 como máximo.
+
+| Parte | Puntos | Cómo se gana |
+|-------|--------|--------------|
+| Precisión | 25 | acertar el 60 % de los disparos o más da el máximo |
+| Cabeza | 15 | que el 40 % de tus bajas o más sean a la cabeza |
+| Daño evitado | 30 | recibir poco daño por cada zombi que matas |
+| Rapidez | 20 | limpiar la oleada en unos 6 s por zombi o menos |
+| Cobertura | 10 | estar cubierto entre el 10 % y el 60 % del tiempo |
+
+La nota que ve el director es una media: 60 % la de antes y 40 % la de hoy, para que un mal día no lo cambie
+todo de golpe.
+
+## Puntos del ranking
+
+Al terminar la partida (ganando o perdiendo) se guardan en el Perfil y, si iniciaste sesión, en el ranking
+del servidor:
+
+```
+puntos = días superados × 1000 + bajas × 10 + bajas a la cabeza × 5 + 5000 si ganas + nota media × 10
+```
+
+## Al morir o al ganar
+
+La pantalla final muestra tus estadísticas, las barras de la nota de cada día, una gráfica por día y las
+insignias que ganaste:
+
+| Insignia | Cómo se consigue |
+|----------|------------------|
+| Francotirador | precisión del 55 % o más, 40 % de bajas a la cabeza y 8 bajas o más |
+| Sin cobertura | 10 bajas o más pasando menos del 5 % del tiempo cubierto |
+| Racha | 8 bajas seguidas con menos de 4 s entre una y otra |
+| Granadero | 5 bajas con granada |
+| Intocable | menos de 2 de daño recibido por baja, con 10 bajas o más |
+| Superviviente | superar 5 días o más |
+
+Opciones: **Enter** reintenta el día en el que caíste, **Esc** vuelve al menú y **Tab** abre la tabla de
+estadísticas por día. Desde el menú, **Continuar** retoma el día guardado.
