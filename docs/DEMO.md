@@ -70,6 +70,8 @@ jefes con palabras.
 | F4 | Panel del director (rendimiento y ajuste de dificultad) | Sí |
 | F1 | Muestra u oculta la ayuda de controles | Sí |
 | Esc | Menú de pausa: Reanudar, Opciones, Reiniciar día, Volver al menú principal, Salir del juego | Sí |
+| F (mantener y soltar) | Granada: muestra el arco y la lanza al soltar. Se empieza con 2 | Sí |
+| Tab (mantener) | Rueda de armas (con dos armas o más) | Sí |
 | N | Salta la fase actual (preparación > oleada > resumen > día siguiente) | No, solo editor |
 | B | Jefe de prueba 20 m delante. Ojo: B también usa una venda si tienes | No, solo editor |
 | Z / V | Un zombi de prueba / una mini oleada de 8 | No, solo editor |
