@@ -548,16 +548,12 @@ namespace SevenDays.UI
             UiKit.Footer(_screen, "↑↓ Elegir   ·   ←→ Cambiar   ·   Esc Volver");
         }
 
-        public const string CreditsAiLine = "Asistencia de IA: Claude (Anthropic), en programación, pruebas y documentación.";
-
         public static string[] CreditLines()
         {
             var ta = Resources.Load<TextAsset>("creditos");
             var lines = new List<string>();
             if (ta != null) foreach (var l in ta.text.Split('\n')) { var t = l.TrimEnd('\r'); if (t.Length > 0 && !t.StartsWith("#")) lines.Add(t); }
             if (lines.Count == 0) lines.Add("Equipo 7Days");
-            lines.Add("");
-            lines.Add(CreditsAiLine);
             return lines.ToArray();
         }
 

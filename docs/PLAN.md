@@ -4,7 +4,7 @@ Al final de cada fase el desarrollo se detiene para que se pruebe.
 
 | Fase | Contenido | Entregable de prueba |
 |------|-----------|----------------------|
-| 0 | Estructura, CLAUDE.md, git, .gitignore, plan | Repo listo |
+| 0 | Estructura, git, .gitignore, plan | Repo listo |
 | 1 | Backend: BD, auth JWT completa (registro, login, refresh rotativo, logout, perfil), progreso, ranking, tests | `npm test` verde; probar con curl |
 | 2 | Unity: `Session`, `ApiClient`, login/registro, jugador TPS con cámara sobre el hombro (Cinemachine), apuntar con clic derecho, disparo, recarga, cobertura simple (agacharse tras objetos marcados), pooling de balas | Dar Play, loguearse, apuntar, disparar y cubrirte |
 | 2.5 | Look & Feel: URP + Volume por código (desaturado, contraste alto, viñeta, bloom suave, grano leve), niebla, polvo, iluminación en tiempo real afinada (baked no aplica a mapas construidos en ejecución), mapa de ruinas industriales con primitivas, perfil de calidad "Demo", texturas opcionales de Poly Haven | Captura de Unity para ajustar el look; 60 FPS |
