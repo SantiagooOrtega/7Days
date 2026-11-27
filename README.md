@@ -1,8 +1,7 @@
-# 7Days
 
-
+video explicativo johan mosquera
 https://drive.google.com/file/d/1mxI75rIg41idLFZ1wy7I0Rd26eXNz4zR/view?usp=sharing
-
+# 7Days
 Juego 3D de supervivencia zombi en tercera persona (proyecto universitario). Hay que sobrevivir **7 días**
 (un día = una oleada) en Valle Hondo, con jefes los días 3, 5 y 7. Te guía **VIGÍA**, la IA de seguridad de
 la Planta 7, que además ajusta la dificultad según cómo juegues.
